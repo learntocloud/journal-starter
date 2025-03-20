@@ -1,9 +1,6 @@
 fastapi
-azure-cosmos
-azure-identity
 uvicorn
 python-dotenv
-azure-monitor-opentelemetry
 aiohttp
 sqlalchemy
 psycopg2-binary

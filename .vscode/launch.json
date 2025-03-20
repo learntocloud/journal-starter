@@ -13,11 +13,6 @@
                 "api.main:app",
                 "--reload"
             ],
-            "env": {
-                "COSMOS_ENDPOINT": "https://l2c.documents.azure.com:443",
-                "COSMOS_DATABASE_NAME": "test-journal",
-                "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=8434363a-5fdc-411e-bb0f-5a9c1b2d272a;IngestionEndpoint=https://eastus2-3.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus2.livediagnostics.monitor.azure.com/;ApplicationId=88b0f9ce-9384-4fb8-a9b0-87029569ea7d"
-            },
             "jinja": true
         }
     ]

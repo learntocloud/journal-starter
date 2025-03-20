@@ -4,6 +4,11 @@ from datetime import datetime
 from uuid import uuid4
 
 class Entry(BaseModel):
+    # TODO: Add field validation rules
+    # TODO: Add custom validators
+    # TODO: Add schema versioning
+    # TODO: Add data sanitization methods
+    
     id: str = Field(
         default_factory=lambda: str(uuid4()),
         description="Unique identifier for the entry (UUID)."
