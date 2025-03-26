@@ -2,7 +2,7 @@ name: Rebuild and Push Docker Image to Docker Hub
 on:
   push:
     branches:
-      - db_api_deployment  # Trigger the workflow when changes are pushed to the specified branch
+      - main  # Trigger the workflow when changes are pushed to the specified branch
 jobs:
   build:
     runs-on: ubuntu-latest
