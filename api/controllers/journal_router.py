@@ -5,7 +5,6 @@ from fastapi.responses import JSONResponse
 from api.repositories.postgres_repository import PostgresDB
 from api.services import EntryService
 
-
 router = APIRouter()
 
 # TODO: Add authentication middleware
@@ -14,10 +13,12 @@ router = APIRouter()
 # TODO: Add API versioning
 # TODO: Add response caching
 
+
 async def get_entry_service() -> AsyncGenerator[EntryService, None]:
 
     async with PostgresDB() as db:
         yield EntryService(db)
+
 
 @router.post("/entries/")
 async def create_entry(request: Request, entry: dict, entry_service: EntryService = Depends(get_entry_service)):
