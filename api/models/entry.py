@@ -1,7 +1,10 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
+import re
+
+_SCHEMA_VERSION = "1.0"
 
 class Entry(BaseModel):
     # TODO: Add field validation rules
@@ -15,32 +18,36 @@ class Entry(BaseModel):
     )
     work: str = Field(
         ...,
+        min_length=1,
         max_length=256,
         description="What did you work on today?"
     )
     struggle: str = Field(
         ...,
+        min_length=1,
         max_length=256,
         description="What’s one thing you struggled with today?"
     )
     intention: str = Field(
         ...,
+        min_length=1,
         max_length=256,
         description="What will you study/work on tomorrow?"
     )
     created_at: Optional[datetime] = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp when the entry was created."
     )
     updated_at: Optional[datetime] = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="Timestamp when the entry was last updated."
     )
-    # Optional: add a partition key if your Cosmos DB collection requires it
-    # partition_key: str = Field(..., description="Partition key for the entry.")
 
-    class Config:
-        # This can help with how the model serializes field names if needed by Cosmos DB.
-        # For example, if Cosmos DB requires a specific field naming convention.
-        # allow_population_by_field_name = True
-        pass
+    @field_validator('work', 'struggle', 'intention')
+    @classmethod
+    def sanitize_content(cls, v):
+        if v:
+            v = re.sub(r'<[^>]+>', '', v)  # strip HTML tags
+            v = v.replace("'", "").replace('"', "").replace(";", "") #Remove common SQL injection characters
+            v = v.strip()
+        return v

@@ -7,6 +7,8 @@ from typing import Any, Dict, List
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from api.repositories.interface_respository import DatabaseInterface
+from api.models.entry import _SCHEMA_VERSION
+
 
 load_dotenv()
 
@@ -35,6 +37,9 @@ class PostgresDB(DatabaseInterface):
             INSERT INTO entries (id, data, created_at, updated_at)
             VALUES ($1, $2, $3, $4)
             """
+            # Version safety check: hardcoded expected version of Entry
+            if _SCHEMA_VERSION != "1.0":
+                raise RuntimeError("Schema version has changed — review serialization logic.")
             entry_id = entry_data.get("id") or str(uuid.uuid4())
             data_json = json.dumps(entry_data, default=PostgresDB.datetime_serialize)
             await conn.execute(query, entry_id, data_json, entry_data["created_at"], entry_data["updated_at"])

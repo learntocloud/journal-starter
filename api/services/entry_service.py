@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 import logging
+from api.models.entry import Entry
 
 from api.repositories.postgres_repository import PostgresDB
 
@@ -14,14 +15,9 @@ class EntryService:
     async def create_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
         """Creates a new entry."""
         logger.info("Creating entry")
-        now = datetime.now(timezone.utc)
-        entry = {
-            **entry_data,
-            "created_at": now,
-            "updated_at": now
-        }
-        logger.debug("Entry created: %s", entry)
-        return entry
+        entry = Entry(**entry_data)
+        logger.debug("Entry created: %s", entry.dict())
+        return entry.dict()
 
     async def get_entries(self) -> List[Dict[str, Any]]:
         """Gets all entries."""
