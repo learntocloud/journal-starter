@@ -11,8 +11,8 @@ from api.repositories.interface_respository import DatabaseInterface
 load_dotenv()
 # print("ENV DEBUG:", dict(os.environ))
 
-# DATABASE_URL = os.getenv("DATABASE_URL")
-DATABASE_URL = "postgresql://mcc_admin:PTCruisers1!@20.185.156.225:5432/journal-entry"
+DATABASE_URL = os.getenv("DATABASE_URL")
+# DATABASE_URL = "postgresql://mcc_admin:PTCruisers1!@20.185.156.225:5432/journal-entry"
 if not DATABASE_URL:
     print("Database URL variable: " + str(DATABASE_URL))
     raise ValueError("DATABASE_URL environment variable is missing")

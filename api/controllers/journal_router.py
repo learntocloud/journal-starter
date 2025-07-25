@@ -20,6 +20,9 @@ async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
         yield EntryService(db)
 
+@router.get("/")
+def root():
+	return {"message": "API is working"}
 
 @router.post("/entries")
 async def create_entry(request: Request, entry: dict, entry_service: EntryService = Depends(get_entry_service)):
@@ -55,19 +58,19 @@ async def get_all_entries(request: Request):
         if not entries:
             raise HTTPException(status_code=404, detail="Entry not found")
     return entries
+
     # TODO: Implement get all entries endpoint
     # Hint: Use PostgresDB and EntryService like other endpoints
-
-
 @router.get("/entries/{entry_id}")
 async def get_entry(request: Request, entry_id: str):
-    client_host = request.client_host
-    if (entry_id):
-        return {"client_host": client_host, "entry_id": entry_id}
-    return {"404: Entry not found"}
+    async with PostgresDB() as db:
+        entry_service = EntryService(db)
+        entry = await entry_service.get_entry(entry_id)
+        if not entry:
+            raise HTTPException(status_code=404, detail="Entry not found")
+        return entry
     # TODO: Implement get single entry endpoint
     # Hint: Return 404 if entry not found
-    pass
 
 
 @router.patch("/entries/{entry_id}")
@@ -87,9 +90,16 @@ async def update_entry(request: Request, entry_id: str, entry_update: dict):
 
 @router.delete("/entries/{entry_id}")
 async def delete_entry(request: Request, entry_id: str):
+    del_entry_id = entry_id
+    async with PostgresDB() as db:
+        entry_service = EntryService(db)
+        if not entry_id:
+            raise HTTPException(status_code=404, detail="Entry not found")
+        await entry_service.delete_entry(entry_id)
+        return {"detail": "Entry deleted"}
+
     # TODO: Implement delete entry endpoint
     # Hint: Return 404 if entry not found
-    pass
 
 
 @router.delete("/entries")
@@ -100,3 +110,9 @@ async def delete_all_entries(request: Request):
         await entry_service.delete_all_entries()
 
     return {"detail": "All entries deleted"}
+
+@router.get("/healthcheck")
+async def healthcheck():
+	return {"status": "ok"}
+
+journal_router = router

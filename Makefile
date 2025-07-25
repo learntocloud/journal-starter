@@ -7,7 +7,7 @@ help:             ## Show the help.
 
 .PHONY: run
 run:             ## Show the help.
-	uvicorn api.main:app --reload --host localhost
+	uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 
 .PHONY: install
 install:             ## Install the dependencies.
