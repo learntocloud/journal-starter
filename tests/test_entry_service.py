@@ -125,3 +125,4 @@ async def test_get_all_entries(service, fake_db):
     assert len(result) == 2
     for entry in result:
         assert isinstance(entry, EntryOut)
+
