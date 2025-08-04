@@ -1,0 +1,22 @@
+# .coveragerc
+[run]
+omit =
+    app/__init__.py
+    app/models/__init__.py
+    app/services/__init__.py
+    app/routers/__init__.py
+    app/core/__init__.py
+    app/db/__init__.py
+    app/utils.py
+    migrations/*
+    tests/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    @abstractmethod
+    @overload
+
+show_missing = True
