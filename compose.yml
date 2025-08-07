@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    depends_on:
+      - db
+    volumes:
+      - ./:/code:ro
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_eOwXMuyZ1rp4@ep-orange-smoke-a4ol7s3g-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+    ports:
+      - "8000:8000"
+
+  db:
+      image: postgres:15-alpine
+      volumes:
+        - postgres_data:/var/lib/postgresql/data/
+      expose:
+        - 5433
+      environment:
+        - POSTGRES_USER=neondb_owner
+        - POSTGRES_PASSWORD=npg_eOwXMuyZ1rp4
+        - POSTGRES_DB=neondb
+
+volumes:
+      postgres_data:
