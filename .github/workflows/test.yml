@@ -26,7 +26,8 @@ jobs:
           --health-retries=5
 
     env:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/journal_db_test
+      # Use a sync driver for Alembic (psycopg2), no +asyncpg
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db_test
       PYTHONPATH: .
 
     steps:
