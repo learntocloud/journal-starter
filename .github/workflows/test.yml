@@ -26,7 +26,7 @@ jobs:
           --health-retries=5
 
     env:
-      # Use a sync driver for Alembic (psycopg2), no +asyncpg
+      # Use a sync driver for Alembic (psycopg2), no +asyncpg here
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db_test
       PYTHONPATH: .
 
@@ -50,6 +50,17 @@ jobs:
           until pg_isready -h localhost -U postgres; do
             sleep 1
           done
+
+      # Helpful debug so we can see exactly what URL Alembic will use
+      - name: Debug DB URL (print env & settings)
+        run: |
+          echo "DATABASE_URL from GH env: ${DATABASE_URL}"
+          python - <<'PY'
+          import os
+          from app.core.config import settings
+          print("env DATABASE_URL:", os.getenv("DATABASE_URL"))
+          print("settings.database_url:", settings.database_url)
+          PY
 
       - name: Run Alembic migrations
         run: alembic upgrade head
