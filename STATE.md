@@ -16,39 +16,40 @@ _Last updated: 2025-08-15_
 7. API routing (CRUD) — ✅ Complete (create/get/update/delete/list)  
 8. Dependency injection — ✅ Complete (overrides testable)  
 9. Router unit tests (mocked service) — ✅ Complete  
-10. Service-layer unit tests — ✅ Complete  
-11. Integration tests (real DB) — ⚪ In progress (smoke test added for POST /entries)  
+10. Service-layer unit tests — ✅ Complete (edge-case coverage can still be expanded)  
+11. Integration tests (real DB) — ⚪ Basic smoke test added (POST /entries) — more coverage optional  
 12. API docs (OpenAPI) — ✅ Complete (FastAPI default)  
 13. CORS, logging, healthcheck — ✅ Complete  
 14. README, CI workflow, Dockerfile — ⚪ Final polish (verify)  
 15. Deployment — ⚪ Not started
 
 ## Current step
-- Finalize CI + README polish; decide whether to expand integration tests beyond the smoke test.
+- Finalize CI + README polish; optional: expand integration tests to cover update/list/delete.
 
 ## Test status
 - Summary: **21 passed** locally (`pytest -q` on 2025-08-15); **21 passed** in CI (commit `ad94fa7`, Python 3.11), coverage uploaded  
-- Integration: basic POST /entries smoke test hitting real DB (localhost:5432) added  
 - Notable failures/flakes: **none**
 
 ## Database & migrations
 - Docker: **running (local)**; **CI uses Postgres service on 5432**
 - Alembic head: **73f82b54943b**  
 - Pending migrations: **0**  
-- Note: local `alembic current` now works after aligning `.env` DSN with running container
 - DB: Docker Postgres 16 on localhost:5432
 - Alembic: current head 73f82b54943b (Add entry table)
 
 ## Open issues / TODOs
-- [ ] Align local `.env` `DATABASE_URL` with CI DSN and re-run `alembic current`
-- [ ] Add edge-case tests for service layer (validation errors, not-found, DB exceptions) — optional if integration coverage expanded
+- [ ] Align local `.env` `DATABASE_URL` with CI DSN if needed
+- [ ] Add edge-case tests for service layer (validation errors, not-found, DB exceptions)
 - [ ] Verify CI (workflow triggers, Python version, test step, coverage upload)
 - [ ] README: add quick-start + `.env.example` instructions + Makefile targets
-- [ ] (Optional) Expand integration tests to GET, PUT, DELETE endpoints
+- [ ] (Optional) Expand integration tests with real DB for all CRUD endpoints
 - [ ] (Optional) Choose deployment target and create app manifest
 
 ## Next actions (concrete)
-1. Decide: expand integration tests now, or move to final polish phase.  
-2. Run: `pytest -q` → keep “Test status” up to date.  
-3. Review `.github/workflows/<ci>.yml` → confirm triggers, Python version, install/test steps, env vars for DB.  
-4. Add/confirm `README.md` sections: Quick start, Makefile, `.env.example`, Testing, Migrations, API routes.
+1. Decide whether to expand integration tests now or skip to final polish.
+2. If expanding tests:  
+   - Add update/list/delete integration test cases.  
+   - Use fixtures for consistent test DB state.  
+3. If polishing:  
+   - Confirm CI workflow config.  
+   - Prepare final README.md update + Makefile.
