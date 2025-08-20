@@ -1,3 +1,4 @@
+# .github/workflows/tests.yml
 name: Run Tests & Collect Coverage
 
 on:
@@ -17,17 +18,20 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: journal_db_test
-        ports:
-          - 5432:5432
+        # We can skip publishing ports; use the service hostname "postgres"
         options: >-
           --health-cmd="pg_isready -U postgres"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
 
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]  # optional but nice to have
+
     env:
-      # Use a sync driver for Alembic (psycopg2), no +asyncpg here
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db_test
+      # Sync driver for Alembic (no +asyncpg)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/journal_db_test
       PYTHONPATH: .
 
     steps:
@@ -37,7 +41,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -47,11 +52,10 @@ jobs:
 
       - name: Wait for Postgres to be ready
         run: |
-          until pg_isready -h localhost -U postgres; do
+          until pg_isready -h postgres -U postgres; do
             sleep 1
           done
 
-      # Helpful debug so we can see exactly what URL Alembic will use
       - name: Debug DB URL (print env & settings)
         run: |
           echo "DATABASE_URL from GH env: ${DATABASE_URL}"
@@ -67,7 +71,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=app --cov-report=xml
+          pytest --cov=app --cov-report=xml --cov-fail-under=90
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

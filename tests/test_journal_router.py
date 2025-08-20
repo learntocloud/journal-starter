@@ -138,3 +138,22 @@ async def test_delete_entry_not_found(override_entry_service):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.delete(f"/entries/{fake_id}")
     assert response.status_code == 404
+
+@pytest.mark.anyio
+async def test_create_entry_422_missing_fields(override_entry_service):
+    # Missing required field 'intention' should trigger FastAPI/Pydantic 422
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        payload = {"work": "x", "struggle": "y"}  # intention omitted
+        response = await ac.post("/entries/", json=payload)
+    assert response.status_code == 422
+
+@pytest.mark.anyio
+async def test_create_entry_422_field_too_long(override_entry_service):
+    # Exceeds max_length=256 on 'work'
+    long_text = "a" * 257
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        payload = {"work": long_text, "struggle": "ok", "intention": "ok"}
+        response = await ac.post("/entries/", json=payload)
+    assert response.status_code == 422

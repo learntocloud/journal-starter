@@ -6,6 +6,7 @@ from uuid import uuid4
 from app.services.entry_service import EntryService
 from app.schemas.entry import EntryCreate, EntryUpdate, EntryOut
 from app.models.entry import Entry as EntryModel
+from sqlalchemy.exc import SQLAlchemyError  # NEW: for DB error cases
 
 # -- Helper for all tests: always provide valid UTC datetimes
 def fake_entry_model(**overrides):
@@ -126,3 +127,47 @@ async def test_get_all_entries(service, fake_db):
     for entry in result:
         assert isinstance(entry, EntryOut)
 
+# ---------------------------
+# New edge-case tests appended
+# ---------------------------
+
+@pytest.mark.anyio
+async def test_get_all_entries_empty_list(service, fake_db):
+    """Service should return an empty list when no rows are found."""
+    result_mock = MagicMock()
+    result_mock.scalars.return_value.all.return_value = []
+    fake_db.execute.return_value = result_mock
+
+    result = await service.get_all_entries()
+    assert result == []
+
+@pytest.mark.anyio
+async def test_create_entry_db_error_propagates(service, fake_db):
+    """If the DB commit raises, the exception should surface (or adjust if caught)."""
+    create_schema = EntryCreate(work="x", struggle="y", intention="z")
+    fake_db.commit.side_effect = SQLAlchemyError("boom")
+
+    with pytest.raises(SQLAlchemyError):
+        await service.create_entry(create_schema)
+
+@pytest.mark.anyio
+async def test_update_entry_db_error_propagates(service, fake_db):
+    """Update path: found row but commit fails -> exception surfaces (or adjust if caught)."""
+    now = datetime.now(timezone.utc)
+    existing = EntryModel(
+        id="123e4567-e89b-12d3-a456-426614174000",
+        work="w",
+        struggle="s",
+        intention="i",
+        created_at=now,
+        updated_at=now,
+    )
+    result_mock = MagicMock()
+    result_mock.scalar_one_or_none.return_value = existing
+    fake_db.execute.return_value = result_mock
+
+    fake_db.commit.side_effect = SQLAlchemyError("fail")
+    update_schema = EntryUpdate(work="new")
+
+    with pytest.raises(SQLAlchemyError):
+        await service.update_entry(existing.id, update_schema)

@@ -29,8 +29,8 @@ if env_database_url:
 else:
     # 2) Else build from DB_* envs with sane defaults (5432),
     #    falling back to values from settings for name/user/password.
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")  # <- keep default 5432
+    host = os.getenv("DB_HOST", settings.db_host)
+    port = os.getenv("DB_PORT", settings.db_port)
     name = os.getenv("DB_NAME", settings.db_name)
     user = os.getenv("DB_USER", settings.db_user)
     password = os.getenv("DB_PASSWORD", settings.db_password)

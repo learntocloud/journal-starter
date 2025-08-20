@@ -1,41 +1,47 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
+# app/main.py
+from __future__ import annotations
+
 import logging
-import os
 
-from app.routers.journal_router import router as journal_router  # adjusted for correct import
+from fastapi import FastAPI
 
-# Load environment variables
-load_dotenv()
+from app.core.config import settings
+from app.routers.journal_router import router as journal_router
 
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-logger.info("Starting Journal API...")
+# Ensure we at least have INFO logs if nothing else configures logging.
+# (Uvicorn will still manage its own loggers; this is a safe fallback.)
+root_logger = logging.getLogger()
+if not root_logger.hasHandlers():
+    logging.basicConfig(level=logging.INFO)
 
-# Initialize FastAPI app
-app = FastAPI(title="Journal API")
+app = FastAPI(title="Journal API", version="0.1.0")
 
-# CORS settings
-origins = [
-    "http://localhost:3000",  # React dev server or similar
-    "http://127.0.0.1:3000",
-    # Add your deployed frontend URL here when applicable
-]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,           # you can also use ["*"] for open access
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.on_event("startup")
+async def on_startup() -> None:
+    """
+    Small robustness/observability tweak:
+    Log the DSNs we resolved so drift (e.g., localhost vs db) is obvious.
+    """
+    logger = logging.getLogger("uvicorn")
+    logger.info("DB URL in use (async): %s", settings.database_url)
+    # Handy if Alembic or anything else ever uses the sync DSN
+    if hasattr(settings, "sync_database_url"):
+        logger.info("DB URL in use (sync): %s", settings.sync_database_url)
 
-# Include your routers
+
+# Health endpoint
+@app.get("/healthz", tags=["Health"], summary="Healthcheck")
+async def healthcheck() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+# API routes
 app.include_router(journal_router)
 
-# Healthcheck route
-@app.get("/healthz", tags=["Health"])
-async def healthcheck():
-    return {"status": "ok"}
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # Run a dev server if launched directly
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
