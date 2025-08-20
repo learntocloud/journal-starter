@@ -1,12 +1,12 @@
 # Project state — journal-starter
-_Last updated: 2025-08-15_
+_Last updated: 2025-08-16_
 
 ## Snapshot
 - Guide: https://learntocloud.guide/phase2/build-app
 - Stack: FastAPI (async) • SQLAlchemy ORM (async) • PostgreSQL • Alembic • Pydantic v2 • pytest (AsyncClient + mocks)
 - Pattern: Service–repository • Dependency-injected routes
 
-## Progress (from last check)
+## Progress
 1. Scaffolding & repo setup — ✅ Complete  
 2. Environment & .env config — ✅ Complete (.env + app/core/config.py; Docker/DB configured)  
 3. DB model & Alembic migration — ✅ Complete (entry table; migrations run)  
@@ -16,40 +16,38 @@ _Last updated: 2025-08-15_
 7. API routing (CRUD) — ✅ Complete (create/get/update/delete/list)  
 8. Dependency injection — ✅ Complete (overrides testable)  
 9. Router unit tests (mocked service) — ✅ Complete  
-10. Service-layer unit tests — ✅ Complete (edge-case coverage can still be expanded)  
-11. Integration tests (real DB) — ⚪ Basic smoke test added (POST /entries) — more coverage optional  
+10. Service-layer unit tests — ✅ Complete (CRUD + edge cases)  
+11. Integration tests (real DB) — ✅ Complete (green locally & in CI)  
 12. API docs (OpenAPI) — ✅ Complete (FastAPI default)  
 13. CORS, logging, healthcheck — ✅ Complete  
-14. README, CI workflow, Dockerfile — ⚪ Final polish (verify)  
+14. README, CI workflow, Dockerfile — ⚪ Needs polish/verify  
 15. Deployment — ⚪ Not started
 
 ## Current step
-- Finalize CI + README polish; optional: expand integration tests to cover update/list/delete.
+- Polish README (quick start, `.env.example`, Makefile targets).
+- Confirm CI coverage thresholds and workflow reliability.
+- Decide on deployment target (Render, Fly.io, Railway, etc.).
 
 ## Test status
-- Summary: **21 passed** locally (`pytest -q` on 2025-08-15); **21 passed** in CI (commit `ad94fa7`, Python 3.11), coverage uploaded  
+- Summary: **24 passed** locally (`pytest -q` on 2025-08-16); **24 passed** in CI, coverage uploaded  
+- Coverage: ~90%+ (meets threshold, see CI)  
 - Notable failures/flakes: **none**
 
 ## Database & migrations
-- Docker: **running (local)**; **CI uses Postgres service on 5432**
+- Docker: **stopped (local)**; **CI uses Postgres service on 5432**  
 - Alembic head: **73f82b54943b**  
 - Pending migrations: **0**  
-- DB: Docker Postgres 16 on localhost:5432
-- Alembic: current head 73f82b54943b (Add entry table)
+- DB: Docker Postgres 16 on localhost:5432  
+- Alembic: current head `73f82b54943b_add_entry_table`  
 
 ## Open issues / TODOs
-- [ ] Align local `.env` `DATABASE_URL` with CI DSN if needed
-- [ ] Add edge-case tests for service layer (validation errors, not-found, DB exceptions)
-- [ ] Verify CI (workflow triggers, Python version, test step, coverage upload)
-- [ ] README: add quick-start + `.env.example` instructions + Makefile targets
-- [ ] (Optional) Expand integration tests with real DB for all CRUD endpoints
-- [ ] (Optional) Choose deployment target and create app manifest
+- [ ] README polish: add quick-start, `.env.example`, Makefile targets, API usage examples  
+- [ ] CI: confirm Python 3.11/3.12 matrix, keep coverage ≥90%  
+- [ ] Deployment target + manifest  
+- [ ] (Optional) Add load/perf tests for API  
 
 ## Next actions (concrete)
-1. Decide whether to expand integration tests now or skip to final polish.
-2. If expanding tests:  
-   - Add update/list/delete integration test cases.  
-   - Use fixtures for consistent test DB state.  
-3. If polishing:  
-   - Confirm CI workflow config.  
-   - Prepare final README.md update + Makefile.
+1. Finalize `README.md` → include Quick start, `.env.example`, Makefile, Testing, Migrations, API routes.  
+2. Add minimal Makefile (`make run`, `make test`, `make migrate`).  
+3. Keep CI workflow as-is, ensure coverage is enforced.  
+4. Pick deployment target and create manifest (`Dockerfile` already present).  

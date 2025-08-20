@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Environments
+.env
+.venv
+venv/
+ENV/
+
+# Git
+.git
+.gitignore
+
+# Byte-compiled / optimized / DLL files
+*.so
+*.dll
+
+# Tests
+.pytest_cache/
+htmlcov/
+.coverage
