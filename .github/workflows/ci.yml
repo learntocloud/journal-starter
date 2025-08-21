@@ -19,7 +19,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: journal_db_test
-        # No need to publish ports; use hostname "postgres" from the job.
+        # Healthcheck so the container re-tries until it's actually ready
         options: >-
           --health-cmd="pg_isready -U postgres -d journal_db_test || exit 1"
           --health-interval=5s
@@ -45,22 +45,39 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      # Rely on the service healthcheck above; if Postgres isn't healthy after retries,
-      # the next steps will fail. These two debug steps help you see why.
-      - name: Show services & health
+      - name: Install Postgres client (psql/pg_isready)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      # Extra defensive wait (even though the service healthcheck exists)
+      - name: Wait for Postgres to be ready
+        run: |
+          echo "Waiting for postgres service…"
+          until pg_isready -h postgres -U postgres -d journal_db_test; do
+            sleep 1
+          done
+          echo "Postgres is ready."
+
+      - name: Smoke check DB connectivity (SELECT version)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h postgres -U postgres -d journal_db_test -c "SELECT version();"
+
+      - name: Show services & health (debug)
         if: always()
         run: |
           docker ps -a
-          # Try a direct TCP check (no auth)
           (echo > /dev/tcp/postgres/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
 
-      - name: Print Postgres logs (helpful if later steps fail)
+      - name: Print Postgres logs (debug)
         if: always()
         run: |
           echo "----- postgres container logs -----"
@@ -71,16 +88,10 @@ jobs:
         run: |
           echo "DATABASE_URL (env): ${DATABASE_URL}"
           python - <<'PY'
-          import os
           from app.core.config import settings
           print("settings.database_url:", settings.database_url)
           print("settings.sync_database_url:", settings.sync_database_url)
           PY
-
-      # 👇 New step: prove DB is reachable with an actual SQL call
-      - name: Verify Postgres connectivity (SELECT version)
-        run: |
-          PGPASSWORD=postgres psql -h postgres -U postgres -d journal_db_test -c "SELECT version();"
 
       - name: Run Alembic migrations
         run: alembic upgrade head
