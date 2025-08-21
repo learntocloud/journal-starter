@@ -1,6 +1,6 @@
 # Journal API
 
-[![CI](https://github.com/your-username/journal-starter/actions/workflows/test.yml/badge.svg)](https://github.com/your-username/journal-starter/actions/workflows/test.yml)
+[![CI](https://github.com/cfergile/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/cfergile/journal-starter/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/your-username/journal-starter/branch/main/graph/badge.svg)](https://codecov.io/gh/your-username/journal-starter)
 
 A FastAPI-based CRUD Journal API built as part of the **Learn to Cloud Guide** capstone project.  

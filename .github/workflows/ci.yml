@@ -1,0 +1,89 @@
+# .github/workflows/tests.yml
+name: Run Tests & Collect Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        # Expose port for reliability across runners
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: journal_db_test
+        options: >-
+          --health-cmd="pg_isready -U postgres -d journal_db_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    env:
+      # Use a sync DSN in CI so Alembic is happy (no +asyncpg)
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db_test
+      PYTHONPATH: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      # Extra defensive wait; the service has a healthcheck but we wait explicitly too
+      - name: Wait for Postgres to be ready
+        run: |
+          for i in {1..60}; do
+            if pg_isready -h localhost -p 5432 -U postgres -d journal_db_test; then
+              echo "Postgres is ready!"
+              break
+            fi
+            echo "Waiting for Postgres... ($i/60)"
+            sleep 2
+          done
+          # Final assert
+          pg_isready -h localhost -p 5432 -U postgres -d journal_db_test
+
+      - name: Debug DB URL (print env & settings)
+        run: |
+          echo "DATABASE_URL from GH env: ${DATABASE_URL}"
+          python - <<'PY'
+          import os
+          from app.core.config import settings
+          print("env DATABASE_URL:", os.getenv("DATABASE_URL"))
+          print("settings.database_url (normalized):", settings.database_url)
+          PY
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+
+      - name: Run tests with coverage
+        run: pytest --cov=app --cov-report=xml --cov-fail-under=90
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true
