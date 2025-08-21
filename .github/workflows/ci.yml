@@ -1,5 +1,5 @@
-# .github/workflows/tests.yml
-name: Run Tests & Collect Coverage
+# .github/workflows/ci.yml
+name: CI — Tests & Coverage
 
 on:
   push:
@@ -10,30 +10,29 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     services:
       postgres:
         image: postgres:16
-        # Expose port for reliability across runners
-        ports:
-          - 5432:5432
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: journal_db_test
+        # No need to publish ports; use hostname "postgres" from the job.
         options: >-
-          --health-cmd="pg_isready -U postgres -d journal_db_test"
-          --health-interval=10s
+          --health-cmd="pg_isready -U postgres -d journal_db_test || exit 1"
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=10
+          --health-retries=30
 
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
 
     env:
-      # Use a sync DSN in CI so Alembic is happy (no +asyncpg)
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db_test
+      # IMPORTANT: sync driver for Alembic in CI (no +asyncpg)
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/journal_db_test
       PYTHONPATH: .
 
     steps:
@@ -44,7 +43,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -52,29 +51,36 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
-      # Extra defensive wait; the service has a healthcheck but we wait explicitly too
-      - name: Wait for Postgres to be ready
+      # Rely on the service healthcheck above; if Postgres isn't healthy after retries,
+      # the next steps will fail. These two debug steps help you see why.
+      - name: Show services & health
+        if: always()
         run: |
-          for i in {1..60}; do
-            if pg_isready -h localhost -p 5432 -U postgres -d journal_db_test; then
-              echo "Postgres is ready!"
-              break
-            fi
-            echo "Waiting for Postgres... ($i/60)"
-            sleep 2
-          done
-          # Final assert
-          pg_isready -h localhost -p 5432 -U postgres -d journal_db_test
+          docker ps -a
+          # Try a direct TCP check (no auth)
+          (echo > /dev/tcp/postgres/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
 
-      - name: Debug DB URL (print env & settings)
+      - name: Print Postgres logs (helpful if later steps fail)
+        if: always()
         run: |
-          echo "DATABASE_URL from GH env: ${DATABASE_URL}"
+          echo "----- postgres container logs -----"
+          docker logs ${{ job.services.postgres.id }} || true
+          echo "-----------------------------------"
+
+      - name: Debug DB URL (settings vs env)
+        run: |
+          echo "DATABASE_URL (env): ${DATABASE_URL}"
           python - <<'PY'
           import os
           from app.core.config import settings
-          print("env DATABASE_URL:", os.getenv("DATABASE_URL"))
-          print("settings.database_url (normalized):", settings.database_url)
+          print("settings.database_url:", settings.database_url)
+          print("settings.sync_database_url:", settings.sync_database_url)
           PY
+
+      # 👇 New step: prove DB is reachable with an actual SQL call
+      - name: Verify Postgres connectivity (SELECT version)
+        run: |
+          PGPASSWORD=postgres psql -h postgres -U postgres -d journal_db_test -c "SELECT version();"
 
       - name: Run Alembic migrations
         run: alembic upgrade head
