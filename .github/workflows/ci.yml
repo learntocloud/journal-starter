@@ -19,7 +19,10 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: journal_db_test
-        # Healthcheck so the container re-tries until it's actually ready
+        # Expose Postgres on localhost of the runner
+        ports:
+          - 5432:5432
+        # Healthcheck so we don't race Postgres startup
         options: >-
           --health-cmd="pg_isready -U postgres -d journal_db_test || exit 1"
           --health-interval=5s
@@ -32,7 +35,8 @@ jobs:
 
     env:
       # IMPORTANT: sync driver for Alembic in CI (no +asyncpg)
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/journal_db_test
+      # Use localhost because the job is NOT running in a container
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/journal_db_test
       PYTHONPATH: .
 
     steps:
@@ -56,26 +60,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      # Extra defensive wait (even though the service healthcheck exists)
+      # Extra defensive wait; pairs with the service healthcheck above
       - name: Wait for Postgres to be ready
         run: |
-          echo "Waiting for postgres service…"
-          until pg_isready -h postgres -U postgres -d journal_db_test; do
+          echo "Waiting for Postgres on localhost:5432…"
+          until pg_isready -h 127.0.0.1 -U postgres -d journal_db_test; do
             sleep 1
           done
           echo "Postgres is ready."
 
+      # Tiny proof that DB is reachable before migrations
       - name: Smoke check DB connectivity (SELECT version)
         env:
           PGPASSWORD: postgres
         run: |
-          psql -h postgres -U postgres -d journal_db_test -c "SELECT version();"
+          psql -h 127.0.0.1 -U postgres -d journal_db_test -c "SELECT version();"
 
       - name: Show services & health (debug)
         if: always()
         run: |
           docker ps -a
-          (echo > /dev/tcp/postgres/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
+          (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
 
       - name: Print Postgres logs (debug)
         if: always()
