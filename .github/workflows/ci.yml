@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI — Tests & Coverage
 
 on:
@@ -49,18 +48,38 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install Python deps
+      - name: Install runtime deps
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: Install dev tools (ruff/black/isort/mypy/bandit)
+        run: |
+          pip install ruff black isort mypy bandit
+
+      # --- Quality gates (no DB needed) ---
+      - name: Ruff (lint)
+        run: ruff check .
+
+      - name: Black (format check)
+        run: black --check app tests
+
+      - name: isort (import order check)
+        run: isort --check-only app tests
+
+      - name: mypy (type check)
+        run: mypy app
+
+      - name: Bandit (security checks)
+        run: bandit -q -r app -ll
+
+      # --- DB readiness + smoke check ---
       - name: Install Postgres client (psql/pg_isready)
         run: |
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      # Extra defensive wait; pairs with the service healthcheck above
       - name: Wait for Postgres to be ready
         run: |
           echo "Waiting for Postgres on localhost:5432…"
@@ -69,25 +88,11 @@ jobs:
           done
           echo "Postgres is ready."
 
-      # Tiny proof that DB is reachable before migrations
       - name: Smoke check DB connectivity (SELECT version)
         env:
           PGPASSWORD: postgres
         run: |
           psql -h 127.0.0.1 -U postgres -d journal_db_test -c "SELECT version();"
-
-      - name: Show services & health (debug)
-        if: always()
-        run: |
-          docker ps -a
-          (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
-
-      - name: Print Postgres logs (debug)
-        if: always()
-        run: |
-          echo "----- postgres container logs -----"
-          docker logs ${{ job.services.postgres.id }} || true
-          echo "-----------------------------------"
 
       - name: Debug DB URL (settings vs env)
         run: |
@@ -109,3 +114,17 @@ jobs:
         with:
           files: ./coverage.xml
           fail_ci_if_error: true
+
+      # --- Helpful debug always printed on failure/success ---
+      - name: Show services & health (debug)
+        if: always()
+        run: |
+          docker ps -a
+          (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && echo "5432 is open" || echo "5432 not open"
+
+      - name: Print Postgres logs (debug)
+        if: always()
+        run: |
+          echo "----- postgres container logs -----"
+          docker logs ${{ job.services.postgres.id }} || true
+          echo "-----------------------------------"
