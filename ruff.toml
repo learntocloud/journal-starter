@@ -1,0 +1,9 @@
+# Ruff linter/formatter configuration
+target-version = "py311"
+line-length = 100
+
+# Enable common rule families
+select = ["E", "F", "W", "I", "UP"]
+
+# You can ignore rules here if needed later, e.g.:
+# ignore = ["E501"]

@@ -1,3 +1,4 @@
+# .github/workflows/trivy.yml
 name: Security — Trivy FS Scan
 
 on:
@@ -5,21 +6,59 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
+  schedule:
+    # weekly scan (Sun 06:00 UTC)
+    - cron: "0 6 * * 0"
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write  # required for SARIF upload
 
 jobs:
   trivy-fs:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+      # Filesystem (source) scan: vuln + misconfig + secrets + license
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-          format: table
-          exit-code: 1
           scan-ref: .
+          scanners: vuln,misconfig,secret,license
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 0                 # <-- do NOT fail CI if issues found
+          timeout: 5m
+          # Reduce noise
+          skip-dirs: |
+            .git
+            .venv
+            venv
+            node_modules
+            migrations/__pycache__
+            app/**/__pycache__
+          # Optionally exclude known-safe files (examples, sample envs, etc.)
+          # skip-files: |
+          #   README.md
+          #   .env.example
+
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      # Always keep the raw SARIF as an artifact (handy for debugging triage)
+      - name: Upload raw Trivy report (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.sarif

@@ -9,8 +9,12 @@ PYTHON ?= python
 
 .DEFAULT_GOAL := help
 .PHONY: help run test cov cov-xml ci migrate current revision downgrade \
-        db-up db-down db-logs format lint \
-        compose-up compose-down compose-logs web-sh freeze
+        db-up db-down db-logs db-wait \
+        format format-check lint lint-fix types \
+        precommit precommit-fix \
+        compose-up compose-down compose-logs compose-wait compose-migrate web-sh freeze
+
+
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z0-9_\-]+:.*?## ' $(MAKEFILE_LIST) | sed 's/:.*## /:\t/' | sort
@@ -48,6 +52,37 @@ downgrade: ## Revert one Alembic migration step
 freeze: ## Lock dependencies to requirements.txt
 	$(PYTHON) -m pip freeze > requirements.txt
 
+# ---- Code quality ------------------------------------------------------------
+
+format: ## Format code with black & isort
+	$(PYTHON) -m black app tests
+	$(PYTHON) -m isort app tests
+
+format-check: ## Check formatting (no changes) — good for pre-commit/CI
+	$(PYTHON) -m black --check app tests
+	$(PYTHON) -m isort --check-only app tests
+
+lint: ## Lint with ruff
+	$(PYTHON) -m ruff check app tests
+
+lint-fix: ## Lint & autofix with ruff
+	$(PYTHON) -m ruff check --fix app tests
+
+types: ## Type check with mypy (optional; install mypy)
+	$(PYTHON) -m mypy app
+
+precommit: ## Run local quality gates (lint, format-check, types)
+	$(PYTHON) -m ruff check app tests
+	$(PYTHON) -m black --check app tests
+	$(PYTHON) -m isort --check-only app tests
+	$(PYTHON) -m mypy app
+
+precommit-fix: ## Autofix, then re-check quality gates
+	$(PYTHON) -m ruff check --fix app tests
+	$(PYTHON) -m black app tests
+	$(PYTHON) -m isort app tests
+	$(PYTHON) -m mypy app
+
 # ---- Optional helpers for local single-container Postgres --------------------
 
 DB_CONTAINER ?= journal-db
@@ -75,6 +110,13 @@ db-down: ## Stop & remove local Postgres container (keeps volume)
 db-logs: ## Tail logs from local Postgres container
 	docker logs -f $(DB_CONTAINER)
 
+db-wait: ## Wait for local Postgres to accept connections (needs pg_isready)
+	@echo "Waiting for Postgres on localhost:$(DB_PORT)…"
+	@until pg_isready -h 127.0.0.1 -p $(DB_PORT) -U $(DB_USER) >/dev/null 2>&1; do \
+		sleep 1; \
+	done; \
+	echo "Postgres is ready."
+
 # ---- Docker Compose workflow (recommended extension) -------------------------
 
 compose-up: ## Build and start API + DB via docker compose
@@ -86,12 +128,15 @@ compose-down: ## Stop and remove compose stack
 compose-logs: ## Follow API logs
 	docker compose logs -f web
 
+compose-wait: ## Wait for compose Postgres service to be ready
+	@echo "Waiting for compose 'db' on port 5432…"
+	@until docker compose exec -T db pg_isready -U postgres >/dev/null 2>&1; do \
+		sleep 1; \
+	done; \
+	echo "Compose DB is ready."
+
+compose-migrate: ## Run Alembic upgrade inside web container
+	docker compose exec -T web alembic upgrade head
+
 web-sh: ## Shell into running web container
 	docker compose exec web /bin/bash || docker compose exec web sh
-
-format: ## Format code with black & isort
-	$(PYTHON) -m black app tests
-	$(PYTHON) -m isort app tests
-
-lint: ## Lint with ruff
-	$(PYTHON) -m ruff check app tests
