@@ -54,19 +54,16 @@ async def get_all_entries(entry_service: EntryService = Depends(get_entry_servic
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving entries: {str(e)}")
 
-@router.get("/entries/{entry_id}")
+@router.get("/entries/{entry_id}", response_model=Entry)
 async def get_entry(request: Request, entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
-    """
-    TODO: Implement this endpoint to return a single journal entry by ID
-    
-    Steps to implement:
-    1. Use the entry_service to get the entry by ID
-    2. Return 404 if entry not found
-    3. Return the entry as JSON if found
-    
-    Hint: Check the update_entry endpoint for similar patterns
-    """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    async with PostgresDB() as db:
+        entry_service = EntryService(db)
+        result = await entry_service.get_entry(entry_id)
+    if not result:
+        
+        raise HTTPException(status_code=404, detail="Entry not found")
+  
+    return result
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(request: Request, entry_id: str, entry_update: dict):
