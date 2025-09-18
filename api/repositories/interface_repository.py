@@ -11,7 +11,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_entries(self) -> List[Dict[str, Any]]:
+    async def get_all_entries(self) -> List[Dict[str, Any]]:
         """Retrieve all journal entries."""
         pass
 
