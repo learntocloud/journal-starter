@@ -1,4 +1,4 @@
-#!/bin/bash
+# !/bin/bash
 
 # Journal API Startup Script
 echo "🚀 Starting Journal API..."
