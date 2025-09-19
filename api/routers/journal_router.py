@@ -5,6 +5,7 @@ from repositories.postgres_repository import PostgresDB
 from services.entry_service import EntryService
 from models.entry import Entry, EntryCreate
 
+logger = logging.getLogger("journal")
 
 router = APIRouter()
 
@@ -66,7 +67,16 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     
     Hint: Check the update_entry endpoint for similar patterns
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    
+    logger.info("Fetching entry %s", entry_id)
+    entry = await entry_service.get_entry(entry_id=entry_id)
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="No entry found by this id")
+    
+    return {
+        "entry": entry
+    }
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(request: Request, entry_id: str, entry_update: dict):
@@ -94,7 +104,13 @@ async def delete_entry(request: Request, entry_id: str, entry_service: EntryServ
     
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+
+    entry = await entry_service.get_entry(entry_id=entry_id)
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="No entry found by this id")
+    await entry_service.delete_entry(entry_id=entry_id)
+    return {"detail": "Entry deleted successfully"}
 
 @router.delete("/entries")
 async def delete_all_entries(request: Request):
