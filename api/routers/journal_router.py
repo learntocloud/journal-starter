@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Request, Depends
 from repositories.postgres_repository import PostgresDB
 from services.entry_service import EntryService
 from models.entry import Entry, EntryCreate
+import json
 
 
 router = APIRouter()
@@ -66,7 +67,14 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     
     Hint: Check the update_entry endpoint for similar patterns
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    try:
+        entry = await entry_service.get_entry(entry_id)
+        entry_json = json.dumps(entry)
+
+        return {"entry": entry_json}
+    
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Entry {entry_id} not found.")
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(request: Request, entry_id: str, entry_update: dict):
@@ -94,7 +102,8 @@ async def delete_entry(request: Request, entry_id: str, entry_service: EntryServ
     
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+
+    raise HTTPException(status_code=404, detail=f"Unable to delete entry {entry_id}.")
 
 @router.delete("/entries")
 async def delete_all_entries(request: Request):
