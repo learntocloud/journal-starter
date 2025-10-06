@@ -69,9 +69,9 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     """
     try:
         entry = await entry_service.get_entry(entry_id)
-        entry_json = json.dumps(entry)
+        
 
-        return {"entry": entry_json}
+        return {"entry": entry}
     
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Entry {entry_id} not found.")
