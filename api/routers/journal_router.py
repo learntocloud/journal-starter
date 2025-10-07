@@ -70,7 +70,6 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     try:
         entry = await entry_service.get_entry(entry_id)
         
-
         return {"entry": entry}
     
     except Exception as e:
