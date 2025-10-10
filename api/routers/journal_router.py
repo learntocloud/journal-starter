@@ -108,8 +108,16 @@ async def delete_entry(request: Request, entry_id: str, entry_service: EntryServ
     3. Return appropriate response
     4. Return 404 if entry not found
 
-    Hint: Look at how the update_entry endpoint checks for existence
+    Hint: Look at how the update_entry endpoint checks for exisrtence
     """
+    try:
+        existing_entry = await entry_service.get_entry(entry_id)
+        if not existing_entry:
+            raise HTTPException(status_code=404, detail="Entry not found")
+        await entry_service.delete_entry(entry_id)
+        return {"detail": "Entry deleted successfully"}
+    except Exception as e:
+        print("Error deleting entry:", e)
     raise HTTPException(
         status_code=501, detail="Not implemented - complete this endpoint!")
 
