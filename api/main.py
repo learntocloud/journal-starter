@@ -13,5 +13,18 @@ load_dotenv()
 # 3. Add console handler
 # 4. Test by adding a log message when the app starts
 
-app = FastAPI(title="Journal API", description="A simple journal API for tracking daily work, struggles, and intentions")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("journal")
+logger.info("Starting Journal API application")
+
+console_handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+console_handler.setLevel(logging.INFO)
+logger.addHandler(console_handler)
+
+
+app = FastAPI(title="Journal API",
+              description="A simple journal API for tracking daily work, struggles, and intentions")
 app.include_router(journal_router)
