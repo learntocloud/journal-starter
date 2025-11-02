@@ -60,7 +60,7 @@ class PostgresDB(DatabaseInterface):
                 }
             return {}
 
-    async def get_entries(self) -> List[Dict[str, Any]]:
+    async def get_all_entries(self) -> List[Dict[str, Any]]:
         async with self.pool.acquire() as conn:
             query = "SELECT * FROM entries"
             rows = await conn.fetch(query)

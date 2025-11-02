@@ -21,19 +21,12 @@ class EntryService:
             "updated_at": now
         }
         logger.debug("Entry created: %s", entry)
-        return entry
-
-    async def get_entries(self) -> List[Dict[str, Any]]:
-        """Gets all entries."""
-        logger.info("Fetching entries")
-        entries = await self.db.get_entries()
-        logger.debug("Fetched %d entries", len(entries))
-        return entries
+        return await self.db.create_entry(entry)
 
     async def get_all_entries(self) -> List[Dict[str, Any]]:
         """Gets all entries."""
         logger.info("Fetching all entries")
-        entries = await self.db.get_entries()
+        entries = await self.db.get_all_entries()
         logger.debug("Fetched %d entries", len(entries))
         return entries
 
