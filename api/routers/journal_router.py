@@ -46,8 +46,6 @@ async def create_entry(entry_data: EntryCreate, entry_service: EntryService = De
 async def get_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Get all journal entries."""
     result = await entry_service.get_all_entries()
-    if not result:
-        raise HTTPException(status_code=404, detail="No entries found")
     return {"entries": result, "count": len(result)}
 
 @router.get("/entries/{entry_id}")
