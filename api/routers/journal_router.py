@@ -30,7 +30,7 @@ async def create_entry(entry_data: EntryCreate, entry_service: EntryService = De
         )
         
         # Store the entry in the database
-        created_entry = await entry_service.create_entry(entry_data.model_dump())
+        created_entry = await entry_service.create_entry(entry.model_dump())
         
         # Return success response (FastAPI handles datetime serialization automatically)
         return {
