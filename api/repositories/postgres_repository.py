@@ -3,7 +3,7 @@ import os
 import uuid
 import asyncpg
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from repositories.interface_repository import DatabaseInterface
@@ -77,7 +77,7 @@ class PostgresDB(DatabaseInterface):
                 })
             return entries
         
-    async def get_entry(self, entry_id: str) -> Dict[str, Any] | None:
+    async def get_entry(self, entry_id: str) -> Optional[Dict[str, Any]]:
         async with self.pool.acquire() as conn:
             query = "SELECT * FROM entries WHERE id = $1"
             row = await conn.fetchrow(query, entry_id)
