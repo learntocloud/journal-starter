@@ -12,7 +12,7 @@
   
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/",
-  "runServices": ["postgres"]
+  "runServices": ["postgres"],
   
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],
@@ -21,5 +21,6 @@
 	// "customizations": {},
 
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+	"remoteUser": "root",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y iputils-ping"
 }
