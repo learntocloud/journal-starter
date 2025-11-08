@@ -64,7 +64,7 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     result = await entry_service.get_entry(entry_id)
 
     if not result:
-        raise HTTPException(status_code=501, detail="Entry not found")
+        raise HTTPException(status_code=404, detail="Entry not found")
     
     return result
 
