@@ -60,9 +60,15 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
     
     Hint: Check the update_entry endpoint for similar patterns
     """
+    result = await entry_service.get_entry(entry_id)
+    
+    if not result:
+        raise HTTPException(status_code=404,detail="Entry not found")
+    
+    return result
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
-@router.patch("/entries/{entry_id}")
+@router.patch("/entries/{entry_id}") #装饰器，当访问该地址旧使用该函数
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
     """Update a journal entry"""
     result = await entry_service.update_entry(entry_id, entry_update)
