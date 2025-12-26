@@ -41,22 +41,24 @@ class EntryService:
         return entry
 
     async def update_entry(self, entry_id: str, updated_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Updates an existing entry."""
+        """Updates an existing entry with partial update (merge existing fields with updates)."""
         logger.info("Updating entry %s", entry_id)
         existing_entry = await self.db.get_entry(entry_id)
         if not existing_entry:
             logger.warning("Entry %s not found. Update aborted.", entry_id)
             return None
 
-        updated_data = {
+        # Merge existing entry with updates (partial update)
+        merged_data = {
+            **existing_entry,
             **updated_data,
             "id": entry_id,
             "updated_at": datetime.now(timezone.utc),
             "created_at": existing_entry.get("created_at")
         }
-        await self.db.update_entry(entry_id, updated_data)
+        await self.db.update_entry(entry_id, merged_data)
         logger.debug("Entry %s updated", entry_id)
-        return updated_data
+        return merged_data
 
     async def delete_entry(self, entry_id: str) -> None:
         """Deletes a specific entry."""
