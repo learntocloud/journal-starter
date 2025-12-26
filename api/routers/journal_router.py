@@ -94,3 +94,18 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
     return {"detail": "All entries deleted"}
+
+@router.post("/entries/{entry_id}/analyze")
+async def analyze_entry(entry_id: str):
+    """
+    Analyze a journal entry using AI.
+    
+    Returns sentiment, summary, and key topics.
+    
+    TODO: Implement this endpoint. Steps:
+    1. Fetch the entry from database
+    2. Combine work + struggle + intention into text
+    3. Call llm_service.analyze_journal_entry()
+    4. Return the analysis result
+    """
+    raise HTTPException(status_code=501, detail="Implement this endpoint - see Phase 2 Topic 7")

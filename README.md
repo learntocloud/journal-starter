@@ -102,6 +102,7 @@ Complete a Journal API that allows users to:
 - ✅ **Update journal entries** (already implemented)
 - ✅ **Delete all entries** (already implemented)
 - ❌ **Setup logging** (you need to implement)
+- ❌ **AI-powered entry analysis** (Phase 2 - you need to implement)
 
 ## 🎯 Development Tasks (Your Work!)
 
@@ -133,6 +134,100 @@ You'll use **feature branches** and **Pull Requests (PRs)** for each task. Compl
 
 - Branch: `feature/cloud-cli-setup`
 - [ ] Uncomment one CLI tool in `.devcontainer/devcontainer.json`
+
+## 🤖 AI-Powered Entry Analysis (Phase 2)
+
+**NEW**: In Phase 2, you'll add GenAI capabilities to analyze journal entries using Large Language Models (LLMs).
+
+### Supported LLM Providers
+
+Choose **one** of the following providers to implement:
+
+- **OpenAI** (GPT-4, GPT-3.5-turbo)
+- **Anthropic** (Claude 3)
+- **Azure OpenAI** (GPT models via Azure)
+- **AWS Bedrock** (Claude, Titan, Llama models)
+- **GCP Vertex AI** (PaLM 2, Gemini)
+
+### The `/entries/{id}/analyze` Endpoint
+
+Once implemented, this endpoint will:
+
+1. Fetch a journal entry by ID
+2. Analyze the entry using your chosen LLM
+3. Return:
+   - **Sentiment**: positive, negative, or neutral
+   - **Summary**: 2-sentence summary of the entry
+   - **Topics**: 2-4 key topics mentioned in the entry
+
+**Example Request:**
+```bash
+POST /entries/123e4567-e89b-12d3-a456-426614174000/analyze
+```
+
+**Example Response:**
+```json
+{
+  "sentiment": "positive",
+  "summary": "The learner made progress with FastAPI and database integration. They're excited to continue learning about cloud deployment.",
+  "topics": ["FastAPI", "PostgreSQL", "API development", "cloud deployment"]
+}
+```
+
+### Environment Variable Setup
+
+1. Copy `.env-sample` to `.env` (if you haven't already):
+   ```bash
+   cp .env-sample .env
+   ```
+
+2. Uncomment and configure your chosen LLM provider in `.env`:
+
+   **For OpenAI:**
+   ```bash
+   OPENAI_API_KEY=sk-your-actual-key-here
+   ```
+
+   **For Anthropic:**
+   ```bash
+   ANTHROPIC_API_KEY=sk-ant-your-actual-key-here
+   ```
+
+   **For Azure OpenAI:**
+   ```bash
+   AZURE_OPENAI_API_KEY=your-key-here
+   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+   ```
+
+   **For AWS Bedrock:**
+   ```bash
+   AWS_ACCESS_KEY_ID=your-key-here
+   AWS_SECRET_ACCESS_KEY=your-secret-here
+   AWS_REGION=us-east-1
+   ```
+
+   **For GCP Vertex AI:**
+   ```bash
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
+   ```
+
+3. Install your chosen SDK by uncommenting the relevant line in `api/requirements.txt`:
+   ```bash
+   pip install -r api/requirements.txt
+   ```
+
+### Implementation Guide
+
+The scaffolding is ready in these files:
+
+- **`api/services/llm_service.py`**: Implement the `analyze_journal_entry()` function
+- **`api/routers/journal_router.py`**: Implement the `/entries/{id}/analyze` endpoint
+
+**See Phase 2 Topics 5-6** in the Learn to Cloud curriculum for detailed guidance on:
+- Setting up your LLM API client
+- Crafting effective prompts for structured output
+- Handling API responses and errors
+- Best practices for LLM integration
 
 ## 📊 Data Schema
 

@@ -5,3 +5,9 @@ aiohttp
 sqlalchemy
 psycopg2-binary
 asyncpg
+
+# LLM SDKs - uncomment your chosen provider
+# openai>=1.0.0
+# anthropic>=0.18.0
+# boto3>=1.34.0  # For AWS Bedrock
+# google-cloud-aiplatform>=1.38.0  # For GCP Vertex AI
