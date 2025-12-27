@@ -39,7 +39,7 @@ class EntryService:
         else:
             logger.warning("Entry %s not found", entry_id)
         return entry
-
+    
     async def update_entry(self, entry_id: str, updated_data: Dict[str, Any]) -> Dict[str, Any]:
         """Updates an existing entry."""
         logger.info("Updating entry %s", entry_id)
@@ -47,12 +47,12 @@ class EntryService:
         if not existing_entry:
             logger.warning("Entry %s not found. Update aborted.", entry_id)
             return None
-
+        
         updated_data = {
+            **existing_entry,
             **updated_data,
             "id": entry_id,
-            "updated_at": datetime.now(timezone.utc),
-            "created_at": existing_entry.get("created_at")
+            "updated_at": datetime.now(timezone.utc)
         }
         await self.db.update_entry(entry_id, updated_data)
         logger.debug("Entry %s updated", entry_id)

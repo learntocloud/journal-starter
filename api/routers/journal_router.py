@@ -8,11 +8,6 @@ from models.entry import Entry, EntryCreate
 
 router = APIRouter()
 
-# TODO: Add authentication middleware
-# TODO: Add request validation middleware
-# TODO: Add rate limiting middleware
-# TODO: Add API versioning
-# TODO: Add response caching
 
 async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
@@ -67,7 +62,7 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
     """Update a journal entry"""
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
-    
+        
         raise HTTPException(status_code=404, detail="Entry not found")
     
     return result
