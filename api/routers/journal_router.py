@@ -8,11 +8,6 @@ from models.entry import Entry, EntryCreate
 
 router = APIRouter()
 
-# TODO: Add authentication middleware
-# TODO: Add request validation middleware
-# TODO: Add rate limiting middleware
-# TODO: Add API versioning
-# TODO: Add response caching
 
 async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
