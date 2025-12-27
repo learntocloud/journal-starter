@@ -21,12 +21,12 @@ async def analyze_journal_entry(entry_text: str) -> dict:
             - topics: list of 2-4 key topics mentioned
     
     TODO: Implement this function using your chosen LLM provider.
-    See Phase 2 Topics 5-6 for guidance on:
+    See the Learn to Cloud curriculum for guidance on:
     - Setting up your LLM API client
     - Crafting effective prompts
     - Handling structured JSON output
     """
     raise NotImplementedError(
         "Implement this function using your chosen LLM API. "
-        "See Phase 2 Topics 5-6 for guidance."
+        "See the Learn to Cloud curriculum for guidance."
     )

@@ -102,7 +102,7 @@ Complete a Journal API that allows users to:
 - ✅ **Update journal entries** (already implemented)
 - ✅ **Delete all entries** (already implemented)
 - ❌ **Setup logging** (you need to implement)
-- ❌ **AI-powered entry analysis** (Phase 2 - you need to implement)
+- ❌ **AI-powered entry analysis** (you need to implement)
 
 ## 🎯 Development Tasks (Your Work!)
 
@@ -135,9 +135,9 @@ You'll use **feature branches** and **Pull Requests (PRs)** for each task. Compl
 - Branch: `feature/cloud-cli-setup`
 - [ ] Uncomment one CLI tool in `.devcontainer/devcontainer.json`
 
-## 🤖 AI-Powered Entry Analysis (Phase 2)
+## 🤖 AI-Powered Entry Analysis
 
-**NEW**: In Phase 2, you'll add GenAI capabilities to analyze journal entries using Large Language Models (LLMs).
+You'll add GenAI capabilities to analyze journal entries using Large Language Models (LLMs).
 
 ### Supported LLM Providers
 
@@ -223,7 +223,7 @@ The scaffolding is ready in these files:
 - **`api/services/llm_service.py`**: Implement the `analyze_journal_entry()` function
 - **`api/routers/journal_router.py`**: Implement the `/entries/{id}/analyze` endpoint
 
-**See Phase 2 Topics 5-6** in the Learn to Cloud curriculum for detailed guidance on:
+**See the Learn to Cloud curriculum** for detailed guidance on:
 - Setting up your LLM API client
 - Crafting effective prompts for structured output
 - Handling API responses and errors

@@ -40,7 +40,7 @@ class EntryService:
             logger.warning("Entry %s not found", entry_id)
         return entry
     
-    async def update_entry(self, entry_id: str, updated_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_entry(self, entry_id: str, updated_data: Dict[str, Any], partial=False) -> Dict[str, Any]:
         """Updates an existing entry."""
         logger.info("Updating entry %s", entry_id)
         existing_entry = await self.db.get_entry(entry_id)
@@ -48,15 +48,19 @@ class EntryService:
             logger.warning("Entry %s not found. Update aborted.", entry_id)
             return None
         
-        updated_data = {
-            **existing_entry,
-            **updated_data,
+        if partial:
+            data = {**existing_entry, **updated_data}
+        else:
+            data = {**updated_data}
+
+        data.update({
             "id": entry_id,
-            "updated_at": datetime.now(timezone.utc)
-        }
-        await self.db.update_entry(entry_id, updated_data)
+            "updated_at": datetime.now(timezone.utc),
+            "created_at": existing_entry.get("created_at")
+        })
+        await self.db.update_entry(entry_id, data)
         logger.debug("Entry %s updated", entry_id)
-        return updated_data
+        return data
 
     async def delete_entry(self, entry_id: str) -> None:
         """Deletes a specific entry."""

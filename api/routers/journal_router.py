@@ -60,7 +60,7 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
     """Update a journal entry"""
-    result = await entry_service.update_entry(entry_id, entry_update)
+    result = await entry_service.update_entry(entry_id, entry_update, partial=True)
     if not result:
         
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -103,4 +103,4 @@ async def analyze_entry(entry_id: str):
     3. Call llm_service.analyze_journal_entry()
     4. Return the analysis result
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Phase 2 Topic 7")
+    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
