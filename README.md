@@ -6,17 +6,14 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 ## Table of Contents
 
-- [🚀 Getting Started](#-getting-started)
-- [🎯 Development Tasks (Your Work!)](#-development-tasks-your-work)
-  - [1. API Implementation (Required)](#1-api-implementation-required)
-  - [2. Logging Setup (Required)](#2-logging-setup-required)
-  - [3. Data Model Improvements (Optional)](#3-data-model-improvements-optional)
-  - [4. Cloud CLI Setup (Required for Deployment)](#4-cloud-cli-setup-required-for-deployment)
-- [📊 Data Schema](#-data-schema)
-- [�️ Explore Your Database (Optional)](#️-explore-your-database-optional)
-- [🔧 Troubleshooting](#-troubleshooting)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+- [Getting Started](#-getting-started)
+- [Development Tasks](#-development-tasks-your-work)
+- [Data Schema](#-data-schema)
+- [AI Analysis Reference](#-ai-analysis-reference)
+- [Explore Your Database](#-explore-your-database-optional)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ## 🚀 Getting Started
 
@@ -97,76 +94,66 @@ Then start the API with:
 1. **Create your first entry** In the Docs UI Use the POST `/entries` endpoint to create a new journal entry.
 1. **View your entries** using the GET `/entries` endpoint to see what you've created!
 
-**🎯 Once you can create and see entries, you're ready to start implementing the missing endpoints!**
-
-## Your Learning Goals
-
-Complete a Journal API that allows users to:
-
-- ✅ **Store journal entries** (already implemented)
-- ✅ **Retrieve all journal entries** (already implemented)
-- ❌ **Retrieve single journal entry** (you need to implement)  
-- ❌ **Delete specific journal entries** (you need to implement)
-- ✅ **Update journal entries** (already implemented)
-- ✅ **Delete all entries** (already implemented)
-- ❌ **Setup logging** (you need to implement)
-- ❌ **AI-powered entry analysis** (you need to implement)
+**🎯 Once you can create and see entries, you're ready to start the development tasks!**
 
 ## 🎯 Development Tasks (Your Work!)
 
 You'll use **feature branches** and **Pull Requests (PRs)** for each task. Complete these tasks in your forked repository using feature branches.
 
-### 1. API Implementation (Required)
-
-#### Task 1a: GET Single Entry Endpoint
-
-- Branch: `feature/get-single-entry`
-- [ ] Implement **GET /entries/{entry_id}** in `api/routers/journal_router.py`
-
-#### Task 1b: DELETE Single Entry Endpoint
-
-- Branch: `feature/delete-entry`
-- [ ] Implement **DELETE /entries/{entry_id}** in `api/routers/journal_router.py`
-
-### 2. Logging Setup (Required)
+### 1. Logging Setup
 
 - Branch: `feature/logging-setup`
 - [ ] Configure logging in `api/main.py`
 
-### 3. Data Model Improvements (Optional)
+### 2. API Implementation
+
+#### Task 2a: GET Single Entry Endpoint
+
+- Branch: `feature/get-single-entry`
+- [ ] Implement **GET /entries/{entry_id}** in `api/routers/journal_router.py`
+
+#### Task 2b: DELETE Single Entry Endpoint
+
+- Branch: `feature/delete-entry`
+- [ ] Implement **DELETE /entries/{entry_id}** in `api/routers/journal_router.py`
+
+### 3. AI-Powered Entry Analysis
+
+- Branch: `feature/ai-analysis`
+- [ ] Implement `analyze_journal_entry()` in `api/services/llm_service.py`
+- [ ] Implement **POST /entries/{entry_id}/analyze** in `api/routers/journal_router.py`
+
+### 4. Data Model Improvements (Optional)
 
 - Branch: `feature/data-model-improvements`  
 - [ ] Add validators to `api/models/entry.py`
 
-### 4. Cloud CLI Setup (Required for Deployment)
+### 5. Cloud CLI Setup (Required for Deployment)
 
 - Branch: `feature/cloud-cli-setup`
 - [ ] Uncomment one CLI tool in `.devcontainer/devcontainer.json`
 
-## 🤖 AI-Powered Entry Analysis
+## 📊 Data Schema
 
-You'll add GenAI capabilities to analyze journal entries using Large Language Models (LLMs).
+Each journal entry follows this structure:
 
-### Supported LLM Providers
+| Field       | Type      | Description                                | Validation                   |
+|-------------|-----------|--------------------------------------------|------------------------------|
+| id          | string    | Unique identifier (UUID)                   | Auto-generated               |
+| work        | string    | What did you work on today?                | Required, max 256 characters |
+| struggle    | string    | What's one thing you struggled with today? | Required, max 256 characters |
+| intention   | string    | What will you study/work on tomorrow?      | Required, max 256 characters |
+| created_at  | datetime  | When entry was created                     | Auto-generated UTC           |
+| updated_at  | datetime  | When entry was last updated                | Auto-updated UTC             |
 
-Choose **one** of the following providers to implement:
-
-- **OpenAI** (GPT-4, GPT-3.5-turbo)
-- **Anthropic** (Claude 3)
-- **Azure OpenAI** (GPT models via Azure)
-- **AWS Bedrock** (Claude, Titan, Llama models)
-- **GCP Vertex AI**
+## 🤖 AI Analysis Reference
 
 ### The `/entries/{id}/analyze` Endpoint
 
-Once implemented, this endpoint will:
-
-1. Fetch a journal entry by ID
-2. Analyze the entry using your chosen LLM
-3. Return:
-   - **Sentiment**: positive, negative, or neutral
-   - **Summary**: 2-sentence summary of the entry
-   - **Topics**: 2-4 key topics mentioned in the entry
+This endpoint analyzes a journal entry using your chosen LLM and returns:
+- **Sentiment**: positive, negative, or neutral
+- **Summary**: 2-sentence summary of the entry
+- **Topics**: 2-4 key topics mentioned
 
 **Example Request:**
 ```bash
@@ -184,73 +171,14 @@ POST /entries/123e4567-e89b-12d3-a456-426614174000/analyze
 }
 ```
 
-### Environment Variable Setup
+### LLM Provider Setup
 
-1. Copy `.env-sample` to `.env` (if you haven't already):
-   ```bash
-   cp .env-sample .env
-   ```
+1. **Read the documentation** for your chosen provider:
+   - [OpenAI](https://platform.openai.com/docs) | [Anthropic](https://docs.anthropic.com) | [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) | [AWS Bedrock](https://docs.aws.amazon.com/bedrock/) | [GCP Vertex AI](https://cloud.google.com/vertex-ai/docs)
 
-2. Uncomment and configure your chosen LLM provider in `.env`:
+2. **Add required environment variables** to your `.env` file
 
-   **For OpenAI:**
-   ```bash
-   OPENAI_API_KEY=sk-your-actual-key-here
-   ```
-
-   **For Anthropic:**
-   ```bash
-   ANTHROPIC_API_KEY=sk-ant-your-actual-key-here
-   ```
-
-   **For Azure OpenAI:**
-   ```bash
-   AZURE_OPENAI_API_KEY=your-key-here
-   AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   ```
-
-   **For AWS Bedrock:**
-   ```bash
-   AWS_ACCESS_KEY_ID=your-key-here
-   AWS_SECRET_ACCESS_KEY=your-secret-here
-   AWS_REGION=us-east-1
-   ```
-
-   **For GCP Vertex AI:**
-   ```bash
-   GOOGLE_APPLICATION_CREDENTIALS=/path/to/credentials.json
-   ```
-
-3. Install your chosen SDK by uncommenting the relevant line in `api/requirements.txt`:
-   ```bash
-   pip install -r api/requirements.txt
-   ```
-
-### Implementation Guide
-
-The scaffolding is ready in these files:
-
-- **`api/services/llm_service.py`**: Implement the `analyze_journal_entry()` function
-- **`api/routers/journal_router.py`**: Implement the `/entries/{id}/analyze` endpoint
-
-**See the Learn to Cloud curriculum** for detailed guidance on:
-- Setting up your LLM API client
-- Crafting effective prompts for structured output
-- Handling API responses and errors
-- Best practices for LLM integration
-
-## 📊 Data Schema
-
-Each journal entry follows this structure:
-
-| Field       | Type      | Description                                | Validation                   |
-|-------------|-----------|--------------------------------------------|------------------------------|
-| id          | string    | Unique identifier (UUID)                   | Auto-generated               |
-| work        | string    | What did you work on today?                | Required, max 256 characters |
-| struggle    | string    | What's one thing you struggled with today? | Required, max 256 characters |
-| intention   | string    | What will you study/work on tomorrow?      | Required, max 256 characters |
-| created_at  | datetime  | When entry was created                     | Auto-generated UTC           |
-| updated_at  | datetime  | When entry was last updated                | Auto-updated UTC             |
+3. **Add your SDK** to `api/requirements.txt` and run `pip install -r api/requirements.txt`
 
 ## 🗄️ Explore Your Database (Optional)
 
@@ -270,7 +198,7 @@ Want to see your data directly in the database? You can connect to PostgreSQL us
    - **User name**: `postgres`
    - **Password**: `postgres`
    - **Port**: `5432`
-   - **Conection Type**: `Standard/No SSL`
+   - **Connection Type**: `Standard/No SSL`
    - **Database**: `career_journal`
    - **Display name**: `Journal Starter DB` (or any name you prefer)
 
