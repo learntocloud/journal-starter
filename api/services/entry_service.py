@@ -56,7 +56,7 @@ class EntryService:
         }
         await self.db.update_entry(entry_id, updated_data)
         logger.debug("Entry %s updated", entry_id)
-        return updated_data
+        return data
 
     async def delete_entry(self, entry_id: str) -> None:
         """Deletes a specific entry."""
