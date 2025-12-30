@@ -1,7 +1,20 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from uuid import uuid4
+
+
+class AnalysisResponse(BaseModel):
+    """Response model for journal entry analysis."""
+    entry_id: str = Field(description="ID of the analyzed entry")
+    sentiment: str = Field(description="Sentiment: positive, negative, or neutral")
+    summary: str = Field(description="2 sentence summary of the entry")
+    topics: List[str] = Field(description="2-4 key topics mentioned in the entry")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow,
+        description="Timestamp when the analysis was created"
+    )
+
 
 class EntryCreate(BaseModel):
     """Model for creating a new journal entry (user input)."""

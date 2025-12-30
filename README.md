@@ -155,7 +155,7 @@ Choose **one** of the following providers to implement:
 - **Anthropic** (Claude 3)
 - **Azure OpenAI** (GPT models via Azure)
 - **AWS Bedrock** (Claude, Titan, Llama models)
-- **GCP Vertex AI** (PaLM 2, Gemini)
+- **GCP Vertex AI**
 
 ### The `/entries/{id}/analyze` Endpoint
 
@@ -176,9 +176,11 @@ POST /entries/123e4567-e89b-12d3-a456-426614174000/analyze
 **Example Response:**
 ```json
 {
+  "entry_id": "123e4567-e89b-12d3-a456-426614174000",
   "sentiment": "positive",
   "summary": "The learner made progress with FastAPI and database integration. They're excited to continue learning about cloud deployment.",
-  "topics": ["FastAPI", "PostgreSQL", "API development", "cloud deployment"]
+  "topics": ["FastAPI", "PostgreSQL", "API development", "cloud deployment"],
+  "created_at": "2025-12-25T10:30:00Z"
 }
 ```
 
