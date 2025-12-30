@@ -2,24 +2,24 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
   "name": "Journal API",
-  "dockerComposeFile": ["./docker-compose.yml"],
+  "dockerComposeFile": [
+    "./docker-compose.yml"
+  ],
   "features": {
-		// TODO: Add one of these cloud CLI tools based on your needs:
-        // "ghcr.io/devcontainers/features/azure-cli:1": {},
-        // "ghcr.io/devcontainers/features/aws-cli:1": {},
-        // "ghcr.io/devcontainers/features/gcloud:1": {}
-	},
-  
+    // TODO: Add one of these cloud CLI tools based on your needs:
+    // "ghcr.io/devcontainers/features/azure-cli:1": {},
+    "ghcr.io/devcontainers/features/aws-cli:1": {}
+    // "ghcr.io/devcontainers/features/gcloud:1": {}
+  },
   "service": "devcontainer",
   "workspaceFolder": "/workspaces/",
-  "runServices": ["postgres"]
-  
+  "runServices": [
+    "postgres"
+  ]
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
+  // "forwardPorts": [],
   // Configure tool-specific properties.
-	// "customizations": {},
-
+  // "customizations": {},
   // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	// "remoteUser": "root"
+  // "remoteUser": "root"
 }
