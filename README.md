@@ -77,7 +77,15 @@ You should see the postgres service running.
 
 ### 5. Run the API
 
-Make sure you are in the root of your project in the terminal:
+Back in the VS Code terminal, verify you're in the project root:
+
+   ```bash
+     pwd
+   ```
+You should see a path ending with `journal-starter`.
+
+Then start the API with:
+
 
    ```bash
      ./start.sh
