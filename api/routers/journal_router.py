@@ -66,7 +66,7 @@ async def get_entry(request: Request, entry_id: str, entry_service: EntryService
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
     """Update a journal entry"""
-    result = await entry_service.update_entry(entry_id, entry_update)
+    result = await entry_service.update_entry(entry_id, entry_update, partial=True)
     if not result:
         
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -95,3 +95,28 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
     return {"detail": "All entries deleted"}
+
+@router.post("/entries/{entry_id}/analyze")
+async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+    """
+    Analyze a journal entry using AI.
+    
+    Returns sentiment, summary, key topics, entry_id, and created_at timestamp.
+    
+    Response format:
+    {
+        "entry_id": "string",
+        "sentiment": "positive | negative | neutral",
+        "summary": "2 sentence summary of the entry",
+        "topics": ["topic1", "topic2", "topic3"],
+        "created_at": "timestamp"
+    }
+    
+    TODO: Implement this endpoint. Steps:
+    1. Fetch the entry from database using entry_service.get_entry(entry_id)
+    2. Return 404 if entry not found
+    3. Combine work + struggle + intention into text
+    4. Call llm_service.analyze_journal_entry(entry_text)
+    5. Return the analysis result with entry_id and created_at timestamp
+    """
+    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")

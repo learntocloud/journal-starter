@@ -5,3 +5,6 @@ aiohttp
 sqlalchemy
 psycopg2-binary
 asyncpg
+
+# LLM SDK - Add the package for your chosen provider
+# Refer to your provider's documentation for the correct package name
