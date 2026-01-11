@@ -4,7 +4,10 @@
   "name": "Journal API",
   "dockerComposeFile": ["./docker-compose.yml"],
   "features": {
-		"ghcr.io/devcontainers/features/azure-cli:1": {}
+		// TODO: Add one of these cloud CLI tools based on your needs:
+        // "ghcr.io/devcontainers/features/azure-cli:1": {},
+        // "ghcr.io/devcontainers/features/aws-cli:1": {},
+        // "ghcr.io/devcontainers/features/gcloud:1": {}
 	},
   
   "service": "devcontainer",
@@ -18,6 +21,7 @@
   }
   
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
 
   // Configure tool-specific properties.
 	// "customizations": {},
