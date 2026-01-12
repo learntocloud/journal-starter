@@ -1,0 +1,20 @@
+[project]
+name = "journal-api"
+version = "0.1.0"
+description = "Journal API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "python-dotenv",
+    "aiohttp",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "asyncpg",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+]
