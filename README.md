@@ -153,6 +153,8 @@ The test suite includes:
 - **Model validation tests** (`test_models.py`): Tests Pydantic models and data validation
 - **Service layer tests** (`test_service.py`): Tests business logic and database interactions
 
+**📖 For detailed testing documentation, see [TESTING.md](TESTING.md)**
+
 ## 🎯 Development Tasks (Your Work!)
 
 You'll use **feature branches** and **Pull Requests (PRs)** for each task. Complete these tasks in your forked repository using feature branches.
