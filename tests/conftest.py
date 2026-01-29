@@ -6,15 +6,11 @@ This file sets up test fixtures that are shared across all tests, including:
 - Test client for making API requests
 - Helper functions for cleaning up test data
 """
-import os
 import pytest
 from typing import AsyncGenerator
 from httpx import AsyncClient, ASGITransport
 from api.main import app
 from api.repositories.postgres_repository import PostgresDB
-
-# Use test database if specified, otherwise use default
-TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 
 @pytest.fixture(autouse=True)
@@ -53,7 +49,7 @@ async def test_client() -> AsyncGenerator[AsyncClient, None]:
 
 
 @pytest.fixture
-async def sample_entry_data() -> dict:
+def sample_entry_data() -> dict:
     """
     Provides sample entry data for testing.
     This can be used to create test entries consistently across tests.

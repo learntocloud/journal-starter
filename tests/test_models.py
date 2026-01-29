@@ -9,6 +9,7 @@ These tests verify that the Pydantic models work correctly, including:
 """
 import pytest
 from datetime import datetime
+from pydantic import ValidationError
 from api.models.entry import Entry, EntryCreate, AnalysisResponse
 
 
@@ -35,7 +36,7 @@ class TestEntryCreateModel:
             # Missing struggle and intention
         }
         
-        with pytest.raises(Exception):  # Pydantic raises ValidationError
+        with pytest.raises(ValidationError):
             EntryCreate(**incomplete_data)
 
     def test_entry_create_max_length_validation(self):
@@ -46,7 +47,7 @@ class TestEntryCreateModel:
             "intention": "Practice more"
         }
         
-        with pytest.raises(Exception):  # Pydantic raises ValidationError
+        with pytest.raises(ValidationError):
             EntryCreate(**invalid_data)
 
     def test_entry_create_empty_strings_allowed(self):
@@ -123,7 +124,7 @@ class TestEntryModel:
             "intention": "Practice more"
         }
         
-        with pytest.raises(Exception):  # Pydantic raises ValidationError
+        with pytest.raises(ValidationError):
             Entry(**invalid_data)
 
     def test_entry_model_dump(self):
@@ -186,7 +187,7 @@ class TestAnalysisResponseModel:
             # Missing summary and topics
         }
         
-        with pytest.raises(Exception):  # Pydantic raises ValidationError
+        with pytest.raises(ValidationError):
             AnalysisResponse(**incomplete_data)
 
     def test_analysis_response_invalid_topics_type(self):
@@ -198,5 +199,5 @@ class TestAnalysisResponseModel:
             "topics": "not a list"  # Should be a list
         }
         
-        with pytest.raises(Exception):  # Pydantic raises ValidationError
+        with pytest.raises(ValidationError):
             AnalysisResponse(**invalid_data)

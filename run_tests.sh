@@ -13,7 +13,8 @@ echo ""
 if [ ! -f .env ]; then
     echo "⚠️  Warning: .env file not found!"
     echo "Creating default .env file..."
-    echo "DATABASE_URL=postgresql://postgres:postgres@postgres:5432/career_journal" > .env
+    echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/career_journal" > .env
+    echo "Note: If running inside Docker container, change 'localhost' to 'postgres'"
 fi
 
 # Check if dependencies are installed

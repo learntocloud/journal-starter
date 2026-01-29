@@ -48,6 +48,7 @@ jobs:
         PGPASSWORD=postgres psql -h localhost -U postgres -d career_journal -f database_setup.sql
 
     - name: Run tests
+      id: test
       run: |
         pytest -v --tb=short
 
@@ -56,7 +57,7 @@ jobs:
       run: |
         echo "## Test Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        if [ $? -eq 0 ]; then
+        if [ "${{ steps.test.outcome }}" == "success" ]; then
           echo "✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
         else
           echo "❌ Some tests failed. Check the logs for details." >> $GITHUB_STEP_SUMMARY
