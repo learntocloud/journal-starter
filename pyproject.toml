@@ -17,4 +17,5 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-asyncio",
+    "httpx",
 ]

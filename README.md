@@ -7,6 +7,7 @@ By the end of this capstone, your API should be working locally and ready for cl
 ## Table of Contents
 
 - [Getting Started](#-getting-started)
+- [Running Tests](#7-running-tests-)
 - [Development Tasks](#-development-tasks-your-work)
 - [Data Schema](#-data-schema)
 - [AI Analysis Reference](#-ai-analysis-reference)
@@ -95,6 +96,62 @@ Then start the API with:
 1. **View your entries** using the GET `/entries` endpoint to see what you've created!
 
 **🎯 Once you can create and see entries, you're ready to start the development tasks!**
+
+### 7. Running Tests 🧪
+
+This project includes a comprehensive test suite to help you verify your work. Tests are located in the `tests/` directory.
+
+#### Install Test Dependencies
+
+First, make sure you have the test dependencies installed:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Or if using uv (which is included in the dev container):
+
+```bash
+uv pip install -e ".[dev]"
+```
+
+#### Run All Tests
+
+To run all tests:
+
+```bash
+pytest
+```
+
+#### Run Specific Tests
+
+To run tests from a specific file:
+
+```bash
+pytest tests/test_api.py
+```
+
+To run a specific test class or function:
+
+```bash
+pytest tests/test_api.py::TestCreateEntry
+pytest tests/test_api.py::TestCreateEntry::test_create_entry_success
+```
+
+#### Understanding Test Results
+
+- ✅ **PASSED**: The test passed successfully
+- ❌ **FAILED**: The test failed - check the error message for details
+- ⚠️ **SKIPPED**: The test was skipped (usually because a feature isn't implemented yet)
+
+**Note**: Some tests will be **skipped** initially because they test endpoints you haven't implemented yet (like `GET /entries/{id}` and `DELETE /entries/{id}`). As you complete the development tasks, more tests will pass!
+
+#### Test Coverage
+
+The test suite includes:
+- **API endpoint tests** (`test_api.py`): Tests all REST API endpoints
+- **Model validation tests** (`test_models.py`): Tests Pydantic models and data validation
+- **Service layer tests** (`test_service.py`): Tests business logic and database interactions
 
 ## 🎯 Development Tasks (Your Work!)
 
