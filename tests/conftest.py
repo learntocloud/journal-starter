@@ -17,16 +17,28 @@ from api.repositories.postgres_repository import PostgresDB
 TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 
+@pytest.fixture(autouse=True)
+async def cleanup_database():
+    """
+    Automatically clean up the database before each test.
+    This ensures test isolation.
+    """
+    async with PostgresDB() as db:
+        await db.delete_all_entries()
+    yield
+    # Clean up after test as well
+    async with PostgresDB() as db:
+        await db.delete_all_entries()
+
+
 @pytest.fixture
 async def test_db() -> AsyncGenerator[PostgresDB, None]:
     """
     Provides a test database connection.
-    Cleans up all entries after each test to ensure test isolation.
+    The cleanup is handled by the cleanup_database fixture.
     """
     async with PostgresDB() as db:
         yield db
-        # Clean up after each test
-        await db.delete_all_entries()
 
 
 @pytest.fixture
