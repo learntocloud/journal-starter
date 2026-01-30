@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
+
+from pydantic import BaseModel, Field
 
 
 class AnalysisResponse(BaseModel):
@@ -9,9 +9,9 @@ class AnalysisResponse(BaseModel):
     entry_id: str = Field(description="ID of the analyzed entry")
     sentiment: str = Field(description="Sentiment: positive, negative, or neutral")
     summary: str = Field(description="2 sentence summary of the entry")
-    topics: List[str] = Field(description="2-4 key topics mentioned in the entry")
+    topics: list[str] = Field(description="2-4 key topics mentioned in the entry")
     created_at: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the analysis was created"
     )
 
@@ -39,7 +39,7 @@ class Entry(BaseModel):
     # TODO: Add custom validators
     # TODO: Add schema versioning
     # TODO: Add data sanitization methods
-    
+
     id: str = Field(
         default_factory=lambda: str(uuid4()),
         description="Unique identifier for the entry (UUID)."
@@ -59,17 +59,11 @@ class Entry(BaseModel):
         max_length=256,
         description="What will you study/work on tomorrow?"
     )
-    created_at: Optional[datetime] = Field(
-        default_factory=datetime.utcnow,
+    created_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was created."
     )
-    updated_at: Optional[datetime] = Field(
-        default_factory=datetime.utcnow,
+    updated_at: datetime | None = Field(
+        default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was last updated."
     )
-
-    model_config = {
-        "json_encoders": {
-            datetime: lambda v: v.isoformat()
-        }
-    }

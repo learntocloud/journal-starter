@@ -18,15 +18,15 @@ class TestCreateEntry:
     async def test_create_entry_success(self, test_client: AsyncClient, sample_entry_data: dict):
         """Test successfully creating a new journal entry."""
         response = await test_client.post("/entries", json=sample_entry_data)
-        
+
         assert response.status_code == 200
         result = response.json()
-        
+
         # Verify response structure
         assert "detail" in result
         assert "entry" in result
         assert result["detail"] == "Entry created successfully"
-        
+
         # Verify entry data
         entry = result["entry"]
         assert entry["work"] == sample_entry_data["work"]
@@ -43,7 +43,7 @@ class TestCreateEntry:
             # Missing struggle and intention
         }
         response = await test_client.post("/entries", json=incomplete_data)
-        
+
         # FastAPI returns 422 for validation errors
         assert response.status_code == 422
 
@@ -55,7 +55,7 @@ class TestCreateEntry:
             "intention": "Practice more"
         }
         response = await test_client.post("/entries", json=invalid_data)
-        
+
         # Should return validation error
         assert response.status_code == 422
 
@@ -66,7 +66,7 @@ class TestGetAllEntries:
     async def test_get_all_entries_empty(self, test_client: AsyncClient):
         """Test getting all entries when database is empty."""
         response = await test_client.get("/entries")
-        
+
         assert response.status_code == 200
         result = response.json()
         assert "entries" in result
@@ -77,12 +77,12 @@ class TestGetAllEntries:
     async def test_get_all_entries_with_data(self, test_client: AsyncClient, created_entry: dict):
         """Test getting all entries when database has entries."""
         response = await test_client.get("/entries")
-        
+
         assert response.status_code == 200
         result = response.json()
         assert result["count"] == 1
         assert len(result["entries"]) == 1
-        
+
         # Verify the entry matches what was created
         entry = result["entries"][0]
         assert entry["id"] == created_entry["id"]
@@ -95,9 +95,9 @@ class TestGetAllEntries:
             entry_data = sample_entry_data.copy()
             entry_data["work"] = f"Work item {i}"
             await test_client.post("/entries", json=entry_data)
-        
+
         response = await test_client.get("/entries")
-        
+
         assert response.status_code == 200
         result = response.json()
         assert result["count"] == 3
@@ -111,13 +111,13 @@ class TestGetSingleEntry:
         """Test successfully retrieving a single entry by ID."""
         entry_id = created_entry["id"]
         response = await test_client.get(f"/entries/{entry_id}")
-        
+
         # This endpoint returns 501 (Not Implemented) until students implement it
         # When implemented, it should return 200 with the entry
         if response.status_code == 501:
             # Expected for unimplemented endpoint
             pytest.skip("GET /entries/{id} endpoint not yet implemented by student")
-        
+
         assert response.status_code == 200
         entry = response.json()
         assert entry["id"] == created_entry["id"]
@@ -127,11 +127,11 @@ class TestGetSingleEntry:
         """Test that retrieving a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.get(f"/entries/{fake_id}")
-        
+
         # Skip if not implemented yet
         if response.status_code == 501:
             pytest.skip("GET /entries/{id} endpoint not yet implemented by student")
-        
+
         assert response.status_code == 404
 
 
@@ -144,9 +144,9 @@ class TestUpdateEntry:
         update_data = {
             "work": "Updated work description"
         }
-        
+
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
-        
+
         assert response.status_code == 200
         updated_entry = response.json()
         assert updated_entry["work"] == "Updated work description"
@@ -158,9 +158,9 @@ class TestUpdateEntry:
         """Test that updating a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         update_data = {"work": "Updated work"}
-        
+
         response = await test_client.patch(f"/entries/{fake_id}", json=update_data)
-        
+
         assert response.status_code == 404
 
 
@@ -171,13 +171,13 @@ class TestDeleteEntry:
         """Test successfully deleting a single entry."""
         entry_id = created_entry["id"]
         response = await test_client.delete(f"/entries/{entry_id}")
-        
+
         # This endpoint returns 501 (Not Implemented) until students implement it
         if response.status_code == 501:
             pytest.skip("DELETE /entries/{id} endpoint not yet implemented by student")
-        
+
         assert response.status_code == 200
-        
+
         # Verify the entry was actually deleted
         get_response = await test_client.get("/entries")
         result = get_response.json()
@@ -187,11 +187,11 @@ class TestDeleteEntry:
         """Test that deleting a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.delete(f"/entries/{fake_id}")
-        
+
         # Skip if not implemented yet
         if response.status_code == 501:
             pytest.skip("DELETE /entries/{id} endpoint not yet implemented by student")
-        
+
         assert response.status_code == 404
 
 
@@ -205,13 +205,13 @@ class TestDeleteAllEntries:
             entry_data = sample_entry_data.copy()
             entry_data["work"] = f"Work item {i}"
             await test_client.post("/entries", json=entry_data)
-        
+
         # Delete all entries
         response = await test_client.delete("/entries")
-        
+
         assert response.status_code == 200
         assert response.json()["detail"] == "All entries deleted"
-        
+
         # Verify all entries were deleted
         get_response = await test_client.get("/entries")
         result = get_response.json()
@@ -225,7 +225,7 @@ class TestAnalyzeEntry:
         """Test that analyze endpoint returns 501 when not yet implemented."""
         entry_id = created_entry["id"]
         response = await test_client.post(f"/entries/{entry_id}/analyze")
-        
+
         # This endpoint returns 501 (Not Implemented) until students implement it
         assert response.status_code == 501
 
@@ -233,9 +233,9 @@ class TestAnalyzeEntry:
         """Test that analyzing a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.post(f"/entries/{fake_id}/analyze")
-        
+
         # Skip if not implemented yet, or expect 404 if it is
         if response.status_code == 501:
             pytest.skip("POST /entries/{id}/analyze endpoint not yet implemented by student")
-        
+
         assert response.status_code == 404

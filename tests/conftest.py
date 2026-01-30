@@ -6,9 +6,11 @@ This file sets up test fixtures that are shared across all tests, including:
 - Test client for making API requests
 - Helper functions for cleaning up test data
 """
+from collections.abc import AsyncGenerator
+
 import pytest
-from typing import AsyncGenerator
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from api.main import app
 from api.repositories.postgres_repository import PostgresDB
 

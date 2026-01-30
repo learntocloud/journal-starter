@@ -7,10 +7,12 @@ These tests verify that the Pydantic models work correctly, including:
 - Data type checking
 - Max length constraints
 """
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime
 from pydantic import ValidationError
-from api.models.entry import Entry, EntryCreate, AnalysisResponse
+
+from api.models.entry import AnalysisResponse, Entry, EntryCreate
 
 
 class TestEntryCreateModel:
@@ -24,7 +26,7 @@ class TestEntryCreateModel:
             "intention": "Practice more"
         }
         entry = EntryCreate(**data)
-        
+
         assert entry.work == data["work"]
         assert entry.struggle == data["struggle"]
         assert entry.intention == data["intention"]
@@ -35,7 +37,7 @@ class TestEntryCreateModel:
             "work": "Studied FastAPI"
             # Missing struggle and intention
         }
-        
+
         with pytest.raises(ValidationError):
             EntryCreate(**incomplete_data)
 
@@ -46,7 +48,7 @@ class TestEntryCreateModel:
             "struggle": "Understanding async",
             "intention": "Practice more"
         }
-        
+
         with pytest.raises(ValidationError):
             EntryCreate(**invalid_data)
 
@@ -58,7 +60,7 @@ class TestEntryCreateModel:
             "intention": ""
         }
         entry = EntryCreate(**data)
-        
+
         assert entry.work == ""
         assert entry.struggle == ""
         assert entry.intention == ""
@@ -74,11 +76,11 @@ class TestEntryModel:
             "work": "Studied FastAPI",
             "struggle": "Understanding async",
             "intention": "Practice more",
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC)
         }
         entry = Entry(**data)
-        
+
         assert entry.id == data["id"]
         assert entry.work == data["work"]
         assert entry.struggle == data["struggle"]
@@ -94,7 +96,7 @@ class TestEntryModel:
             "intention": "Practice more"
         }
         entry = Entry(**data)
-        
+
         # ID should be auto-generated
         assert entry.id is not None
         assert len(entry.id) > 0
@@ -109,7 +111,7 @@ class TestEntryModel:
             "intention": "Practice more"
         }
         entry = Entry(**data)
-        
+
         # Timestamps should be auto-generated
         assert entry.created_at is not None
         assert entry.updated_at is not None
@@ -123,7 +125,7 @@ class TestEntryModel:
             "struggle": "Understanding async",
             "intention": "Practice more"
         }
-        
+
         with pytest.raises(ValidationError):
             Entry(**invalid_data)
 
@@ -135,9 +137,9 @@ class TestEntryModel:
             "intention": "Practice more"
         }
         entry = Entry(**data)
-        
+
         entry_dict = entry.model_dump()
-        
+
         assert isinstance(entry_dict, dict)
         assert entry_dict["work"] == data["work"]
         assert entry_dict["struggle"] == data["struggle"]
@@ -159,7 +161,7 @@ class TestAnalysisResponseModel:
             "topics": ["FastAPI", "PostgreSQL", "API development"]
         }
         response = AnalysisResponse(**data)
-        
+
         assert response.entry_id == data["entry_id"]
         assert response.sentiment == data["sentiment"]
         assert response.summary == data["summary"]
@@ -175,7 +177,7 @@ class TestAnalysisResponseModel:
             "topics": ["learning", "progress"]
         }
         response = AnalysisResponse(**data)
-        
+
         assert response.created_at is not None
         assert isinstance(response.created_at, datetime)
 
@@ -186,7 +188,7 @@ class TestAnalysisResponseModel:
             "sentiment": "positive"
             # Missing summary and topics
         }
-        
+
         with pytest.raises(ValidationError):
             AnalysisResponse(**incomplete_data)
 
@@ -198,6 +200,6 @@ class TestAnalysisResponseModel:
             "summary": "Summary text",
             "topics": "not a list"  # Should be a list
         }
-        
+
         with pytest.raises(ValidationError):
             AnalysisResponse(**invalid_data)
