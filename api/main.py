@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+
 from dotenv import load_dotenv
+from fastapi import FastAPI
+
 from api.routers.journal_router import router as journal_router
-import logging
 
 load_dotenv()
 

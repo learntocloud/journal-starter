@@ -1,27 +1,27 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 
 class DatabaseInterface(ABC):
     """Abstract interface for database operations."""
-    
+
     @abstractmethod
-    async def create_entry(self, entry_data: Dict[str, Any]) -> None:
+    async def create_entry(self, entry_data: dict[str, Any]) -> dict[str, Any]:
         """Create a new journal entry."""
         pass
 
     @abstractmethod
-    async def get_all_entries(self) -> List[Dict[str, Any]]:
+    async def get_all_entries(self) -> list[dict[str, Any]]:
         """Retrieve all journal entries."""
         pass
 
     @abstractmethod
-    async def get_entry(self, entry_id: str) -> Dict[str, Any]:
+    async def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         """Retrieve a specific journal entry by ID."""
         pass
 
     @abstractmethod
-    async def update_entry(self, entry_id: str, updated_data: Dict[str, Any]) -> None:
+    async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
         """Update an existing journal entry."""
         pass
 
