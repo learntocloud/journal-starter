@@ -6,17 +6,14 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 ## Table of Contents
 
-- [🚀 Getting Started](#-getting-started)
-- [🎯 Development Tasks (Your Work!)](#-development-tasks-your-work)
-  - [1. API Implementation (Required)](#1-api-implementation-required)
-  - [2. Logging Setup (Required)](#2-logging-setup-required)
-  - [3. Data Model Improvements (Optional)](#3-data-model-improvements-optional)
-  - [4. Cloud CLI Setup (Required for Deployment)](#4-cloud-cli-setup-required-for-deployment)
-- [📊 Data Schema](#-data-schema)
-- [�️ Explore Your Database (Optional)](#️-explore-your-database-optional)
-- [🔧 Troubleshooting](#-troubleshooting)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
+- [Getting Started](#-getting-started)
+- [Development Workflow](#-development-workflow)
+- [Development Tasks](#-development-tasks)
+- [Data Schema](#-data-schema)
+- [AI Analysis Guide](#-ai-analysis-guide)
+- [Troubleshooting](#-troubleshooting)
+- [Extras](#-extras)
+- [License](#-license)
 
 ## 🚀 Getting Started
 
@@ -33,11 +30,6 @@ By the end of this capstone, your API should be working locally and ready for cl
 
    ```bash
    git clone https://github.com/YOUR_USERNAME/journal-starter.git
-   ```
-
-1. Move into the project directory:
-
-   ```bash
    cd journal-starter
    ```
 
@@ -51,11 +43,11 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 Environment variables live in a `.env` file (which is **git-ignored** so you don't accidentally commit secrets). This repo ships with a template named `.env-sample`.
 
-1. Copy the sample file to create your real `.env`:
+Copy the sample file to create your real `.env` (run from project root):
 
-   ```bash
-   cp .env-sample .env
-   ```
+```bash
+cp .env-sample .env
+```
 
 ### 3. Set Up Your Development Environment
 
@@ -67,21 +59,28 @@ Environment variables live in a `.env` file (which is **git-ignored** so you don
 
 ### 4. Verify the PostgreSQL Database Is Running
 
-In a terminal outside of VS Code, run:
+In a terminal **outside of VS Code** (on your host machine), run:
 
-   ```bash
-      docker ps
-   ```
+```bash
+docker ps
+```
 
 You should see the postgres service running.
 
 ### 5. Run the API
 
-Make sure you are in the root of your project in the terminal:
+In the **VS Code terminal** (inside the dev container), verify you're in the project root:
 
-   ```bash
-     ./start.sh
-   ```
+```bash
+pwd
+# Should output: /workspaces/journal-starter (or similar)
+```
+
+Then start the API:
+
+```bash
+./start.sh
+```
 
 ### 6. Test Everything Works! 🎉
 
@@ -89,47 +88,103 @@ Make sure you are in the root of your project in the terminal:
 1. **Create your first entry** In the Docs UI Use the POST `/entries` endpoint to create a new journal entry.
 1. **View your entries** using the GET `/entries` endpoint to see what you've created!
 
-**🎯 Once you can create and see entries, you're ready to start implementing the missing endpoints!**
+**🎯 Once you can create and see entries, you're ready to start the development tasks!**
 
-## Your Learning Goals
+## 🔄 Development Workflow
 
-Complete a Journal API that allows users to:
+We have provided tests so you can verify your implementations are correct without manual testing. As you implement each feature, the tests will tell you if your code works as expected.
 
-- ✅ **Store journal entries** (already implemented)
-- ✅ **Retrieve all journal entries** (already implemented)
-- ❌ **Retrieve single journal entry** (you need to implement)  
-- ❌ **Delete specific journal entries** (you need to implement)
-- ✅ **Update journal entries** (already implemented)
-- ✅ **Delete all entries** (already implemented)
-- ❌ **Setup logging** (you need to implement)
+All commands in this section should be run from the **project root** in the VS Code terminal (inside the dev container).
 
-## 🎯 Development Tasks (Your Work!)
+### First-Time Setup
 
-You'll use **feature branches** and **Pull Requests (PRs)** for each task. Complete these tasks in your forked repository using feature branches.
+Install dev dependencies before running tests for the first time:
 
-### 1. API Implementation (Required)
+```bash
+uv sync --all-extras
+```
 
-#### Task 1a: GET Single Entry Endpoint
+### For Each Task
 
-- Branch: `feature/get-single-entry`
-- [ ] Implement **GET /entries/{entry_id}** in `api/routers/journal_router.py`
+1. **Create a branch**
 
-#### Task 1b: DELETE Single Entry Endpoint
+   [Branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches) let you work on features in isolation without affecting the main codebase. Create one for each task:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
-- Branch: `feature/delete-entry`
-- [ ] Implement **DELETE /entries/{entry_id}** in `api/routers/journal_router.py`
+2. **Implement the feature**
 
-### 2. Logging Setup (Required)
+   Write your code in the `api/` directory. Check the TODO comments in the files for guidance on what to implement.
+
+3. **Verify your work**
+
+   **Run the tests** to check your implementation is correct:
+   ```bash
+   uv run pytest
+   ```
+   [pytest](https://docs.pytest.org/) is a testing framework that runs automated tests to verify your code works as expected. Tests will be skipped for features you haven't implemented yet. As you complete tasks, skipped tests will start passing.
+
+   **Run the linter** to check code style and catch common mistakes:
+   ```bash
+   uv run ruff check api/
+   ```
+   A linter is a tool that analyzes your code for potential errors, bugs, and style issues without running it. [Ruff](https://docs.astral.sh/ruff/) is a fast Python linter that checks for things like unused imports, incorrect syntax, and code that doesn't follow [Python style conventions (PEP 8)](https://pep8.org/).
+
+   **Run the type checker** to ensure proper type annotations:
+   ```bash
+   uv run ty check api/
+   ```
+   A type checker verifies that your code uses [type hints](https://docs.python.org/3/library/typing.html) correctly. Type hints (like `def get_entry(entry_id: str) -> dict:`) help catch bugs early by ensuring you're passing the right types of data to functions. [ty](https://github.com/astral-sh/ty) is a fast Python type checker.
+
+4. **Commit and push**
+
+   [Committing](https://docs.github.com/en/get-started/using-git/about-commits) saves your changes to Git. Pushing uploads them to GitHub so you can create a Pull Request:
+   ```bash
+   git add .
+   git commit -m "Implement feature X"
+   git push -u origin feature/your-feature-name
+   ```
+
+5. **Create a Pull Request**
+
+   On GitHub, open a [Pull Request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) to merge your feature branch into `main`. This is where code review happens. Once approved, merge the PR.
+
+> ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory.
+
+## 🎯 Development Tasks
+
+### 1. Logging Setup
 
 - Branch: `feature/logging-setup`
 - [ ] Configure logging in `api/main.py`
 
-### 3. Data Model Improvements (Optional)
+### 2. API Implementation
+
+#### Task 2a: GET Single Entry Endpoint
+
+- Branch: `feature/get-single-entry`
+- [ ] Implement **GET /entries/{entry_id}** in `api/routers/journal_router.py`
+
+#### Task 2b: DELETE Single Entry Endpoint
+
+- Branch: `feature/delete-entry`
+- [ ] Implement **DELETE /entries/{entry_id}** in `api/routers/journal_router.py`
+
+### 3. AI-Powered Entry Analysis
+
+- Branch: `feature/ai-analysis`
+- [ ] Implement `analyze_journal_entry()` in `api/services/llm_service.py`
+- [ ] Implement **POST /entries/{entry_id}/analyze** in `api/routers/journal_router.py`
+
+This endpoint should return sentiment, a 2-sentence summary, and 2-4 key topics. See [AI Analysis Guide](#-ai-analysis-guide) below for details on the expected response format and LLM provider setup.
+
+### 4. Data Model Improvements (Optional)
 
 - Branch: `feature/data-model-improvements`  
 - [ ] Add validators to `api/models/entry.py`
 
-### 4. Cloud CLI Setup (Required for Deployment)
+### 5. Cloud CLI Setup (Required for Deployment)
 
 - Branch: `feature/cloud-cli-setup`
 - [ ] Uncomment one CLI tool in `.devcontainer/devcontainer.json`
@@ -147,81 +202,46 @@ Each journal entry follows this structure:
 | created_at  | datetime  | When entry was created                     | Auto-generated UTC           |
 | updated_at  | datetime  | When entry was last updated                | Auto-updated UTC             |
 
-## 🗄️ Explore Your Database (Optional)
+## 🤖 AI Analysis Guide
 
-Want to see your data directly in the database? You can connect to PostgreSQL using VS Code's PostgreSQL extension:
+For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this format:
 
-### 1. Install PostgreSQL Extension
+```json
+{
+  "entry_id": "123e4567-e89b-12d3-a456-426614174000",
+  "sentiment": "positive",
+  "summary": "The learner made progress with FastAPI and database integration. They're excited to continue learning about cloud deployment.",
+  "topics": ["FastAPI", "PostgreSQL", "API development", "cloud deployment"],
+  "created_at": "2025-12-25T10:30:00Z"
+}
+```
 
-1. **Install the PostgreSQL extension** in VS Code (search for "PostgreSQL" by Chris Kolkman)
-2. **Restart VS Code** after installation
+**LLM Provider Setup:**
 
-### 2. Connect to Your Database
-
-1. **Open the PostgreSQL extension** (click the PostgreSQL icon in the sidebar)
-2. **Click "Add Connection"** or the "+" button
-3. **Enter these connection details**:
-   - **Host name**: `postgres`
-   - **User name**: `postgres`
-   - **Password**: `postgres`
-   - **Port**: `5432`
-   - **Conection Type**: `Standard/No SSL`
-   - **Database**: `career_journal`
-   - **Display name**: `Journal Starter DB` (or any name you prefer)
-
-### 3. Explore Your Data
-
-1. **Expand your connection** in the PostgreSQL panel
-2. **Left-click on "Journal Starter DB" to expand**
-3. **Right-click on "career_journal"**
-4. **Select "New Query"**
-5. **Type this query** to see all your entries:
-
-   ```sql
-   SELECT * FROM entries;
-   ```
-
-6. **Run the query** to see all your journal data! (Ctrl/Cmd + Enter OR use the PostgreSQL command pallete: Run Query)
-
-You can now explore the database structure, see exactly how your data is stored, and run custom queries to understand PostgreSQL better.
+1. Choose a provider and read their docs: [OpenAI](https://platform.openai.com/docs) | [Anthropic](https://docs.anthropic.com) | [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) | [AWS Bedrock](https://docs.aws.amazon.com/bedrock/) | [GCP Vertex AI](https://cloud.google.com/vertex-ai/docs)
+2. Add required environment variables to your `.env` file
+3. Add your SDK to `pyproject.toml` and run `uv sync`
 
 ## 🔧 Troubleshooting
 
-**If the API won't start:**
-
-- Make sure the PostgreSQL container is running: `docker ps`
-- Check the container logs: `docker logs your-postgres-container-name`
+**API won't start?**
+- Check PostgreSQL is running: `docker ps` (on host machine)
 - Restart the database: `docker restart your-postgres-container-name`
 
-**If you can't connect to the database:**
+**Can't connect to database?**
+- Verify `.env` file exists with correct `DATABASE_URL`
+- Restart dev container: `Dev Containers: Rebuild Container`
 
-- Verify the `.env` file exists and has the correct DATABASE_URL
-- Make sure Docker Desktop is running
-- Try restarting the dev container: `Dev Containers: Rebuild Container`
-
-**If the dev container won't open:**
-
+**Dev container won't open?**
 - Ensure Docker Desktop is running
-- Install the "Dev Containers" extension in VS Code
 - Try: `Dev Containers: Rebuild and Reopen in Container`
 
-## 🤝 Contributing
+## 📚 Extras
 
-We welcome contributions to improve this capstone project! Open an issue and we can plan from there.
-
-### Reporting Issues
-
-Found a bug or have a suggestion? Please [open an issue](https://github.com/learntocloud/journal-starter/issues) with:
-
-- **Clear description** of the problem or suggestion
-- **Steps to reproduce** (for bugs)
-- **Expected vs actual behavior**
-- **Environment details** (OS, Docker version, etc.)
+- [Explore Your Database](docs/explore-database.md) - Connect to PostgreSQL and run queries directly
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-### Attribution
-
-If you use this project as a foundation for your own work, we'd appreciate a link back to this repository, but it's not required.
+Contributions welcome! [Open an issue](https://github.com/learntocloud/journal-starter/issues) to get started.

@@ -1,12 +1,13 @@
 import json
 import os
 import uuid
+from datetime import UTC, datetime
+from typing import Any
+
 import asyncpg
-from datetime import datetime, timezone
-from typing import Any, Dict, List
-from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from repositories.interface_repository import DatabaseInterface
+
+from api.repositories.interface_repository import DatabaseInterface
 
 load_dotenv()
 
@@ -21,7 +22,7 @@ class PostgresDB(DatabaseInterface):
         if isinstance(obj, datetime):
                 return obj.isoformat()
         raise TypeError(f"Type {type(obj)} not serializable")
-        
+
     async def __aenter__(self):
         self.pool = await asyncpg.create_pool(DATABASE_URL)
         return self
@@ -29,7 +30,7 @@ class PostgresDB(DatabaseInterface):
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.pool.close()
 
-    async def create_entry(self, entry_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def create_entry(self, entry_data: dict[str, Any]) -> dict[str, Any]:
         async with self.pool.acquire() as conn:
             query = """
             INSERT INTO entries (id, data, created_at, updated_at)
@@ -38,15 +39,15 @@ class PostgresDB(DatabaseInterface):
             """
             entry_id = entry_data.get("id") or str(uuid.uuid4())
             data_json = json.dumps(entry_data, default=PostgresDB.datetime_serialize)
-            
+
             row = await conn.fetchrow(
-                query, 
-                entry_id, 
-                data_json, 
-                entry_data["created_at"], 
+                query,
+                entry_id,
+                data_json,
+                entry_data["created_at"],
                 entry_data["updated_at"]
             )
-            
+
             # Return a clean entry format without duplication
             if row:
                 data = json.loads(row["data"])
@@ -60,7 +61,7 @@ class PostgresDB(DatabaseInterface):
                 }
             return {}
 
-    async def get_all_entries(self) -> List[Dict[str, Any]]:
+    async def get_all_entries(self) -> list[dict[str, Any]]:
         async with self.pool.acquire() as conn:
             query = "SELECT * FROM entries"
             rows = await conn.fetch(query)
@@ -76,12 +77,12 @@ class PostgresDB(DatabaseInterface):
                     "updated_at": row["updated_at"]
                 })
             return entries
-        
-    async def get_entry(self, entry_id: str) -> Dict[str, Any] | None:
+
+    async def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         async with self.pool.acquire() as conn:
             query = "SELECT * FROM entries WHERE id = $1"
             row = await conn.fetchrow(query, entry_id)
-            
+
             if row:
                 data = json.loads(row["data"])
                 return {
@@ -93,9 +94,9 @@ class PostgresDB(DatabaseInterface):
                     "updated_at": row["updated_at"]
                 }
             return None
-   
-    async def update_entry(self, entry_id: str, updated_data: Dict[str, Any]) -> None:
-        updated_at = datetime.now(timezone.utc)
+
+    async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
+        updated_at = datetime.now(UTC)
         updated_data["id"] = entry_id
         updated_data["updated_at"] = updated_at
 
@@ -103,7 +104,7 @@ class PostgresDB(DatabaseInterface):
 
         async with self.pool.acquire() as conn:
             query = """
-            UPDATE entries 
+            UPDATE entries
             SET data = $2, updated_at = $3
             WHERE id = $1
             """

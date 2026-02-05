@@ -1,0 +1,49 @@
+[project]
+name = "journal-api"
+version = "0.1.0"
+description = "Journal API"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "python-dotenv",
+    "aiohttp",
+    "sqlalchemy",
+    "psycopg2-binary",
+    "asyncpg",
+    "pytest>=9.0.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "httpx",
+    "ruff",
+    "ty",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # function-call-in-default-argument (standard FastAPI Depends pattern)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["api"]
+
+[tool.ty.environment]
+python-version = "3.11"
