@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:alpine
+    container_name: db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: career_journal
+    volumes:
+      - ./database_setup.sql:/docker-entrypoint-initdb.d/database_setup.sql
+    ports:
+      - "5432:5432"
+  
+  app:
+    image: 985756608427.dkr.ecr.us-east-1.amazonaws.com/stivis-journal-starter:latest
+    container_name: fast-api-app
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    # Command to run the init script once the db service is up
+    command: sh -c "/app/start.sh"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/career_journal
