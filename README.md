@@ -25,11 +25,18 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 ### 1. Fork and Clone the Repository
 
+Run these commands on your **host machine** (your local terminal, not inside a container):
+
 1. **Fork this repository** to your GitHub account by clicking the "Fork" button
 1. **Clone your fork** to your local machine:
 
    ```bash
    git clone https://github.com/YOUR_USERNAME/journal-starter.git
+   ```
+
+1. **Navigate into the project folder**:
+
+   ```bash
    cd journal-starter
    ```
 
@@ -43,7 +50,7 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 Environment variables live in a `.env` file (which is **git-ignored** so you don't accidentally commit secrets). This repo ships with a template named `.env-sample`.
 
-Copy the sample file to create your real `.env` (run from project root):
+Copy the sample file to create your real `.env`. Run this from the **project root on your host machine**:
 
 ```bash
 cp .env-sample .env
@@ -59,7 +66,7 @@ cp .env-sample .env
 
 ### 4. Verify the PostgreSQL Database Is Running
 
-In a terminal **outside of VS Code** (on your host machine), run:
+In a terminal on your **host machine** (not inside VS Code), run:
 
 ```bash
 docker ps
@@ -69,14 +76,14 @@ You should see the postgres service running.
 
 ### 5. Run the API
 
-In the **VS Code terminal** (inside the dev container), verify you're in the project root:
+In the **VS Code terminal** (inside the dev container), verify you're in the **project root**:
 
 ```bash
 pwd
 # Should output: /workspaces/journal-starter (or similar)
 ```
 
-Then start the API:
+Then start the API from the **project root**:
 
 ```bash
 ./start.sh
@@ -92,23 +99,50 @@ Then start the API:
 
 ## 🔄 Development Workflow
 
-We have provided tests so you can verify your implementations are correct without manual testing. As you implement each feature, the tests will tell you if your code works as expected.
+This project comes with several features **already built** for you — creating entries, listing entries, updating, and deleting all entries. The remaining features are left for you to implement.
 
-All commands in this section should be run from the **project root** in the VS Code terminal (inside the dev container).
+We have provided tests so you can verify your implementations are correct without manual testing. **When you first run the tests, some will pass (for the pre-built features) and some will fail (for the features you need to build).** Your goal is to make all tests pass.
+
+> 📍 **Where to run commands:** All commands in this section should be run from the **project root** in the **VS Code terminal** (inside the dev container). Do **not** `cd` into subdirectories like `api/` or `tests/` — run everything from the top-level project folder.
 
 ### First-Time Setup
 
-Install dev dependencies before running tests for the first time:
+From the **project root** in the VS Code terminal, install dev dependencies:
 
 ```bash
 uv sync --all-extras
+```
+
+Then run the tests to see the starting state:
+
+```bash
+uv run pytest
+```
+
+You should see output like this, with several **failing** tests:
+
+```
+FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success - assert 501 == 200
+FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found - assert 501 == 404
+FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_success - assert 501 == 200
+FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_not_found - assert 501 == 404
+FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_not_found - assert 501 == 404
+======================== 5 failed, 30 passed ========================
+```
+
+The 30 passing tests cover features that are **already built** for you (creating entries, listing entries, updating, etc.). The 5 failing tests are the features **you** need to implement. Each `assert 501 == 200` means the endpoint is returning "Not Implemented" (`501`) instead of a successful response (`200`).
+
+After completing all tasks, you should see:
+
+```
+============================= 35 passed ==============================
 ```
 
 ### For Each Task
 
 1. **Create a branch**
 
-   [Branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches) let you work on features in isolation without affecting the main codebase. Create one for each task:
+   [Branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches) let you work on features in isolation without affecting the main codebase. From the **project root**, create one for each task:
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -117,32 +151,56 @@ uv sync --all-extras
 
    Write your code in the `api/` directory. Check the TODO comments in the files for guidance on what to implement.
 
-3. **Verify your work**
+3. **Run the tests**
 
-   **Run the tests** to check your implementation is correct:
+   After implementing a feature, run the tests from the **project root** to check if your implementation is correct:
    ```bash
    uv run pytest
    ```
-   [pytest](https://docs.pytest.org/) is a testing framework that runs automated tests to verify your code works as expected. Tests will be skipped for features you haven't implemented yet. As you complete tasks, skipped tests will start passing.
+   [pytest](https://docs.pytest.org/) is a testing framework that runs automated tests to verify your code works as expected.
 
-   **Run the linter** to check code style and catch common mistakes:
+   - **Tests failing?** Read the error messages — they tell you exactly what's wrong (e.g., `assert 501 == 200` means your endpoint is still returning "Not Implemented").
+   - **Tests passing?** Great, your implementation is correct! Move on to the next step.
+
+   **Example: Before implementing GET /entries/{entry_id}:**
+   ```
+   FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success - assert 501 == 200
+   FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found - assert 501 == 404
+   ```
+
+   **After implementing it correctly:**
+   ```
+   tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success PASSED
+   tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found PASSED
+   ```
+
+   > 💡 **Tip:** Use `uv run pytest -v` for verbose output to see each test's pass/fail status, or `uv run pytest -v --tb=short` to also see concise error details.
+
+   **Run the linter** from the **project root** to check code style and catch common mistakes:
    ```bash
    uv run ruff check api/
    ```
    A linter is a tool that analyzes your code for potential errors, bugs, and style issues without running it. [Ruff](https://docs.astral.sh/ruff/) is a fast Python linter that checks for things like unused imports, incorrect syntax, and code that doesn't follow [Python style conventions (PEP 8)](https://pep8.org/).
 
-   **Run the type checker** to ensure proper type annotations:
+   **Run the type checker** from the **project root** to ensure proper type annotations:
    ```bash
    uv run ty check api/
    ```
    A type checker verifies that your code uses [type hints](https://docs.python.org/3/library/typing.html) correctly. Type hints (like `def get_entry(entry_id: str) -> dict:`) help catch bugs early by ensuring you're passing the right types of data to functions. [ty](https://github.com/astral-sh/ty) is a fast Python type checker.
 
-4. **Commit and push**
+4. **Commit and push** (only after tests pass!)
 
-   [Committing](https://docs.github.com/en/get-started/using-git/about-commits) saves your changes to Git. Pushing uploads them to GitHub so you can create a Pull Request:
+   Once the tests for your feature are passing, [commit](https://docs.github.com/en/get-started/using-git/about-commits) your changes and push to GitHub. Run from the **project root**:
+
    ```bash
    git add .
+   ```
+
+   ```bash
    git commit -m "Implement feature X"
+   ```
+
+   ```bash
    git push -u origin feature/your-feature-name
    ```
 
@@ -150,7 +208,7 @@ uv sync --all-extras
 
    On GitHub, open a [Pull Request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) to merge your feature branch into `main`. This is where code review happens. Once approved, merge the PR.
 
-> ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory.
+> ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory. If a test is failing, it means there's something left to implement — read the error message for clues!
 
 ## 🎯 Development Tasks
 
@@ -220,13 +278,14 @@ For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this form
 
 1. Choose a provider and read their docs: [OpenAI](https://platform.openai.com/docs) | [Anthropic](https://docs.anthropic.com) | [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) | [AWS Bedrock](https://docs.aws.amazon.com/bedrock/) | [GCP Vertex AI](https://cloud.google.com/vertex-ai/docs)
 2. Add required environment variables to your `.env` file
-3. Add your SDK to `pyproject.toml` and run `uv sync`
+3. Add your SDK to `pyproject.toml` and run `uv sync` from the **project root** (inside the dev container)
 
 ## 🔧 Troubleshooting
 
 **API won't start?**
-- Check PostgreSQL is running: `docker ps` (on host machine)
-- Restart the database: `docker restart your-postgres-container-name`
+- Make sure you're running `./start.sh` from the **project root** inside the dev container
+- Check PostgreSQL is running: `docker ps` (on your **host machine**)
+- Restart the database: `docker restart your-postgres-container-name` (on your **host machine**)
 
 **Can't connect to database?**
 - Verify `.env` file exists with correct `DATABASE_URL`

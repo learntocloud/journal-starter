@@ -8,7 +8,6 @@ These tests verify that the API endpoints work correctly, including:
 - Deleting entries
 - Error handling (404, validation errors, etc.)
 """
-import pytest
 from httpx import AsyncClient
 
 
@@ -112,12 +111,6 @@ class TestGetSingleEntry:
         entry_id = created_entry["id"]
         response = await test_client.get(f"/entries/{entry_id}")
 
-        # This endpoint returns 501 (Not Implemented) until students implement it
-        # When implemented, it should return 200 with the entry
-        if response.status_code == 501:
-            # Expected for unimplemented endpoint
-            pytest.skip("GET /entries/{id} endpoint not yet implemented by student")
-
         assert response.status_code == 200
         entry = response.json()
         assert entry["id"] == created_entry["id"]
@@ -127,10 +120,6 @@ class TestGetSingleEntry:
         """Test that retrieving a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.get(f"/entries/{fake_id}")
-
-        # Skip if not implemented yet
-        if response.status_code == 501:
-            pytest.skip("GET /entries/{id} endpoint not yet implemented by student")
 
         assert response.status_code == 404
 
@@ -172,10 +161,6 @@ class TestDeleteEntry:
         entry_id = created_entry["id"]
         response = await test_client.delete(f"/entries/{entry_id}")
 
-        # This endpoint returns 501 (Not Implemented) until students implement it
-        if response.status_code == 501:
-            pytest.skip("DELETE /entries/{id} endpoint not yet implemented by student")
-
         assert response.status_code == 200
 
         # Verify the entry was actually deleted
@@ -187,10 +172,6 @@ class TestDeleteEntry:
         """Test that deleting a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.delete(f"/entries/{fake_id}")
-
-        # Skip if not implemented yet
-        if response.status_code == 501:
-            pytest.skip("DELETE /entries/{id} endpoint not yet implemented by student")
 
         assert response.status_code == 404
 
@@ -221,21 +202,9 @@ class TestDeleteAllEntries:
 class TestAnalyzeEntry:
     """Tests for POST /entries/{entry_id}/analyze endpoint."""
 
-    async def test_analyze_entry_not_implemented(self, test_client: AsyncClient, created_entry: dict):
-        """Test that analyze endpoint returns 501 when not yet implemented."""
-        entry_id = created_entry["id"]
-        response = await test_client.post(f"/entries/{entry_id}/analyze")
-
-        # This endpoint returns 501 (Not Implemented) until students implement it
-        assert response.status_code == 501
-
     async def test_analyze_entry_not_found(self, test_client: AsyncClient):
         """Test that analyzing a non-existent entry returns 404."""
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = await test_client.post(f"/entries/{fake_id}/analyze")
-
-        # Skip if not implemented yet, or expect 404 if it is
-        if response.status_code == 501:
-            pytest.skip("POST /entries/{id}/analyze endpoint not yet implemented by student")
 
         assert response.status_code == 404
