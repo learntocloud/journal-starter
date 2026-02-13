@@ -1,5 +1,5 @@
 fastapi[standard]==0.129.0
-dotenv==1.2.1
+dotenv==0.9.9
 pydantic==2.12.5
 asyncpg==0.31.0
 openai==2.20.0
