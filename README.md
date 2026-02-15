@@ -276,9 +276,9 @@ For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this form
 
 **LLM Provider Setup:**
 
-1. Choose a provider and read their docs: [OpenAI](https://platform.openai.com/docs) | [Anthropic](https://docs.anthropic.com) | [Azure OpenAI](https://learn.microsoft.com/azure/ai-services/openai/) | [AWS Bedrock](https://docs.aws.amazon.com/bedrock/) | [GCP Vertex AI](https://cloud.google.com/vertex-ai/docs)
-2. Add required environment variables to your `.env` file
-3. Add your SDK to `pyproject.toml` and run `uv sync` from the **project root** (inside the dev container)
+1. Use **GitHub Models** (recommended for Phase 3) — it's free, uses your existing GitHub account, and requires no credit card. See the [GitHub Models docs](https://docs.github.com/en/github-models). Your code already uses the OpenAI Python SDK, so GitHub Models works out of the box — just set `GITHUB_TOKEN` and the model name in your `.env`.
+   > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI). Since they all support the OpenAI SDK, the migration is just an environment variable change — no code rewrite needed.
+3. Add required environment variables to your `.env` file
 
 ## 🔧 Troubleshooting
 
