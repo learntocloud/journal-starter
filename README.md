@@ -276,10 +276,15 @@ For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this form
 
 **LLM Provider Setup:**
 
-1. Use **GitHub Models** (recommended for Phase 3) — it's free, uses your existing GitHub account, and requires no credit card. See the [GitHub Models docs](https://docs.github.com/en/github-models). Your code already uses the OpenAI Python SDK, so GitHub Models works out of the box — just set `GITHUB_TOKEN` and the model name in your `.env`.
+1. Use **GitHub Models** (recommended for Phase 3) — it's free, uses your existing GitHub account, and requires no credit card. See the [GitHub Models docs](https://docs.github.com/en/github-models).
+2. Add the `openai` package: `uv add openai` then run `uv sync` from the project root.
+3. Add these to your `.env`:
+   ```
+   OPENAI_API_KEY=<your GitHub personal access token>
+   OPENAI_BASE_URL=https://models.inference.ai.azure.com
+   OPENAI_MODEL=gpt-4o-mini
+   ```
    > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI). Since they all support the OpenAI SDK, the migration is just an environment variable change — no code rewrite needed.
-3. Add required environment variables to your `.env` file
-
 ## 🔧 Troubleshooting
 
 **API won't start?**
