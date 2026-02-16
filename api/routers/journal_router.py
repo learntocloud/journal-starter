@@ -65,10 +65,9 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
     Hint: Check the update_entry endpoint for similar patterns
     """
-    result= await entry_service.get_entry(entry_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Entry not found")
-    return result
+    if entry_id not in entries:
+        raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    return {"entry": entries[entry_id]}
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
@@ -98,12 +97,6 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    result=entry_service.get_entry(entry_id)
-    delete=entry_service.delete_entry(entry_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Entry not Foud")
-    await delete
-    return {"detail":"Entry deleted succesfully"}
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Delete all journal entries"""
