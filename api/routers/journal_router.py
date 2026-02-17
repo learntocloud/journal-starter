@@ -98,11 +98,11 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    result=entry_service.get_entry(entry_id)
-    delete=entry_service.delete_entry(entry_id)
+    result=await entry_service.get_entry(entry_id)
+    delete=await entry_service.delete_entry(entry_id)
     if not result:
         raise HTTPException(status_code=404, detail="Entry not Foud")
-    await delete
+    delete
     return {"detail":"Entry deleted succesfully"}
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
