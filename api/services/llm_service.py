@@ -4,7 +4,12 @@
 # import anthropic
 # import boto3
 # from google.cloud import aiplatform
+import json
+from datetime import UTC, datetime
 
+from openai import OpenAI
+
+client = OpenAI()
 
 async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
     """
@@ -28,7 +33,27 @@ async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
     - Crafting effective prompts
     - Handling structured JSON output
     """
-    raise NotImplementedError(
-        "Implement this function using your chosen LLM API. "
-        "See the Learn to Cloud curriculum for guidance."
-    )
+    response = client.chat.completions.create(
+        model="gpt-4.1",
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": "Analyze the journal entry and return ONLY valid JSON with this structure:\n"
+                    "{\n"
+                    '  "sentiment": "positive | negative | neutral",\n'
+                    '  "summary": "Exactly 2 sentences.",\n'
+                    '  "topics": ["2-4 short topic strings"]\n'
+                    "}\n"
+                    "Do not include any extra text."},
+            {"role": "user", "content": entry_text},
+            ],
+        )
+    result=json.loads(response.choices[0].message.content)
+    
+    return {
+        "entry_id": entry_id,
+        "sentiment": result["sentiment"],
+        "summary": result["summary"],
+        "topics": result["topics"],
+        "created_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+    }
+    
