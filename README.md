@@ -27,11 +27,20 @@ By the end of this capstone, your API should be working locally and ready for cl
 
 Run these commands on your **host machine** (your local terminal, not inside a container):
 
-1. **Fork this repository** to your GitHub account by clicking the "Fork" button
-1. **Clone your fork** to your local machine:
+1. **Fork this repository** to your GitHub account by clicking the "Fork" button at the top right of this page. This creates your own copy of the project under your GitHub account.
+
+   > ⚠️ **Important:** Always clone **your fork**, not this original repository. All your work and Pull Requests should happen on your fork. Do **not** open PRs against the original `learntocloud/journal-starter` repo.
+
+1. **Clone your fork** to your local machine (replace `YOUR_USERNAME` with your actual GitHub username):
 
    ```bash
    git clone https://github.com/YOUR_USERNAME/journal-starter.git
+   ```
+
+   **Verify your remote** points to your fork (not `learntocloud`):
+   ```bash
+   git remote -v
+   # Should show: origin  https://github.com/YOUR_USERNAME/journal-starter.git
    ```
 
 1. **Navigate into the project folder**:
@@ -127,15 +136,17 @@ FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found - assert 
 FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_success - assert 501 == 200
 FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_not_found - assert 501 == 404
 FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_not_found - assert 501 == 404
-======================== 5 failed, 30 passed ========================
+FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_success - assert 501 == 200
+FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_handles_llm_error - assert 501 == 500
+======================== 7 failed, 30 passed ========================
 ```
 
-The 30 passing tests cover features that are **already built** for you (creating entries, listing entries, updating, etc.). The 5 failing tests are the features **you** need to implement. Each `assert 501 == 200` means the endpoint is returning "Not Implemented" (`501`) instead of a successful response (`200`).
+The 30 passing tests cover features that are **already built** for you (creating entries, listing entries, updating, etc.). The 7 failing tests are the features **you** need to implement. Each `assert 501 == 200` means the endpoint is returning "Not Implemented" (`501`) instead of a successful response (`200`).
 
 After completing all tasks, you should see:
 
 ```
-============================= 35 passed ==============================
+============================= 37 passed ==============================
 ```
 
 ### For Each Task
@@ -204,9 +215,11 @@ After completing all tasks, you should see:
    git push -u origin feature/your-feature-name
    ```
 
-5. **Create a Pull Request**
+5. **Create a Pull Request (on your fork)**
 
-   On GitHub, open a [Pull Request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) to merge your feature branch into `main`. This is where code review happens. Once approved, merge the PR.
+   Go to **your fork** on GitHub (`github.com/YOUR_USERNAME/journal-starter`) and open a [Pull Request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) to merge your feature branch into **your own** `main` branch.
+
+   > ⚠️ **Do NOT open PRs against the original `learntocloud/journal-starter` repository.** Your PR should merge into your fork's `main` branch. When creating the PR, make sure the "base repository" is `YOUR_USERNAME/journal-starter`, not `learntocloud/journal-starter`.
 
 > ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory. If a test is failing, it means there's something left to implement — read the error message for clues!
 

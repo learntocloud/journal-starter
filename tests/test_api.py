@@ -6,8 +6,11 @@ These tests verify that the API endpoints work correctly, including:
 - Retrieving entries (all and by ID)
 - Updating entries
 - Deleting entries
+- Analyzing entries with AI
 - Error handling (404, validation errors, etc.)
 """
+from unittest.mock import AsyncMock, patch
+
 from httpx import AsyncClient
 
 
@@ -208,3 +211,37 @@ class TestAnalyzeEntry:
         response = await test_client.post(f"/entries/{fake_id}/analyze")
 
         assert response.status_code == 404
+
+    @patch("api.services.llm_service.analyze_journal_entry")
+    async def test_analyze_entry_success(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
+        """Test successfully analyzing an existing entry returns correct structure."""
+        entry_id = created_entry["id"]
+        mock_analyze.return_value = {
+            "entry_id": entry_id,
+            "sentiment": "positive",
+            "summary": "Great progress on learning. Excited to continue tomorrow.",
+            "topics": ["FastAPI", "PostgreSQL"],
+            "created_at": "2025-12-25T10:30:00Z"
+        }
+
+        response = await test_client.post(f"/entries/{entry_id}/analyze")
+
+        assert response.status_code == 200
+        result = response.json()
+        assert result["entry_id"] == entry_id
+        assert result["sentiment"] in ["positive", "negative", "neutral"]
+        assert "summary" in result
+        assert isinstance(result["topics"], list)
+        assert len(result["topics"]) >= 2
+        assert "created_at" in result
+
+    @patch("api.services.llm_service.analyze_journal_entry")
+    async def test_analyze_entry_handles_llm_error(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
+        """Test that LLM errors are handled gracefully, not as raw 500s."""
+        mock_analyze.side_effect = Exception("LLM API key is invalid")
+
+        response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+
+        # Should return a handled error with a JSON detail message
+        assert response.status_code == 500
+        assert "detail" in response.json()

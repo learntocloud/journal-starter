@@ -123,7 +123,18 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
     1. Fetch the entry from database using entry_service.get_entry(entry_id)
     2. Return 404 if entry not found
     3. Combine work + struggle + intention into text
-    4. Call llm_service.analyze_journal_entry(entry_text)
-    5. Return the analysis result with entry_id and created_at timestamp
+    4. Call llm_service.analyze_journal_entry(entry_id, entry_text)
+    5. Return the analysis result
+    6. Wrap the LLM call in try/except to handle errors gracefully:
+       - Catch NotImplementedError and return 501
+       - Catch other exceptions and return 500 with a helpful detail message
+
+    Example error handling:
+        try:
+            analysis = await analyze_journal_entry(entry_id, entry_text)
+        except NotImplementedError:
+            raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
     raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
