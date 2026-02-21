@@ -6,6 +6,7 @@ from api.repositories.postgres_repository import PostgresDB
 
 logger = logging.getLogger("journal")
 
+
 class EntryService:
     def __init__(self, db: PostgresDB):
         self.db = db

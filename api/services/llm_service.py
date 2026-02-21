@@ -1,34 +1,53 @@
 
 # TODO: Import your chosen LLM SDK
-# from openai import OpenAI
+import json
+import os
+from openai import OpenAI
+
+from api.services import entry_service
 # import anthropic
 # import boto3
 # from google.cloud import aiplatform
+client = OpenAI(
+    base_url=os.environ["OPENAI_BASE_URL"], api_key=os.environ["OPENAI_API_KEY"])
+MODEL_NAME = os.environ["OPENAI_MODEL"]
 
 
-async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
-    """
-    Analyze a journal entry using your chosen LLM API.
+async def analyze_journal_entry(entry_id: str, entry_text: str, ) -> dict:
 
-    Args:
-        entry_id: The ID of the journal entry being analyzed
-        entry_text: The combined text of the journal entry (work + struggle + intention)
-
-    Returns:
-        dict with keys:
-            - entry_id: ID of the analyzed entry
-            - sentiment: "positive" | "negative" | "neutral"
-            - summary: 2 sentence summary of the entry
-            - topics: list of 2-4 key topics mentioned
-            - created_at: timestamp when the analysis was created
-
-    TODO: Implement this function using your chosen LLM provider.
-    See the Learn to Cloud curriculum for guidance on:
-    - Setting up your LLM API client
-    - Crafting effective prompts
-    - Handling structured JSON output
-    """
-    raise NotImplementedError(
-        "Implement this function using your chosen LLM API. "
-        "See the Learn to Cloud curriculum for guidance."
+    response = client.chat.completions.create(
+        model=MODEL_NAME,
+        response_format={"type": "json_object"},
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a journal analysis engine.\n"
+                    "Extract ONLY the following fields:\n"
+                    "- sentiment (positive | negative | neutral)\n"
+                    "- summary (exactly 2 sentences)\n"
+                    "- topics (array of 2-4 strings)\n\n"
+                    "Return STRICT JSON with keys:\n"
+                    "sentiment, summary, topics\n\n"
+                    "Do NOT include entry_id or created_at.\n"
+                    "Do NOT include explanations.\n"
+                    "Do NOT include markdown.\n"
+                    "Do NOT include extra fields."
+                )
+            },
+            {"role": "user", "content": entry_text}
+        ]
     )
+
+    llm_data = json.loads(response.choices[0].message.content)
+
+    # 🔒 Schema-controlled output
+    result = {
+        "entry_id": "",
+        "sentiment": llm_data["sentiment"],
+        "summary": llm_data["summary"],
+        "topics": llm_data["topics"],
+        "created_at": ""
+    }
+
+    return result

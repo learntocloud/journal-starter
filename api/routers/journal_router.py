@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from api.models.entry import Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
+from api.services import llm_service
 from api.services.entry_service import EntryService
 
 router = APIRouter()
@@ -94,26 +95,19 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
 
 @router.post("/entries/{entry_id}/analyze")
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
-    """
-    Analyze a journal entry using AI.
+    entry = await entry_service.get_entry(entry_id)
 
-    Returns sentiment, summary, key topics, entry_id, and created_at timestamp.
+    if not entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    Response format:
-    {
-        "entry_id": "string",
-        "sentiment": "positive | negative | neutral",
-        "summary": "2 sentence summary of the entry",
-        "topics": ["topic1", "topic2", "topic3"],
-        "created_at": "timestamp"
-    }
+    created_at = entry["created_at"]
 
-    TODO: Implement this endpoint. Steps:
-    1. Fetch the entry from database using entry_service.get_entry(entry_id)
-    2. Return 404 if entry not found
-    3. Combine work + struggle + intention into text
-    4. Call llm_service.analyze_journal_entry(entry_text)
-    5. Return the analysis result with entry_id and created_at timestamp
-    """
-    raise HTTPException(
-        status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+    entry_text = entry["work"] + " " + \
+        entry["struggle"] + " " + entry["intention"]
+
+    analysis = await llm_service.analyze_journal_entry(entry_id, entry_text)
+
+    analysis["entry_id"] = entry_id
+    analysis["created_at"] = created_at
+
+    return analysis
