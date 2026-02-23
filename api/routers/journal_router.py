@@ -1,5 +1,7 @@
 from collections.abc import AsyncGenerator
 
+from api.models import entry
+from api.services import llm_service
 from fastapi import APIRouter, Depends, HTTPException
 
 from api.models.entry import Entry, EntryCreate
@@ -65,7 +67,12 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
     Hint: Check the update_entry endpoint for similar patterns
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+
+    entry = await entry_service.get_entry(entry_id) 
+    if not entry: 
+        raise HTTPException(status_code=404, detail = "Entry not found")
+    return entry
+
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
@@ -76,6 +83,7 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
+
 
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
@@ -95,7 +103,12 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+
+    entry = await entry_service.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    await entry_service.delete_entry(entry_id)
+    return {"detail": "Entry deleted successfully"}
 
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
@@ -137,4 +150,15 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+
+    entry = await entry_service.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    entry_text = f"Work: {entry['work']}\nStruggle: {entry['struggle']}\nIntention: {entry['intention']}"
+    try:
+        analysis_result = await llm_service.analyze_journal_entry(entry_id, entry_text)
+    except NotImplementedError:
+            raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    return analysis_result      

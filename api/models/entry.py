@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class AnalysisResponse(BaseModel):
@@ -44,18 +44,20 @@ class Entry(BaseModel):
         default_factory=lambda: str(uuid4()),
         description="Unique identifier for the entry (UUID)."
     )
+    schema_version: str = Field(default="1.0", description="Schema version") 
+
     work: str = Field(
-        ...,
+        min_length=0,
         max_length=256,
         description="What did you work on today?"
     )
     struggle: str = Field(
-        ...,
+        min_length=0,
         max_length=256,
         description="What’s one thing you struggled with today?"
     )
     intention: str = Field(
-        ...,
+        min_length=0,
         max_length=256,
         description="What will you study/work on tomorrow?"
     )
@@ -67,3 +69,9 @@ class Entry(BaseModel):
         default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was last updated."
     )
+
+    @field_validator("work", "struggle", "intention")
+    @classmethod
+    def strip_whitespace(cls, v):
+        return v.strip()
+
