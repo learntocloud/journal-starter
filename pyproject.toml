@@ -12,7 +12,6 @@ dependencies = [
     "psycopg2-binary",
     "asyncpg",
     "pytest>=9.0.2",
-    "openai>=2.21.0",
 ]
 
 [project.optional-dependencies]
@@ -48,8 +47,3 @@ known-first-party = ["api"]
 
 [tool.ty.environment]
 python-version = "3.11"
-
-[dependency-groups]
-dev = [
-    "httpx>=0.28.1",
-]
