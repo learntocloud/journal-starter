@@ -98,6 +98,13 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
 
 @router.delete("/entries/{entry_id}")
 async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+    result = await entry_service.get_entry(entry_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    await entry_service.delete_entry(entry_id)
+    return {"detail": "Entry deleted successfully"}
+
     """
     TODO: Implement this endpoint to delete a specific journal entry
 
