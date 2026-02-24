@@ -23,6 +23,7 @@ logger.info(" ********* Journal API is launching... ********* ")
 # 3. Add console handler
 # 4. Test by adding a log message when the app starts
 
+
 app = FastAPI(title="Journal API",
               description="A simple journal API for tracking daily work, struggles, and intentions")
 app.include_router(journal_router)
