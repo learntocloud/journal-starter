@@ -1,11 +1,10 @@
 
+import logging
+from api.routers.journal_router import router as journal_router
+from fastapi import FastAPI
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
-
-from fastapi import FastAPI
-
-from api.routers.journal_router import router as journal_router
 
 
 # TODO: Setup basic console logging
@@ -16,5 +15,15 @@ from api.routers.journal_router import router as journal_router
 # 3. Add console handler
 # 4. Test by adding a log message when the app starts
 
-app = FastAPI(title="Journal API", description="A simple journal API for tracking daily work, struggles, and intentions")
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+
+logger = logging.getLogger(__name__)
+logger.info("### Journal API is cookin'... ###")
+
+app = FastAPI(title="Journal API",
+              description="A simple journal API for tracking daily work, struggles, and intentions")
 app.include_router(journal_router)
