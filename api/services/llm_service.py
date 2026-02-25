@@ -1,9 +1,9 @@
+import json
 import os
-from fastapi import HTTPException
+
 import openai
 from dotenv import load_dotenv
-
-import json
+from fastapi import HTTPException
 
 
 async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
@@ -11,8 +11,7 @@ async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
     # Setup LLM API client
     load_dotenv(override=True)
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-    OPENAI_BASE_URL = os.getenv(
-        "OPENAI_BASE_URL", "https://models.inference.ai.azure.com")
+    OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://models.inference.ai.azure.com")
     client = openai.OpenAI(base_url=OPENAI_BASE_URL, api_key=GITHUB_TOKEN)
     MODEL_NAME = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
@@ -40,16 +39,12 @@ async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
                         '  "created_at": "<timestamp when analysis was created>"\n'
                         "}"
                     ),
-                }
+                },
             ],
             temperature=0.5,
-
         )
         analysis_result = response.choices[0].message.content
         result = json.loads(analysis_result)
         return result
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"LLM error: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
