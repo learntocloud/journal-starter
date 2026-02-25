@@ -37,9 +37,6 @@ async def create_entry(entry_data: EntryCreate, entry_service: EntryService = De
         raise HTTPException(
             status_code=400, detail=f"Error creating entry: {str(e)}") from e
 
-# Implements GET /entries endpoint to list all journal entries
-# Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
-
 
 @router.get("/entries")
 async def get_all_entries(entry_service: EntryService = Depends(get_entry_service)):
@@ -60,28 +57,6 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     return result
 
 
-"""
-    TODO: Implement this endpoint to return a single journal entry by ID
-
-    Steps to implement:
-    1. Use entry_service.get_entry(entry_id) to fetch the entry
-    2. If entry is None, raise HTTPException with status_code=404
-    3. Return the entry directly (not wrapped in a dict)
-
-    Example response (status 200):
-    {
-        "id": "uuid-string",
-        "work": "...",
-        "struggle": "...",
-        "intention": "...",
-        "created_at": "...",
-        "updated_at": "..."
-    }
-
-    Hint: Check the update_entry endpoint for similar patterns
-    """
-
-
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
     """Update a journal entry"""
@@ -91,9 +66,6 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
-
-# TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
-# Return 404 if entry not found
 
 
 @router.delete("/entries/{entry_id}")
