@@ -1,21 +1,24 @@
 import json
 from datetime import UTC, datetime
+from typing import Literal
 
 import boto3
+from pydantic import BaseModel, Field
 
 brt = boto3.client("bedrock-runtime", region_name="us-east-1")
-model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+model_id = "us.anthropic.claude-opus-4-5-20251101-v1:0"
+
+class JournalAnalysis(BaseModel):
+    sentiment: Literal["positive", "negative", "neutral"]
+    summary: str = Field(..., description="A 2 sentence summary of the journal entry")
+    topics: list[str] = Field(..., description="A list of 2-4 key topics mentioned in the entry")
+    model_config = {"extra": "forbid"}
 
 async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
     """Analyze a journal entry using Amazon Bedrock."""
-    system_message = "You are a sentiment analyzer for journal entries. Always respond with valid JSON only."
-    prompt = f"""Analyze the journal entry and return a JSON object with these exact keys:
-    - entry_id: {entry_id}
-    - sentiment: 'positive' | 'negative' | 'neutral'
-    - summary: a 2 sentence summary of the entry
-    - topics: a list of 2-4 key topics mentioned in the entry
+    system_message = "You are a sentiment analyzer for journal entries."
+    prompt = f"""Analyze the following journal entry:
 
-    Journal Entry:
     {entry_text}"""
 
     response = brt.converse(
@@ -25,10 +28,24 @@ async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
         inferenceConfig={
             "maxTokens": 512,
             "temperature": 0.5
+        },
+        outputConfig={
+            "textFormat": {
+                "type": "json_schema",
+                "structure": {
+                    "jsonSchema": {
+                        "name": "journal_analysis",
+                        "schema": json.dumps(JournalAnalysis.model_json_schema())
+                    }
+                }
+            }
         }
     )
 
     response_text = response["output"]["message"]["content"][0]["text"]
-    result = json.loads(response_text)
-    result["created_at"] = datetime.now(UTC).isoformat()
-    return result
+    result = JournalAnalysis.model_validate_json(response_text)
+    return {
+        "entry_id": entry_id,
+        **result.model_dump(),
+        "created_at": datetime.now(UTC).isoformat()
+    }
