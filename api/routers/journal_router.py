@@ -32,8 +32,7 @@ async def create_entry(
         # Return success response (FastAPI handles datetime serialization automatically)
         return {"detail": "Entry created successfully", "entry": created_entry}
     except Exception as e:
-        raise HTTPException(
-            status_code=400, detail=f"Error creating entry: {str(e)}") from e
+        raise HTTPException(status_code=400, detail=f"Error creating entry: {str(e)}") from e
 
 
 @router.get("/entries")
@@ -92,14 +91,14 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
 
     # Combine work, struggle, and intention into entry_text
     # entry_text = ""
-    entry_text = f"Work: {result['work']}\nStruggle: {result['struggle']}\nIntention: {result['intention']}"
+    entry_text = (
+        f"Work: {result['work']}\nStruggle: {result['struggle']}\nIntention: {result['intention']}"
+    )
 
     try:
         analysis = await analyze_journal_entry(entry_id, entry_text)
         return analysis
     except NotImplementedError:
-        raise HTTPException(
-            status_code=501, detail="LLM analysis not yet implemented")
+        raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Analysis failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
