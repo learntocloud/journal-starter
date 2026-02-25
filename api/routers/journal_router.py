@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.models.entry import Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
+from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
 
@@ -15,27 +16,25 @@ async def get_entry_service() -> AsyncGenerator[EntryService, None]:
 
 
 @router.post("/entries")
-async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
+async def create_entry(
+    entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)
+):
     """Create a new journal entry."""
     try:
         # Create the full entry with auto-generated fields
         entry = Entry(
-            work=entry_data.work,
-            struggle=entry_data.struggle,
-            intention=entry_data.intention
+            work=entry_data.work, struggle=entry_data.struggle, intention=entry_data.intention
         )
 
         # Store the entry in the database
         created_entry = await entry_service.create_entry(entry.model_dump())
 
         # Return success response (FastAPI handles datetime serialization automatically)
-        return {
-            "detail": "Entry created successfully",
-            "entry": created_entry
-        }
+        return {"detail": "Entry created successfully", "entry": created_entry}
     except Exception as e:
         raise HTTPException(
             status_code=400, detail=f"Error creating entry: {str(e)}") from e
+
 
 # Implements GET /entries endpoint to list all journal entries
 # Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
@@ -54,7 +53,6 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     # Checking if entry_service is not empty
     result = await entry_service.get_entry(entry_id)
     if not result:
-
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
@@ -83,14 +81,16 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
 
 @router.patch("/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
+async def update_entry(
+    entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)
+):
     """Update a journal entry"""
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
-
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
+
 
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
@@ -132,6 +132,29 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
 
 @router.post("/entries/{entry_id}/analyze")
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+
+    result = await entry_service.get_entry(entry_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    # Combine work, struggle, and intention into entry_text
+    # entry_text = ""
+    entry_text = f"Work: {result['work']}\nStruggle: {result['struggle']}\nIntention: {result['intention']}"
+
+    try:
+        analysis = await analyze_journal_entry(entry_id, entry_text)
+        return analysis
+
+    except NotImplementedError:
+        raise HTTPException(
+            status_code=501, detail="LLM analysis not yet implemented")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Analysis failed: {str(e)}")
+
+    raise HTTPException(
+        status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum"
+    )
     """
     Analyze a journal entry using AI.
 
@@ -164,5 +187,3 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
-    raise HTTPException(
-        status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
