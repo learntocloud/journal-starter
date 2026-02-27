@@ -4,6 +4,20 @@ Welcome to your Python capstone project! You'll be working with a **FastAPI + Po
 
 By the end of this capstone, your API should be working locally and ready for cloud deployment.
 
+## ⚠️ Important: This Is a Template Repository
+
+**Do NOT open Pull Requests against this repository (`learntocloud/journal-starter`).**
+
+This repo is a starter template. Your work should happen on **your own fork**:
+
+1. **Fork** this repo to your GitHub account (click the "Fork" button at the top right).
+2. **Clone your fork** — not this repo.
+3. Do all your work and open PRs on **your fork** (`github.com/YOUR_USERNAME/journal-starter`).
+
+PRs opened against `learntocloud/journal-starter` will be closed without review.
+
+---
+
 ## Table of Contents
 
 - [Getting Started](#-getting-started)
