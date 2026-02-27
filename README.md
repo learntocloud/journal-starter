@@ -221,6 +221,10 @@ After completing all tasks, you should see:
 
    > ⚠️ **Do NOT open PRs against the original `learntocloud/journal-starter` repository.** Your PR should merge into your fork's `main` branch. When creating the PR, make sure the "base repository" is `YOUR_USERNAME/journal-starter`, not `learntocloud/journal-starter`.
 
+   Example:
+
+   ![Core Base Repository Selection](docs/pr_example.png)
+
 > ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory. If a test is failing, it means there's something left to implement — read the error message for clues!
 
 ## 🎯 Development Tasks
