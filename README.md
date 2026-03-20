@@ -36,7 +36,7 @@ This project focuses on **how real systems are designed in production**:
 
 ## 🏗️ Architecture Overview
 
-![Architecture Diagram](./architecture/Journal-VPC.drawio.png)
+![Architecture Diagram](./docs/architecture/Journal-VPC.drawio.png)
 
 ---
 
