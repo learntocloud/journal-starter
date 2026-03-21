@@ -12,7 +12,8 @@ dependencies = [
     "psycopg2-binary",
     "asyncpg",
     "pytest>=9.0.2",
-    "httpx"
+    "httpx",
+    "openai",
 ]
 
 [project.optional-dependencies]
