@@ -3,40 +3,23 @@
 import json
 import logging
 import os
-from urllib import response
+
 import openai
+
 # import anthropic
 # import boto3
 # from google.cloud import aiplatform
 
 
-class LLMService:
-    def __init__(self):
-        """
-        Initialize your LLM API client here.
-
-        For example, if using OpenAI:
-        self.client = OpenAI()
-
-        If using Anthropic:
-        self.client = anthropic.Client()
-
-        If using AWS Bedrock:
-        self.client = boto3.client('bedrock')
-
-        If using Google Vertex AI:
-        aiplatform.init()
-        self.client = aiplatform.gapic.PredictionServiceClient()
-        """
-        self.openai_client = openai.OpenAI(base_url=os.getenv(
-            "OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
-        logging.info(f"open api key: {os.getenv('OPENAI_API_KEY')}")
-        logging.info(f"LLMService initialized with OpenAI base URL: {os.getenv('OPENAI_BASE_URL')}")
-        pass
+# Initialize OpenAI client at module level
+_openai_client = openai.OpenAI(base_url=os.getenv(
+    "OPENAI_BASE_URL"), api_key=os.getenv("OPENAI_API_KEY"))
+logging.info(f"open api key: {os.getenv('OPENAI_API_KEY')}")
+logging.info(f"LLMService initialized with OpenAI base URL: {os.getenv('OPENAI_BASE_URL')}")
 
 
-    async def analyze_journal_entry(self, entry_id: str, entry_text: str) -> dict:
-        """
+async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
+    """
     Analyze a journal entry using your chosen LLM API.
 
     Args:
@@ -57,7 +40,7 @@ class LLMService:
     - Crafting effective prompts
     - Handling structured JSON output
     """
-        response = self.openai_client.chat.completions.create(
+    response = _openai_client.chat.completions.create(
         model=os.getenv("GITHUB_MODEL"),
         temperature=0.7,
         messages=[
@@ -66,20 +49,41 @@ class LLMService:
         ],
     )
 
-        content = response.choices[0].message.content.strip()
-        print(f"Response from github:\n{content}")
-        
-        # Remove markdown code fence if present
-        if content.startswith("```json"):
-            content = content[7:]  # Remove ```json
-        if content.startswith("```"):
-            content = content[3:]  # Remove ```
-        if content.endswith("```"):
-            content = content[:-3]  # Remove trailing ```
-        content = content.strip()
-        
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            logging.error(f"Failed to parse JSON response: {e}\nContent: {content}")
-            raise ValueError(f"LLM response was not valid JSON: {e}")
+    content = response.choices[0].message.content.strip()
+    print(f"Response from github:\n{content}")
+
+    # Remove markdown code fence if present
+    if content.startswith("```json"):
+        content = content[7:]  # Remove ```json
+    if content.startswith("```"):
+        content = content[3:]  # Remove ```
+    if content.endswith("```"):
+        content = content[:-3]  # Remove trailing ```
+    content = content.strip()
+
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse JSON response: {e}\nContent: {content}")
+        raise ValueError(f"LLM response was not valid JSON: {e}") from e
+
+
+class LLMService:
+    def __init__(self):
+        """
+        Initialize your LLM API client here.
+
+        For example, if using OpenAI:
+        self.client = OpenAI()
+
+        If using Anthropic:
+        self.client = anthropic.Client()
+
+        If using AWS Bedrock:
+        self.client = boto3.client('bedrock')
+
+        If using Google Vertex AI:
+        aiplatform.init()
+        self.client = aiplatform.gapic.PredictionServiceClient()
+        """
+        self.openai_client = _openai_client
