@@ -2,10 +2,12 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+from openai import AuthenticationError
 
 from api.models.entry import Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
+from api.services.llm_service import LLMService
 
 router = APIRouter()
 
@@ -13,6 +15,8 @@ router = APIRouter()
 async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
         yield EntryService(db)
+async def get_llm_service() -> AsyncGenerator[LLMService, None]:
+    yield LLMService()
 
 @router.post("/entries")
 async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
@@ -113,7 +117,7 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
     return {"detail": "All entries deleted"}
 
 @router.post("/entries/{entry_id}/analyze")
-async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service), llm_service: LLMService = Depends(get_llm_service)):
     """
     Analyze a journal entry using AI.
 
@@ -146,4 +150,18 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+    entry = await entry_service.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    entry_text = f"Work: {entry['work']}\nStruggle: {entry['struggle']}\nIntention: {entry['intention']}"
+    try:
+        analysis = await llm_service.analyze_journal_entry(entry_id, entry_text)
+    except NotImplementedError:
+        raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
+    except AuthenticationError as e:
+        raise HTTPException(status_code=401, detail=f"LLM authentication failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+
+    return analysis
