@@ -1,5 +1,3 @@
-
-# TODO: Import your chosen LLM SDK
 import json
 import logging
 import os
@@ -34,11 +32,6 @@ async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
         - topics: list of 2-4 key topics mentioned
         - created_at: timestamp when the analysis was created
 
-    TODO: Implement this function using your chosen LLM provider.
-    See the Learn to Cloud curriculum for guidance on:
-    - Setting up your LLM API client
-    - Crafting effective prompts
-    - Handling structured JSON output
     """
     response = _openai_client.chat.completions.create(
         model=os.getenv("GITHUB_MODEL"),
