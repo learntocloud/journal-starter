@@ -19,3 +19,4 @@ logging.info("Journal API starting up...")
 
 app = FastAPI(title="Journal API", description="A simple journal API for tracking daily work, struggles, and intentions")
 app.include_router(journal_router)
+# Logging configured Sun Mar 22 00:07:57 UTC 2026
