@@ -1,34 +1,35 @@
+import os
+import json
+from openai import AsyncOpenAI
+from typing import Dict, Any
 
-# TODO: Import your chosen LLM SDK
-# from openai import OpenAI
-# import anthropic
-# import boto3
-# from google.cloud import aiplatform
+# Initialisierung des Clients für GitHub Models (Phase 3 Standard)
+client = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL", "https://models.inference.ai.azure.com"),
+)
 
-
-async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
+async def analyze_journal_entry(entry: Dict[str, Any]) -> Dict[str, Any]:
+    """Sendet den Eintrag an die KI und gibt Sentiment, Summary und Topics zurück."""
+    prompt = f"""
+    Analysiere diesen Tagebucheintrag und gib ein JSON-Objekt zurück mit:
+    - sentiment: (string)
+    - summary: (2 Sätze Zusammenfassung)
+    - topics: (Liste von 3 Themen)
+    
+    Eintrag: {entry}
     """
-    Analyze a journal entry using your chosen LLM API.
-
-    Args:
-        entry_id: The ID of the journal entry being analyzed
-        entry_text: The combined text of the journal entry (work + struggle + intention)
-
-    Returns:
-        dict with keys:
-            - entry_id: ID of the analyzed entry
-            - sentiment: "positive" | "negative" | "neutral"
-            - summary: 2 sentence summary of the entry
-            - topics: list of 2-4 key topics mentioned
-            - created_at: timestamp when the analysis was created
-
-    TODO: Implement this function using your chosen LLM provider.
-    See the Learn to Cloud curriculum for guidance on:
-    - Setting up your LLM API client
-    - Crafting effective prompts
-    - Handling structured JSON output
-    """
-    raise NotImplementedError(
-        "Implement this function using your chosen LLM API. "
-        "See the Learn to Cloud curriculum for guidance."
-    )
+    
+    try:
+        response = await client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        return {
+            "sentiment": "error",
+            "summary": f"Fehler bei der KI-Analyse: {str(e)}",
+            "topics": []
+        }
