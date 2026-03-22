@@ -46,3 +46,14 @@ async def get_single_entry(
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return entry
+
+@router.delete("/entries/{entry_id}")
+async def delete_entry(
+    entry_id: str,
+    entry_service: EntryService = Depends(get_entry_service),
+):
+    """Delete a single journal entry by ID."""
+    deleted = await entry_service.delete_entry(entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return {"detail": "Entry deleted successfully"}
