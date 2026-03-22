@@ -1,3 +1,4 @@
+from api.services.llm_service import analyze_journal_entry
 from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -57,3 +58,16 @@ async def delete_entry(
     if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
     return {"detail": "Entry deleted successfully"}
+
+@router.post("/entries/{entry_id}/analyze")
+async def analyze_entry(
+    entry_id: str, 
+    entry_service: EntryService = Depends(get_entry_service)
+):
+    """Analyze a journal entry using AI."""
+    entry = await entry_service.get_entry(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    
+    analysis = await analyze_journal_entry(entry)
+    return {**analysis, "entry_id": entry_id}
