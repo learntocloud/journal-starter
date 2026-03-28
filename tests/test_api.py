@@ -212,7 +212,7 @@ class TestAnalyzeEntry:
 
         assert response.status_code == 404
 
-    @patch("api.services.llm_service.analyze_journal_entry")
+    @patch("api.routers.journal_router.analyze_journal_entry")
     async def test_analyze_entry_success(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
         """Test successfully analyzing an existing entry returns correct structure."""
         entry_id = created_entry["id"]
@@ -235,7 +235,7 @@ class TestAnalyzeEntry:
         assert len(result["topics"]) >= 2
         assert "created_at" in result
 
-    @patch("api.services.llm_service.analyze_journal_entry")
+    @patch("api.routers.journal_router.analyze_journal_entry")
     async def test_analyze_entry_handles_llm_error(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
         """Test that LLM errors are handled gracefully, not as raw 500s."""
         mock_analyze.side_effect = Exception("LLM API key is invalid")
