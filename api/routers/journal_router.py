@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.models.entry import Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
+from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
 
@@ -112,35 +113,15 @@ async def delete_all_entries(entry_service: EntryService = Depends(get_entry_ser
 @router.post("/entries/{entry_id}/analyze")
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
     """
-    Analyze a journal entry using AI.
-
-    Returns sentiment, summary, key topics, entry_id, and created_at timestamp.
-
-    Response format:
-    {
-        "entry_id": "string",
-        "sentiment": "positive | negative | neutral",
-        "summary": "2 sentence summary of the entry",
-        "topics": ["topic1", "topic2", "topic3"],
-        "created_at": "timestamp"
-    }
-
-    TODO: Implement this endpoint. Steps:
-    1. Fetch the entry from database using entry_service.get_entry(entry_id)
-    2. Return 404 if entry not found
-    3. Combine work + struggle + intention into text
-    4. Call llm_service.analyze_journal_entry(entry_id, entry_text)
-    5. Return the analysis result
-    6. Wrap the LLM call in try/except to handle errors gracefully:
-       - Catch NotImplementedError and return 501
-       - Catch other exceptions and return 500 with a helpful detail message
-
-    Example error handling:
-        try:
-            analysis = await analyze_journal_entry(entry_id, entry_text)
-        except NotImplementedError:
-            raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+    entry = await entry_service.get_entry(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    entry_text = f"Work: {entry['work']}\nStruggle: {entry['struggle']}\nIntention: {entry['intention']}"
+    try:
+        analysis = await analyze_journal_entry(entry_id, entry_text)
+        return analysis
+    except NotImplementedError:
+        raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
