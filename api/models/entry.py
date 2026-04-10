@@ -30,14 +30,17 @@ class EntryCreate(BaseModel):
     """
 
     work: str = Field(
+        max_length=256,
         description="What did you work on today?",
         json_schema_extra={"example": "Studied FastAPI and built my first API endpoints"},
     )
     struggle: str = Field(
+        max_length=256,
         description="What's one thing you struggled with today?",
         json_schema_extra={"example": "Understanding async/await syntax and when to use it"},
     )
     intention: str = Field(
+        max_length=256,
         description="What will you study/work on tomorrow?",
         json_schema_extra={"example": "Practice PostgreSQL queries and database design"},
     )

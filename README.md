@@ -162,13 +162,13 @@ Then run the tests to see the starting state:
 uv run pytest
 ```
 
-You should see output with roughly **18 failing** tests — one group per
-task you still have to complete:
+You should see output with **18 failing** tests — one group per task you
+still have to complete:
 
 ```
 FAILED tests/test_logging.py::test_root_logger_is_configured_at_info
-FAILED tests/test_logging.py::test_root_logger_has_handler
-FAILED tests/test_logging.py::test_journal_logger_propagates
+FAILED tests/test_logging.py::test_api_main_installs_stream_handler_with_formatter
+FAILED tests/test_logging.py::test_api_main_emits_startup_log
 FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success
 FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found
 FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_success
@@ -184,12 +184,12 @@ FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string
 FAILED tests/test_llm_service.py::test_analyze_entry_actually_calls_llm
 FAILED tests/test_llm_service.py::test_analyze_entry_sends_entry_text_in_prompt
 FAILED tests/test_llm_service.py::test_analyze_entry_returns_valid_analysis_response
-================== ~18 failed, ~20 passed ==================
+===================== 18 failed, 32 passed =====================
 ```
 
 The passing tests cover features that are **already built** for you
 (creating entries, listing entries, updating, deleting all entries).
-The ~18 failing tests correspond to Tasks 1–4 below — your job is to
+The 18 failing tests correspond to Tasks 1–4 below — your job is to
 turn all of them green.
 
 ### For Each Task
