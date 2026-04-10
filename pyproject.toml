@@ -2,48 +2,60 @@
 name = "journal-api"
 version = "0.1.0"
 description = "Journal API"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi",
     "uvicorn",
-    "python-dotenv",
-    "aiohttp",
-    "sqlalchemy",
-    "psycopg2-binary",
     "asyncpg",
-    "pytest>=9.0.2",
+    "pydantic>=2",
+    "python-dotenv",
+    "openai",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+    "pytest>=9.0.2",
     "pytest-asyncio",
     "httpx",
     "ruff",
-    "ty",
+    "pyright",
+    "pre-commit",
 ]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "UP",     # pyupgrade
-    "B",      # flake8-bugbear
-    "SIM",    # flake8-simplify
+    "E", "W", "F", "I", "UP", "N", "B", "C4", "DTZ",
+    "SIM", "RET", "PT", "S", "T20", "ASYNC", "RUF",
 ]
-ignore = [
-    "E501",   # line too long (handled by formatter)
-    "B008",   # function-call-in-default-argument (standard FastAPI Depends pattern)
+ignore = ["E501"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+    "fastapi.File",
+    "fastapi.Form",
+    "fastapi.Security",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101"]
+"scripts/**/*.py" = ["T201"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["api"]
 
-[tool.ty.environment]
-python-version = "3.11"
+[tool.pyright]
+typeCheckingMode = "basic"
+pythonVersion = "3.14"
+include = ["api", "scripts", "tests"]
+venvPath = "."
+venv = ".venv"
