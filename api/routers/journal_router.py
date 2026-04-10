@@ -2,38 +2,38 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from api.models.entry import Entry, EntryCreate
+from api.config import Settings, get_settings
+from api.models.entry import AnalysisResponse, Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
+from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
 
 
-async def get_entry_service() -> AsyncGenerator[EntryService, None]:
-    async with PostgresDB() as db:
+async def get_entry_service(
+    settings: Settings = Depends(get_settings),
+) -> AsyncGenerator[EntryService]:
+    async with PostgresDB(settings.database_url) as db:
         yield EntryService(db)
 
-@router.post("/entries")
-async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
+
+@router.post("/entries", status_code=201)
+async def create_entry(
+    entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)
+):
     """Create a new journal entry."""
-    try:
-        # Create the full entry with auto-generated fields
-        entry = Entry(
-            work=entry_data.work,
-            struggle=entry_data.struggle,
-            intention=entry_data.intention
-        )
+    # Create the full entry with auto-generated fields
+    entry = Entry(
+        work=entry_data.work, struggle=entry_data.struggle, intention=entry_data.intention
+    )
 
-        # Store the entry in the database
-        created_entry = await entry_service.create_entry(entry.model_dump())
+    # Store the entry in the database
+    created_entry = await entry_service.create_entry(entry.model_dump())
 
-        # Return success response (FastAPI handles datetime serialization automatically)
-        return {
-            "detail": "Entry created successfully",
-            "entry": created_entry
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error creating entry: {str(e)}") from e
+    # Return success response (FastAPI handles datetime serialization automatically)
+    return {"detail": "Entry created successfully", "entry": created_entry}
+
 
 # Implements GET /entries endpoint to list all journal entries
 # Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
@@ -42,6 +42,7 @@ async def get_all_entries(entry_service: EntryService = Depends(get_entry_servic
     """Get all journal entries."""
     result = await entry_service.get_all_entries()
     return {"entries": result, "count": len(result)}
+
 
 @router.get("/entries/{entry_id}")
 async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
@@ -67,15 +68,25 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     """
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
+
 @router.patch("/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
-    """Update a journal entry"""
+async def update_entry(
+    entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)
+):
+    """Update a journal entry.
+
+    TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
+    (import it from ``api.models.entry``) so PATCH requests are validated the
+    same way POST requests are. Without this, PATCH happily accepts
+    empty strings and 300-character bodies — see ``TestUpdateEntry`` in
+    tests/test_api.py.
+    """
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
-
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
+
 
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
@@ -97,44 +108,35 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
     """
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
+
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
     return {"detail": "All entries deleted"}
 
-@router.post("/entries/{entry_id}/analyze")
+
+@router.post("/entries/{entry_id}/analyze", response_model=AnalysisResponse)
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
     """
     Analyze a journal entry using AI.
 
     Returns sentiment, summary, key topics, entry_id, and created_at timestamp.
-
-    Response format:
-    {
-        "entry_id": "string",
-        "sentiment": "positive | negative | neutral",
-        "summary": "2 sentence summary of the entry",
-        "topics": ["topic1", "topic2", "topic3"],
-        "created_at": "timestamp"
-    }
-
-    TODO: Implement this endpoint. Steps:
-    1. Fetch the entry from database using entry_service.get_entry(entry_id)
-    2. Return 404 if entry not found
-    3. Combine work + struggle + intention into text
-    4. Call llm_service.analyze_journal_entry(entry_id, entry_text)
-    5. Return the analysis result
-    6. Wrap the LLM call in try/except to handle errors gracefully:
-       - Catch NotImplementedError and return 501
-       - Catch other exceptions and return 500 with a helpful detail message
-
-    Example error handling:
-        try:
-            analysis = await analyze_journal_entry(entry_id, entry_text)
-        except NotImplementedError:
-            raise HTTPException(status_code=501, detail="LLM analysis not yet implemented")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
+    The LLM call itself lives in api/services/llm_service.py - implementing
+    analyze_journal_entry there is part of the capstone.
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+    entry = await entry_service.get_entry(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    entry_text = f"{entry['work']} {entry['struggle']} {entry['intention']}"
+
+    try:
+        return await analyze_journal_entry(entry_id, entry_text)
+    except NotImplementedError as e:
+        raise HTTPException(
+            status_code=501,
+            detail="LLM analysis not yet implemented - see api/services/llm_service.py",
+        ) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e

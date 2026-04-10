@@ -4,6 +4,7 @@ Tests for the EntryService layer.
 These tests verify that the service layer correctly interacts with the database
 and handles business logic properly.
 """
+
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
 
@@ -19,7 +20,7 @@ class TestEntryService:
             "id": "test-123",
             "work": "Studied FastAPI",
             "struggle": "Understanding async",
-            "intention": "Practice more"
+            "intention": "Practice more",
         }
 
         result = await service.create_entry(entry_data)
@@ -40,7 +41,7 @@ class TestEntryService:
                 "id": f"test-{i}",
                 "work": f"Work {i}",
                 "struggle": "Struggle",
-                "intention": "Intention"
+                "intention": "Intention",
             }
             await service.create_entry(entry_data)
 
@@ -59,7 +60,7 @@ class TestEntryService:
             "id": "test-get",
             "work": "Studied FastAPI",
             "struggle": "Understanding async",
-            "intention": "Practice more"
+            "intention": "Practice more",
         }
         await service.create_entry(entry_data)
 
@@ -87,7 +88,7 @@ class TestEntryService:
             "id": "test-update",
             "work": "Original work",
             "struggle": "Original struggle",
-            "intention": "Original intention"
+            "intention": "Original intention",
         }
         await service.create_entry(entry_data)
 
@@ -118,7 +119,7 @@ class TestEntryService:
             "id": "test-delete",
             "work": "Work to delete",
             "struggle": "Struggle",
-            "intention": "Intention"
+            "intention": "Intention",
         }
         await service.create_entry(entry_data)
 
@@ -143,7 +144,7 @@ class TestEntryService:
                 "id": f"test-{i}",
                 "work": f"Work {i}",
                 "struggle": "Struggle",
-                "intention": "Intention"
+                "intention": "Intention",
             }
             await service.create_entry(entry_data)
 
