@@ -35,11 +35,6 @@ class EntryCreate(BaseModel):
     )
 
 class Entry(BaseModel):
-    # TODO: Add field validation rules
-    # TODO: Add custom validators
-    # TODO: Add schema versioning
-    # TODO: Add data sanitization methods
-
     id: str = Field(
         default_factory=lambda: str(uuid4()),
         description="Unique identifier for the entry (UUID)."
@@ -59,11 +54,11 @@ class Entry(BaseModel):
         max_length=256,
         description="What will you study/work on tomorrow?"
     )
-    created_at: datetime | None = Field(
+    created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was created."
     )
-    updated_at: datetime | None = Field(
+    updated_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was last updated."
     )
