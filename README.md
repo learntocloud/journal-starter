@@ -72,6 +72,8 @@ Run these commands on your **host machine** (your local terminal, not inside a c
    code .
    ```
 
+> 💡 **Enable GitHub Actions on your fork:** Forks have GitHub Actions workflows disabled by default. Go to the **Actions** tab on your fork and click **"I understand my workflows, go ahead and enable them"** to activate CI.
+
 ### 2. Configure Your Environment (.env)
 
 Environment variables live in a `.env` file (which is **git-ignored** so you don't accidentally commit secrets). This repo ships with a template named `.env-sample`.
@@ -236,6 +238,13 @@ turn all of them green.
    ```
    A linter is a tool that analyzes your code for potential errors, bugs, and style issues without running it. [Ruff](https://docs.astral.sh/ruff/) is a fast Python linter that checks for things like unused imports, incorrect syntax, and code that doesn't follow [Python style conventions (PEP 8)](https://pep8.org/).
 
+   **Run the formatter** to auto-format your code (CI also checks formatting):
+   ```bash
+   uv run ruff format .
+   ```
+
+   > 💡 **Tip:** If you ran `uv run pre-commit install` earlier, both `ruff check` and `ruff format` run automatically on every commit.
+
    **Run the type checker** from the **project root** to ensure proper type annotations:
    ```bash
    uv run pyright
@@ -281,7 +290,9 @@ Every push and pull request runs the GitHub Actions workflow in
 | `test` | `pytest -v` against a real Postgres 16 service container, with `database_setup.sql` applied | `uv run pytest -v` |
 
 Both jobs run on every push to `main` and every PR. Your fork will
-show two green checks on a PR once your implementations are complete.
+show two green checks on a PR once **all** your implementations are complete
+(i.e., Tasks 1–4 are finished). Intermediate PRs that cover only some
+tasks will still have failing tests in CI — that's expected.
 No secrets are required — the `test` job uses a disposable Postgres
 service container, and Task 4 is exercised entirely with an injected
 mock OpenAI client so CI never calls a real LLM.
