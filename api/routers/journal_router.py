@@ -13,6 +13,7 @@ async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
         yield EntryService(db)
 
+
 @router.post("/entries")
 async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
     """Create a new journal entry."""
@@ -33,15 +34,19 @@ async def create_entry(entry_data: EntryCreate, entry_service: EntryService = De
             "entry": created_entry
         }
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error creating entry: {str(e)}") from e
+        raise HTTPException(
+            status_code=400, detail=f"Error creating entry: {str(e)}") from e
 
 # Implements GET /entries endpoint to list all journal entries
 # Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
+
+
 @router.get("/entries")
 async def get_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Get all journal entries."""
     result = await entry_service.get_all_entries()
     return {"entries": result, "count": len(result)}
+
 
 @router.get("/entries/{entry_id}")
 async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
@@ -65,7 +70,13 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
     Hint: Check the update_entry endpoint for similar patterns
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    result = await entry_service.get_entry(entry_id)
+    if not result:
+
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    return result
+
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
@@ -79,6 +90,8 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
 
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
+
+
 @router.delete("/entries/{entry_id}")
 async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
     """
@@ -95,13 +108,16 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    raise HTTPException(
+        status_code=501, detail="Not implemented - complete this endpoint!")
+
 
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
     return {"detail": "All entries deleted"}
+
 
 @router.post("/entries/{entry_id}/analyze")
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
@@ -137,4 +153,5 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
     """
-    raise HTTPException(status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
+    raise HTTPException(
+        status_code=501, detail="Implement this endpoint - see Learn to Cloud curriculum")
