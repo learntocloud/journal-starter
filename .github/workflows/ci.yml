@@ -64,6 +64,10 @@ jobs:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: career_journal
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
+      # Required by api.config.Settings so the app boots. Tests never call a
+      # real LLM — Task 4 uses an injected MockAsyncOpenAI client — so any
+      # non-empty value works.
+      OPENAI_API_KEY: ci-placeholder-not-used-by-mock
 
     steps:
       - uses: actions/checkout@v4
