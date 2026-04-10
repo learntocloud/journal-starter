@@ -12,6 +12,8 @@ Set OPENAI_API_KEY, and optionally OPENAI_BASE_URL and OPENAI_MODEL
 in your .env file. Settings are loaded by ``api.config.Settings``.
 """
 
+import json
+
 from openai import AsyncOpenAI
 
 from api.config import get_settings
@@ -35,34 +37,38 @@ async def analyze_journal_entry(
     entry_text: str,
     client: AsyncOpenAI | None = None,
 ) -> dict:
-    """Analyze a journal entry using an OpenAI-compatible LLM.
+    """Analyze a journal entry using an OpenAI-compatible LLM."""
+    if client is None:
+        client = _default_client()
 
-    Args:
-        entry_id: ID of the entry being analyzed (pass through to the result).
-        entry_text: Combined work + struggle + intention text.
-        client: OpenAI client. If None, a default one is constructed from
-            application settings. Tests pass in a MockAsyncOpenAI here; production code
-            in the router calls this with no ``client`` argument.
+    settings = get_settings()
 
-    Returns:
-        A dict matching AnalysisResponse:
+    response = await client.chat.completions.create(
+        model=settings.openai_model,
+        messages=[
             {
-                "entry_id":  str,
-                "sentiment": str,   # "positive" | "negative" | "neutral"
-                "summary":   str,
-                "topics":    list[str],
-            }
-
-    TODO (Task 4):
-      1. If ``client is None``, call ``_default_client()`` to construct one.
-      2. Build a messages list that includes ``entry_text`` somewhere
-         (the unit tests check that the entry text reaches the LLM).
-      3. Call ``client.chat.completions.create(...)`` with a model name
-         (use ``get_settings().openai_model`` — defaults to "gpt-4o-mini").
-      4. Parse the assistant's JSON response with ``json.loads()``.
-      5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
-    """
-    raise NotImplementedError(
-        "Task 4: implement analyze_journal_entry using the openai SDK. "
-        "See tests/test_llm_service.py for the test contract."
+                "role": "system",
+                "content": (
+                    "You are a learning journal analyst. Analyze the following journal entry "
+                    "and return a JSON object with exactly these keys: "
+                    '"sentiment" (one of "positive", "negative", "neutral"), '
+                    '"summary" (a 2-sentence summary), '
+                    '"topics" (a list of 2-4 key topics mentioned).'
+                ),
+            },
+            {
+                "role": "user",
+                "content": entry_text,
+            },
+        ],
     )
+
+    content = response.choices[0].message.content or "{}"
+    parsed = json.loads(content)
+
+    return {
+        "entry_id": entry_id,
+        "sentiment": parsed["sentiment"],
+        "summary": parsed["summary"],
+        "topics": parsed["topics"],
+    }
