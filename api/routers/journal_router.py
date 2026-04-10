@@ -67,7 +67,14 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
-    """Update a journal entry"""
+    """Update a journal entry.
+
+    TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
+    (import it from ``api.models.entry``) so PATCH requests are validated the
+    same way POST requests are. Without this, PATCH happily accepts
+    empty strings and 300-character bodies — see ``TestUpdateEntry`` in
+    tests/test_api.py.
+    """
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
 
