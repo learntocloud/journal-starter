@@ -1,7 +1,7 @@
 import json
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import asyncpg
@@ -96,9 +96,7 @@ class PostgresDB(DatabaseInterface):
             return None
 
     async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
-        updated_at = datetime.now(UTC)
         updated_data["id"] = entry_id
-        updated_data["updated_at"] = updated_at
 
         data_json = json.dumps(updated_data, default=PostgresDB.datetime_serialize)
 
@@ -108,7 +106,7 @@ class PostgresDB(DatabaseInterface):
             SET data = $2, updated_at = $3
             WHERE id = $1
             """
-            await conn.execute(query, entry_id, data_json, updated_at)
+            await conn.execute(query, entry_id, data_json, updated_data["updated_at"])
 
     async def delete_entry(self, entry_id: str) -> None:
         async with self.pool.acquire() as conn:
