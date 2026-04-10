@@ -12,6 +12,7 @@ dependencies = [
     "psycopg2-binary",
     "asyncpg",
     "pytest>=9.0.2",
+    "httpx>=0.28.1",
 ]
 
 [project.optional-dependencies]
