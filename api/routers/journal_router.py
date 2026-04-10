@@ -13,27 +13,24 @@ async def get_entry_service() -> AsyncGenerator[EntryService, None]:
     async with PostgresDB() as db:
         yield EntryService(db)
 
-@router.post("/entries")
+@router.post("/entries", status_code=201)
 async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
     """Create a new journal entry."""
-    try:
-        # Create the full entry with auto-generated fields
-        entry = Entry(
-            work=entry_data.work,
-            struggle=entry_data.struggle,
-            intention=entry_data.intention
-        )
+    # Create the full entry with auto-generated fields
+    entry = Entry(
+        work=entry_data.work,
+        struggle=entry_data.struggle,
+        intention=entry_data.intention
+    )
 
-        # Store the entry in the database
-        created_entry = await entry_service.create_entry(entry.model_dump())
+    # Store the entry in the database
+    created_entry = await entry_service.create_entry(entry.model_dump())
 
-        # Return success response (FastAPI handles datetime serialization automatically)
-        return {
-            "detail": "Entry created successfully",
-            "entry": created_entry
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Error creating entry: {str(e)}") from e
+    # Return success response (FastAPI handles datetime serialization automatically)
+    return {
+        "detail": "Entry created successfully",
+        "entry": created_entry
+    }
 
 # Implements GET /entries endpoint to list all journal entries
 # Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
