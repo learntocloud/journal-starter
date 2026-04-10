@@ -21,7 +21,7 @@ class TestCreateEntry:
         """Test successfully creating a new journal entry."""
         response = await test_client.post("/entries", json=sample_entry_data)
 
-        assert response.status_code == 200
+        assert response.status_code in (200, 201)
         result = response.json()
 
         # Verify response structure
@@ -154,6 +154,24 @@ class TestUpdateEntry:
         response = await test_client.patch(f"/entries/{fake_id}", json=update_data)
 
         assert response.status_code == 404
+
+    async def test_update_rejects_oversize_field(self, test_client: AsyncClient, created_entry: dict):
+        """Task 3: PATCH should reject fields longer than 256 characters."""
+        entry_id = created_entry["id"]
+        update_data = {"work": "a" * 300}
+
+        response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
+
+        assert response.status_code == 422
+
+    async def test_update_rejects_empty_string(self, test_client: AsyncClient, created_entry: dict):
+        """Task 3: PATCH should reject whitespace-only strings."""
+        entry_id = created_entry["id"]
+        update_data = {"work": "   "}
+
+        response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
+
+        assert response.status_code == 422
 
 
 class TestDeleteEntry:

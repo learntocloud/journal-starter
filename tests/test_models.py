@@ -14,6 +14,8 @@ from pydantic import ValidationError
 
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
 
+pytestmark = pytest.mark.no_db
+
 
 class TestEntryCreateModel:
     """Tests for the EntryCreate model used for API input."""
@@ -52,18 +54,68 @@ class TestEntryCreateModel:
         with pytest.raises(ValidationError):
             EntryCreate(**invalid_data)
 
-    def test_entry_create_empty_strings_allowed(self):
-        """Test that empty strings are allowed (only None is invalid)."""
-        data = {
-            "work": "",
-            "struggle": "",
-            "intention": ""
-        }
-        entry = EntryCreate(**data)
 
-        assert entry.work == ""
-        assert entry.struggle == ""
-        assert entry.intention == ""
+class TestEntryCreateValidation:
+    """Task 3 validation tests for EntryCreate."""
+
+    def test_empty_string_rejected(self):
+        """Empty strings for any field should be rejected."""
+        with pytest.raises(ValidationError):
+            EntryCreate(work="", struggle="Some struggle", intention="Some intention")
+
+    def test_whitespace_only_rejected(self):
+        """Whitespace-only strings should be rejected after stripping."""
+        with pytest.raises(ValidationError):
+            EntryCreate(
+                work="   ",
+                struggle="Some struggle",
+                intention="Some intention",
+            )
+
+    def test_whitespace_stripped_from_valid_input(self):
+        """Leading/trailing whitespace should be stripped from valid input."""
+        entry = EntryCreate(
+            work="  Studied FastAPI  ",
+            struggle="  Understanding async  ",
+            intention="  Practice more  ",
+        )
+        assert entry.work == "Studied FastAPI"
+        assert entry.struggle == "Understanding async"
+        assert entry.intention == "Practice more"
+
+
+class TestEntryUpdateModel:
+    """Task 3 tests for the EntryUpdate model.
+
+    ``EntryUpdate`` is created by the learner as part of Task 3, so the
+    import is intentionally inside each test to avoid failing test
+    collection on a fresh fork.
+    """
+
+    def test_all_fields_optional(self):
+        """EntryUpdate should allow construction with no fields set."""
+        from api.models.entry import EntryUpdate  # noqa: PLC0415
+
+        update = EntryUpdate()
+        assert update.work is None
+        assert update.struggle is None
+        assert update.intention is None
+
+    def test_partial_update(self):
+        """EntryUpdate should allow a single-field update."""
+        from api.models.entry import EntryUpdate  # noqa: PLC0415
+
+        update = EntryUpdate(work="New work only")
+        assert update.work == "New work only"
+        assert update.struggle is None
+        assert update.intention is None
+
+    def test_oversize_field_rejected(self):
+        """EntryUpdate should reject fields longer than 256 characters."""
+        from api.models.entry import EntryUpdate  # noqa: PLC0415
+
+        with pytest.raises(ValidationError):
+            EntryUpdate(work="a" * 300)
 
 
 class TestEntryModel:
