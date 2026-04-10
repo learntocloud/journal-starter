@@ -9,23 +9,24 @@ This project mandates the OpenAI Python SDK, which works with:
   - Anthropic via their OpenAI-compat endpoint
 
 Set OPENAI_API_KEY, and optionally OPENAI_BASE_URL and OPENAI_MODEL
-in your .env file.
+in your .env file. Settings are loaded by ``api.config.Settings``.
 """
-
-import os
 
 from openai import AsyncOpenAI
 
+from api.config import get_settings
+
 
 def _default_client() -> AsyncOpenAI:
-    """Construct the real OpenAI client from environment variables.
+    """Construct the real OpenAI client from application settings.
 
-    Called lazily from analyze_journal_entry so tests can inject a
-    MockAsyncOpenAI without ever triggering this code path.
+    Called lazily from ``analyze_journal_entry`` so tests can inject a
+    ``MockAsyncOpenAI`` without ever triggering this code path.
     """
+    settings = get_settings()
     return AsyncOpenAI(
-        api_key=os.environ["OPENAI_API_KEY"],
-        base_url=os.getenv("OPENAI_BASE_URL", "https://models.inference.ai.azure.com"),
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url,
     )
 
 
@@ -40,7 +41,7 @@ async def analyze_journal_entry(
         entry_id: ID of the entry being analyzed (pass through to the result).
         entry_text: Combined work + struggle + intention text.
         client: OpenAI client. If None, a default one is constructed from
-            env vars. Tests pass in a MockAsyncOpenAI here; production code
+            application settings. Tests pass in a MockAsyncOpenAI here; production code
             in the router calls this with no ``client`` argument.
 
     Returns:
@@ -56,8 +57,8 @@ async def analyze_journal_entry(
       1. If ``client is None``, call ``_default_client()`` to construct one.
       2. Build a messages list that includes ``entry_text`` somewhere
          (the unit tests check that the entry text reaches the LLM).
-      3. Call ``client.chat.completions.create(...)`` with a model from
-         OPENAI_MODEL (default "gpt-4o-mini") and your messages.
+      3. Call ``client.chat.completions.create(...)`` with a model name
+         (use ``get_settings().openai_model`` — defaults to "gpt-4o-mini").
       4. Parse the assistant's JSON response with ``json.loads()``.
       5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
     """

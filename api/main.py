@@ -1,20 +1,13 @@
-import logging  # noqa: F401
+from fastapi import FastAPI
 
-from dotenv import load_dotenv
-
-# Load .env BEFORE importing anything that reads env vars at import time
-# (e.g. api.repositories.postgres_repository reads DATABASE_URL).
-load_dotenv(override=True)
+from api.routers.journal_router import router as journal_router
 
 # TODO (Task 1): Configure logging here.
 # Reference: https://docs.python.org/3/howto/logging.html
 # Steps:
-#   1. Call logging.basicConfig(level=logging.INFO, format="...")
-#   2. Log an INFO message on startup (e.g. "Journal API starting up")
-
-from fastapi import FastAPI  # noqa: E402
-
-from api.routers.journal_router import router as journal_router  # noqa: E402
+#   1. ``import logging`` at the top of this file.
+#   2. Call ``logging.basicConfig(level=logging.INFO, format="...")``.
+#   3. Log an INFO message on startup (e.g. "Journal API starting up").
 
 app = FastAPI(
     title="Journal API",

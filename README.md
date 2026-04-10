@@ -82,6 +82,17 @@ Copy the sample file to create your real `.env`. Run this from the **project roo
 cp .env-sample .env
 ```
 
+The sample already contains `DATABASE_URL` (pointing at the devcontainer's
+Postgres service) and a placeholder for `OPENAI_API_KEY`. Leave the
+placeholder in place for Tasks 1–3; you'll replace it with a real token
+from your chosen LLM provider when you reach [Task 4](#task-4--ai-powered-entry-analysis).
+
+> **Why is the placeholder needed?** The app uses [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+> to validate configuration at startup. If `OPENAI_API_KEY` is missing
+> entirely, `Settings()` raises a `ValidationError` before FastAPI boots.
+> Any non-empty string satisfies that validation — tests never call a real
+> LLM because Task 4 is exercised with an injected mock client.
+
 ### 3. Set Up Your Development Environment
 
 1. **Install the Dev Containers extension** in VS Code (if not already installed)
@@ -413,6 +424,11 @@ OPENAI_BASE_URL=https://models.inference.ai.azure.com
 OPENAI_MODEL=gpt-4o-mini
 ```
 
+These variables are loaded by [`api/config.py`](api/config.py)'s `Settings`
+class. If you mistype a variable name, `Settings()` will raise a
+`ValidationError` at app startup naming the missing field — no silent
+`None` from `os.getenv` that crashes later.
+
 Optional: once your implementation compiles, sanity-check it against
 a real provider with the bundled helper script:
 
@@ -430,6 +446,12 @@ uv run python -m scripts.verify_llm
 - Make sure you're running `./start.sh` from the **project root** inside the dev container
 - Check PostgreSQL is running: `docker ps` (on your **host machine**)
 - Restart the database: `docker restart your-postgres-container-name` (on your **host machine**)
+
+**`pydantic_core._pydantic_core.ValidationError` on startup?**
+- One of the required env vars in your `.env` file is missing or mistyped.
+  The error message names the field (e.g. `database_url` or `openai_api_key`).
+  Add it to `.env` — the defaults in [`.env-sample`](.env-sample) are a good
+  starting point — and restart.
 
 **Can't connect to database?**
 - Verify `.env` file exists with correct `DATABASE_URL`

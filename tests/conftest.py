@@ -12,6 +12,7 @@ from collections.abc import AsyncGenerator
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from api.config import get_settings
 from api.main import app
 
 
@@ -34,11 +35,12 @@ async def cleanup_database(request):
         return
     from api.repositories.postgres_repository import PostgresDB
 
-    async with PostgresDB() as db:
+    database_url = get_settings().database_url
+    async with PostgresDB(database_url) as db:
         await db.delete_all_entries()
     yield
     # Clean up after test as well
-    async with PostgresDB() as db:
+    async with PostgresDB(database_url) as db:
         await db.delete_all_entries()
 
 
@@ -50,7 +52,7 @@ async def test_db() -> AsyncGenerator:
     """
     from api.repositories.postgres_repository import PostgresDB
 
-    async with PostgresDB() as db:
+    async with PostgresDB(get_settings().database_url) as db:
         yield db
 
 

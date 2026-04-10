@@ -1,18 +1,17 @@
 import json
-import os
 import uuid
 from datetime import datetime
 from typing import Any
 
 import asyncpg
-from dotenv import load_dotenv
 
 from api.repositories.interface_repository import DatabaseInterface
 
-load_dotenv()
-
 
 class PostgresDB(DatabaseInterface):
+    def __init__(self, database_url: str) -> None:
+        self._database_url = database_url
+
     @staticmethod
     def datetime_serialize(obj):
         """Convert datetime objects to ISO format for JSON serialization."""
@@ -21,10 +20,7 @@ class PostgresDB(DatabaseInterface):
         raise TypeError(f"Type {type(obj)} not serializable")
 
     async def __aenter__(self):
-        database_url = os.getenv("DATABASE_URL")
-        if not database_url:
-            raise ValueError("DATABASE_URL environment variable is missing")
-        self.pool = await asyncpg.create_pool(database_url)
+        self.pool = await asyncpg.create_pool(self._database_url)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):

@@ -2,6 +2,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from api.config import Settings, get_settings
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
@@ -10,8 +11,10 @@ from api.services.llm_service import analyze_journal_entry
 router = APIRouter()
 
 
-async def get_entry_service() -> AsyncGenerator[EntryService]:
-    async with PostgresDB() as db:
+async def get_entry_service(
+    settings: Settings = Depends(get_settings),
+) -> AsyncGenerator[EntryService]:
+    async with PostgresDB(settings.database_url) as db:
         yield EntryService(db)
 
 

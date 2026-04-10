@@ -8,7 +8,7 @@ dependencies = [
     "uvicorn",
     "asyncpg",
     "pydantic>=2",
-    "python-dotenv",
+    "pydantic-settings",
     "openai",
 ]
 

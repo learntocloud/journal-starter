@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import sys
 
-from dotenv import load_dotenv
+from pydantic import ValidationError
 
+from api.config import get_settings
 from api.models.entry import AnalysisResponse
 from api.services.llm_service import analyze_journal_entry
 
@@ -34,12 +34,13 @@ SAMPLE_ENTRY_TEXT = (
 
 
 async def main() -> int:
-    load_dotenv(override=True)
-
-    if not os.environ.get("OPENAI_API_KEY"):
+    try:
+        get_settings()
+    except ValidationError as exc:
         print(
-            "ERROR: OPENAI_API_KEY is not set. "
-            "Add it to your .env file before running this script.",
+            "ERROR: application settings are invalid. "
+            "Check your .env file has OPENAI_API_KEY (and DATABASE_URL) set.\n"
+            f"{exc}",
             file=sys.stderr,
         )
         return 1
