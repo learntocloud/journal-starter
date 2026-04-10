@@ -6,6 +6,7 @@ from api.repositories.postgres_repository import PostgresDB
 
 logger = logging.getLogger("journal")
 
+
 class EntryService:
     def __init__(self, db: PostgresDB):
         self.db = db
@@ -15,11 +16,7 @@ class EntryService:
         """Creates a new entry."""
         logger.info("Creating entry")
         now = datetime.now(UTC)
-        entry = {
-            **entry_data,
-            "created_at": now,
-            "updated_at": now
-        }
+        entry = {**entry_data, "created_at": now, "updated_at": now}
         logger.debug("Entry created: %s", entry)
         return await self.db.create_entry(entry)
 
@@ -40,7 +37,9 @@ class EntryService:
             logger.warning("Entry %s not found", entry_id)
         return entry
 
-    async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> dict[str, Any] | None:
+    async def update_entry(
+        self, entry_id: str, updated_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Updates an existing entry."""
         logger.info("Updating entry %s", entry_id)
         existing_entry = await self.db.get_entry(entry_id)
@@ -52,7 +51,7 @@ class EntryService:
             **existing_entry,
             **updated_data,
             "id": entry_id,
-            "updated_at": datetime.now(UTC)
+            "updated_at": datetime.now(UTC),
         }
         await self.db.update_entry(entry_id, updated_data)
         logger.debug("Entry %s updated", entry_id)

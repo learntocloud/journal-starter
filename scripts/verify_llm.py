@@ -11,6 +11,7 @@ This script is NOT part of CI. It exists so learners can sanity-check
 their Task 4 implementation against a real LLM provider before wiring
 anything into the API.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -22,7 +23,6 @@ from dotenv import load_dotenv
 
 from api.models.entry import AnalysisResponse
 from api.services.llm_service import analyze_journal_entry
-
 
 SAMPLE_ENTRY_ID = "verify-llm-sample"
 SAMPLE_ENTRY_TEXT = (
@@ -52,7 +52,7 @@ async def main() -> int:
 
     try:
         validated = AnalysisResponse.model_validate(result)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"ERROR: result does not validate against AnalysisResponse: {exc}", file=sys.stderr)
         return 2
 

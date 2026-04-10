@@ -11,6 +11,7 @@ This project mandates the OpenAI Python SDK, which works with:
 Set OPENAI_API_KEY, and optionally OPENAI_BASE_URL and OPENAI_MODEL
 in your .env file.
 """
+
 import os
 
 from openai import AsyncOpenAI

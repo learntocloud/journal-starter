@@ -10,28 +10,27 @@ from api.services.llm_service import analyze_journal_entry
 router = APIRouter()
 
 
-async def get_entry_service() -> AsyncGenerator[EntryService, None]:
+async def get_entry_service() -> AsyncGenerator[EntryService]:
     async with PostgresDB() as db:
         yield EntryService(db)
 
+
 @router.post("/entries", status_code=201)
-async def create_entry(entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)):
+async def create_entry(
+    entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)
+):
     """Create a new journal entry."""
     # Create the full entry with auto-generated fields
     entry = Entry(
-        work=entry_data.work,
-        struggle=entry_data.struggle,
-        intention=entry_data.intention
+        work=entry_data.work, struggle=entry_data.struggle, intention=entry_data.intention
     )
 
     # Store the entry in the database
     created_entry = await entry_service.create_entry(entry.model_dump())
 
     # Return success response (FastAPI handles datetime serialization automatically)
-    return {
-        "detail": "Entry created successfully",
-        "entry": created_entry
-    }
+    return {"detail": "Entry created successfully", "entry": created_entry}
+
 
 # Implements GET /entries endpoint to list all journal entries
 # Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
@@ -40,6 +39,7 @@ async def get_all_entries(entry_service: EntryService = Depends(get_entry_servic
     """Get all journal entries."""
     result = await entry_service.get_all_entries()
     return {"entries": result, "count": len(result)}
+
 
 @router.get("/entries/{entry_id}")
 async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
@@ -65,8 +65,11 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     """
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
+
 @router.patch("/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
+async def update_entry(
+    entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)
+):
     """Update a journal entry.
 
     TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
@@ -77,10 +80,10 @@ async def update_entry(entry_id: str, entry_update: dict, entry_service: EntrySe
     """
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
-
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
+
 
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
@@ -102,11 +105,13 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
     """
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
+
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
     return {"detail": "All entries deleted"}
+
 
 @router.post("/entries/{entry_id}/analyze", response_model=AnalysisResponse)
 async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
@@ -131,4 +136,4 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
             detail="LLM analysis not yet implemented - see api/services/llm_service.py",
         ) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e

@@ -7,6 +7,7 @@ real openai.types objects, so the student's code path is exercised
 exactly as it would be against a real provider — only the network
 layer is stubbed.
 """
+
 import json
 
 import pytest
@@ -33,9 +34,7 @@ def _make_completion(content: str) -> ChatCompletion:
                 message=ChatCompletionMessage(role="assistant", content=content),
             )
         ],
-        usage=CompletionUsage(
-            prompt_tokens=10, completion_tokens=20, total_tokens=30
-        ),
+        usage=CompletionUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
     )
 
 
@@ -81,26 +80,23 @@ VALID_ANALYSIS_JSON = json.dumps(
 async def test_analyze_entry_actually_calls_llm():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)
+    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
 
     assert len(client.create_calls) >= 1, (
-        "Expected analyze_journal_entry to call "
-        "client.chat.completions.create() at least once."
+        "Expected analyze_journal_entry to call client.chat.completions.create() at least once."
     )
 
 
 async def test_analyze_entry_sends_entry_text_in_prompt():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)
+    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
 
     call = client.create_calls[0]
     assert "messages" in call
 
     all_content = " ".join(
-        msg["content"]
-        for msg in call["messages"]
-        if isinstance(msg.get("content"), str)
+        msg["content"] for msg in call["messages"] if isinstance(msg.get("content"), str)
     )
     assert "FastAPI" in all_content
 
@@ -108,12 +104,11 @@ async def test_analyze_entry_sends_entry_text_in_prompt():
 async def test_analyze_entry_returns_valid_analysis_response():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    result = await analyze_journal_entry(
-        "entry-1", SAMPLE_ENTRY_TEXT, client=client
-    )
+    result = await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
 
     validated = AnalysisResponse.model_validate(result)
     assert validated.entry_id == "entry-1"
     assert validated.sentiment in {"positive", "negative", "neutral"}
     assert validated.summary
-    assert isinstance(validated.topics, list) and len(validated.topics) >= 1
+    assert isinstance(validated.topics, list)
+    assert len(validated.topics) >= 1

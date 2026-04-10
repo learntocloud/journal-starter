@@ -6,6 +6,7 @@ This file sets up test fixtures that are shared across all tests, including:
 - Test client for making API requests
 - Helper functions for cleaning up test data
 """
+
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -54,7 +55,7 @@ async def test_db() -> AsyncGenerator:
 
 
 @pytest.fixture
-async def test_client() -> AsyncGenerator[AsyncClient, None]:
+async def test_client() -> AsyncGenerator[AsyncClient]:
     """
     Provides an async HTTP client for testing the FastAPI application.
     This client can make requests to the API without starting a server.
@@ -73,7 +74,7 @@ def sample_entry_data() -> dict:
     return {
         "work": "Studied FastAPI and built my first API endpoints",
         "struggle": "Understanding async/await syntax and when to use it",
-        "intention": "Practice PostgreSQL queries and database design"
+        "intention": "Practice PostgreSQL queries and database design",
     }
 
 
