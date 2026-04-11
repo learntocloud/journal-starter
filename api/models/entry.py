@@ -67,3 +67,24 @@ class Entry(BaseModel):
         default_factory=lambda: datetime.now(UTC),
         description="Timestamp when the entry was last updated."
     )
+
+
+from typing import Optional, Annotated
+from pydantic import BaseModel
+from pydantic import StringConstraints
+
+ConstrainedStr = Annotated[str, StringConstraints(
+    strip_whitespace=True,
+    min_length=1,
+    max_length=256
+)]
+
+class EntryCreate(BaseModel):
+    work: ConstrainedStr
+    struggle: ConstrainedStr
+    intention: ConstrainedStr
+
+class EntryUpdate(BaseModel):
+    work: Optional[ConstrainedStr] = None
+    struggle: Optional[ConstrainedStr] = None
+    intention: Optional[ConstrainedStr] = None

@@ -46,7 +46,7 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     return entry
 
 @router.patch("/entries/{entry_id}")
-async def update_entry(entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)):
+async def update_entry(entry_id: int, entry_update: EntryUpdate, ...):
     """Update a journal entry."""
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
