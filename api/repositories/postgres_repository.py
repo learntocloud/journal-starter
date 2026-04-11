@@ -1,30 +1,26 @@
 import json
-import os
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import asyncpg
-from dotenv import load_dotenv
 
 from api.repositories.interface_repository import DatabaseInterface
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is missing")
 
 class PostgresDB(DatabaseInterface):
+    def __init__(self, database_url: str) -> None:
+        self._database_url = database_url
+
     @staticmethod
     def datetime_serialize(obj):
         """Convert datetime objects to ISO format for JSON serialization."""
         if isinstance(obj, datetime):
-                return obj.isoformat()
+            return obj.isoformat()
         raise TypeError(f"Type {type(obj)} not serializable")
 
     async def __aenter__(self):
-        self.pool = await asyncpg.create_pool(DATABASE_URL)
+        self.pool = await asyncpg.create_pool(self._database_url)
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
@@ -41,11 +37,7 @@ class PostgresDB(DatabaseInterface):
             data_json = json.dumps(entry_data, default=PostgresDB.datetime_serialize)
 
             row = await conn.fetchrow(
-                query,
-                entry_id,
-                data_json,
-                entry_data["created_at"],
-                entry_data["updated_at"]
+                query, entry_id, data_json, entry_data["created_at"], entry_data["updated_at"]
             )
 
             # Return a clean entry format without duplication
@@ -57,7 +49,7 @@ class PostgresDB(DatabaseInterface):
                     "struggle": data["struggle"],
                     "intention": data["intention"],
                     "created_at": row["created_at"],
-                    "updated_at": row["updated_at"]
+                    "updated_at": row["updated_at"],
                 }
             return {}
 
@@ -68,14 +60,16 @@ class PostgresDB(DatabaseInterface):
             entries = []
             for row in rows:
                 data = json.loads(row["data"])
-                entries.append({
-                    "id": row["id"],
-                    "work": data["work"],
-                    "struggle": data["struggle"],
-                    "intention": data["intention"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"]
-                })
+                entries.append(
+                    {
+                        "id": row["id"],
+                        "work": data["work"],
+                        "struggle": data["struggle"],
+                        "intention": data["intention"],
+                        "created_at": row["created_at"],
+                        "updated_at": row["updated_at"],
+                    }
+                )
             return entries
 
     async def get_entry(self, entry_id: str) -> dict[str, Any] | None:
@@ -91,14 +85,12 @@ class PostgresDB(DatabaseInterface):
                     "struggle": data["struggle"],
                     "intention": data["intention"],
                     "created_at": row["created_at"],
-                    "updated_at": row["updated_at"]
+                    "updated_at": row["updated_at"],
                 }
             return None
 
     async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
-        updated_at = datetime.now(UTC)
         updated_data["id"] = entry_id
-        updated_data["updated_at"] = updated_at
 
         data_json = json.dumps(updated_data, default=PostgresDB.datetime_serialize)
 
@@ -108,7 +100,7 @@ class PostgresDB(DatabaseInterface):
             SET data = $2, updated_at = $3
             WHERE id = $1
             """
-            await conn.execute(query, entry_id, data_json, updated_at)
+            await conn.execute(query, entry_id, data_json, updated_data["updated_at"])
 
     async def delete_entry(self, entry_id: str) -> None:
         async with self.pool.acquire() as conn:

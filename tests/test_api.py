@@ -9,7 +9,8 @@ These tests verify that the API endpoints work correctly, including:
 - Analyzing entries with AI
 - Error handling (404, validation errors, etc.)
 """
-from unittest.mock import AsyncMock, patch
+
+from unittest.mock import patch
 
 from httpx import AsyncClient
 
@@ -21,7 +22,7 @@ class TestCreateEntry:
         """Test successfully creating a new journal entry."""
         response = await test_client.post("/entries", json=sample_entry_data)
 
-        assert response.status_code == 200
+        assert response.status_code in (200, 201)
         result = response.json()
 
         # Verify response structure
@@ -54,7 +55,7 @@ class TestCreateEntry:
         invalid_data = {
             "work": "a" * 300,  # Exceeds 256 character limit
             "struggle": "Understanding async",
-            "intention": "Practice more"
+            "intention": "Practice more",
         }
         response = await test_client.post("/entries", json=invalid_data)
 
@@ -90,7 +91,9 @@ class TestGetAllEntries:
         assert entry["id"] == created_entry["id"]
         assert entry["work"] == created_entry["work"]
 
-    async def test_get_all_entries_multiple(self, test_client: AsyncClient, sample_entry_data: dict):
+    async def test_get_all_entries_multiple(
+        self, test_client: AsyncClient, sample_entry_data: dict
+    ):
         """Test getting all entries when database has multiple entries."""
         # Create multiple entries
         for i in range(3):
@@ -133,9 +136,7 @@ class TestUpdateEntry:
     async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict):
         """Test successfully updating an entry."""
         entry_id = created_entry["id"]
-        update_data = {
-            "work": "Updated work description"
-        }
+        update_data = {"work": "Updated work description"}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
@@ -154,6 +155,26 @@ class TestUpdateEntry:
         response = await test_client.patch(f"/entries/{fake_id}", json=update_data)
 
         assert response.status_code == 404
+
+    async def test_update_rejects_oversize_field(
+        self, test_client: AsyncClient, created_entry: dict
+    ):
+        """Task 3: PATCH should reject fields longer than 256 characters."""
+        entry_id = created_entry["id"]
+        update_data = {"work": "a" * 300}
+
+        response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
+
+        assert response.status_code == 422
+
+    async def test_update_rejects_empty_string(self, test_client: AsyncClient, created_entry: dict):
+        """Task 3: PATCH should reject whitespace-only strings."""
+        entry_id = created_entry["id"]
+        update_data = {"work": "   "}
+
+        response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
+
+        assert response.status_code == 422
 
 
 class TestDeleteEntry:
@@ -182,7 +203,9 @@ class TestDeleteEntry:
 class TestDeleteAllEntries:
     """Tests for DELETE /entries endpoint."""
 
-    async def test_delete_all_entries_success(self, test_client: AsyncClient, sample_entry_data: dict):
+    async def test_delete_all_entries_success(
+        self, test_client: AsyncClient, sample_entry_data: dict
+    ):
         """Test successfully deleting all entries."""
         # Create multiple entries
         for i in range(3):
@@ -212,8 +235,10 @@ class TestAnalyzeEntry:
 
         assert response.status_code == 404
 
-    @patch("api.services.llm_service.analyze_journal_entry")
-    async def test_analyze_entry_success(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_success(
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict
+    ):
         """Test successfully analyzing an existing entry returns correct structure."""
         entry_id = created_entry["id"]
         mock_analyze.return_value = {
@@ -221,7 +246,7 @@ class TestAnalyzeEntry:
             "sentiment": "positive",
             "summary": "Great progress on learning. Excited to continue tomorrow.",
             "topics": ["FastAPI", "PostgreSQL"],
-            "created_at": "2025-12-25T10:30:00Z"
+            "created_at": "2025-12-25T10:30:00Z",
         }
 
         response = await test_client.post(f"/entries/{entry_id}/analyze")
@@ -235,8 +260,10 @@ class TestAnalyzeEntry:
         assert len(result["topics"]) >= 2
         assert "created_at" in result
 
-    @patch("api.services.llm_service.analyze_journal_entry")
-    async def test_analyze_entry_handles_llm_error(self, mock_analyze, test_client: AsyncClient, created_entry: dict):
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_handles_llm_error(
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict
+    ):
         """Test that LLM errors are handled gracefully, not as raw 500s."""
         mock_analyze.side_effect = Exception("LLM API key is invalid")
 

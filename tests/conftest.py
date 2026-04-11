@@ -6,41 +6,58 @@ This file sets up test fixtures that are shared across all tests, including:
 - Test client for making API requests
 - Helper functions for cleaning up test data
 """
+
 from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from api.config import get_settings
 from api.main import app
-from api.repositories.postgres_repository import PostgresDB
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "no_db: test does not require a database connection",
+    )
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_database():
+async def cleanup_database(request):
     """
     Automatically clean up the database before each test.
-    This ensures test isolation.
+    Tests marked with ``no_db`` skip this fixture entirely so they can run
+    without a live Postgres instance.
     """
-    async with PostgresDB() as db:
+    if "no_db" in request.keywords:
+        yield
+        return
+    from api.repositories.postgres_repository import PostgresDB
+
+    database_url = get_settings().database_url
+    async with PostgresDB(database_url) as db:
         await db.delete_all_entries()
     yield
     # Clean up after test as well
-    async with PostgresDB() as db:
+    async with PostgresDB(database_url) as db:
         await db.delete_all_entries()
 
 
 @pytest.fixture
-async def test_db() -> AsyncGenerator[PostgresDB, None]:
+async def test_db() -> AsyncGenerator:
     """
     Provides a test database connection.
     The cleanup is handled by the cleanup_database fixture.
     """
-    async with PostgresDB() as db:
+    from api.repositories.postgres_repository import PostgresDB
+
+    async with PostgresDB(get_settings().database_url) as db:
         yield db
 
 
 @pytest.fixture
-async def test_client() -> AsyncGenerator[AsyncClient, None]:
+async def test_client() -> AsyncGenerator[AsyncClient]:
     """
     Provides an async HTTP client for testing the FastAPI application.
     This client can make requests to the API without starting a server.
@@ -59,7 +76,7 @@ def sample_entry_data() -> dict:
     return {
         "work": "Studied FastAPI and built my first API endpoints",
         "struggle": "Understanding async/await syntax and when to use it",
-        "intention": "Practice PostgreSQL queries and database design"
+        "intention": "Practice PostgreSQL queries and database design",
     }
 
 
@@ -70,6 +87,6 @@ async def created_entry(test_client: AsyncClient, sample_entry_data: dict) -> di
     This fixture is useful for tests that need an existing entry.
     """
     response = await test_client.post("/entries", json=sample_entry_data)
-    assert response.status_code == 200
+    assert response.status_code in (200, 201)
     result = response.json()
     return result["entry"]

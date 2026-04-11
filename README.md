@@ -1,5 +1,7 @@
 # Topic 5: Capstone - Journal API
 
+[![CI](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml)
+
 Welcome to your Python capstone project! You'll be working with a **FastAPI + PostgreSQL** application that helps people track their daily learning journey. This will prepare you for deploying to the cloud in the next phase.
 
 By the end of this capstone, your API should be working locally and ready for cloud deployment.
@@ -22,6 +24,7 @@ PRs opened against `learntocloud/journal-starter` will be closed without review.
 
 - [Getting Started](#-getting-started)
 - [Development Workflow](#-development-workflow)
+- [Continuous Integration](#-continuous-integration)
 - [Development Tasks](#-development-tasks)
 - [Data Schema](#-data-schema)
 - [AI Analysis Guide](#-ai-analysis-guide)
@@ -69,6 +72,8 @@ Run these commands on your **host machine** (your local terminal, not inside a c
    code .
    ```
 
+> 💡 **Enable GitHub Actions on your fork:** Forks have GitHub Actions workflows disabled by default. Go to the **Actions** tab on your fork and click **"I understand my workflows, go ahead and enable them"** to activate CI.
+
 ### 2. Configure Your Environment (.env)
 
 Environment variables live in a `.env` file (which is **git-ignored** so you don't accidentally commit secrets). This repo ships with a template named `.env-sample`.
@@ -78,6 +83,17 @@ Copy the sample file to create your real `.env`. Run this from the **project roo
 ```bash
 cp .env-sample .env
 ```
+
+The sample already contains `DATABASE_URL` (pointing at the devcontainer's
+Postgres service) and a placeholder for `OPENAI_API_KEY`. Leave the
+placeholder in place for Tasks 1–3; you'll replace it with a real token
+from your chosen LLM provider when you reach [Task 4](#task-4--ai-powered-entry-analysis).
+
+> **Why is the placeholder needed?** The app uses [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+> to validate configuration at startup. If `OPENAI_API_KEY` is missing
+> entirely, `Settings()` raises a `ValidationError` before FastAPI boots.
+> Any non-empty string satisfies that validation — tests never call a real
+> LLM because Task 4 is exercised with an injected mock client.
 
 ### 3. Set Up Your Development Environment
 
@@ -136,32 +152,47 @@ From the **project root** in the VS Code terminal, install dev dependencies:
 uv sync --all-extras
 ```
 
+Install the pre-commit hooks so ruff runs automatically on every commit:
+
+```bash
+uv run pre-commit install
+```
+
 Then run the tests to see the starting state:
 
 ```bash
 uv run pytest
 ```
 
-You should see output like this, with several **failing** tests:
+You should see output with **18 failing** tests — one group per task you
+still have to complete:
 
 ```
-FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success - assert 501 == 200
-FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found - assert 501 == 404
-FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_success - assert 501 == 200
-FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_not_found - assert 501 == 404
-FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_not_found - assert 501 == 404
-FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_success - assert 501 == 200
-FAILED tests/test_api.py::TestAnalyzeEntry::test_analyze_entry_handles_llm_error - assert 501 == 500
-======================== 7 failed, 30 passed ========================
+FAILED tests/test_logging.py::test_root_logger_is_configured_at_info
+FAILED tests/test_logging.py::test_api_main_installs_stream_handler_with_formatter
+FAILED tests/test_logging.py::test_api_main_emits_startup_log
+FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_by_id_success
+FAILED tests/test_api.py::TestGetSingleEntry::test_get_entry_not_found
+FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_success
+FAILED tests/test_api.py::TestDeleteEntry::test_delete_entry_not_found
+FAILED tests/test_models.py::TestEntryCreateValidation::test_empty_string_rejected
+FAILED tests/test_models.py::TestEntryCreateValidation::test_whitespace_only_rejected
+FAILED tests/test_models.py::TestEntryCreateValidation::test_whitespace_stripped_from_valid_input
+FAILED tests/test_models.py::TestEntryUpdateModel::test_all_fields_optional
+FAILED tests/test_models.py::TestEntryUpdateModel::test_partial_update
+FAILED tests/test_models.py::TestEntryUpdateModel::test_oversize_field_rejected
+FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_oversize_field
+FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string
+FAILED tests/test_llm_service.py::test_analyze_entry_actually_calls_llm
+FAILED tests/test_llm_service.py::test_analyze_entry_sends_entry_text_in_prompt
+FAILED tests/test_llm_service.py::test_analyze_entry_returns_valid_analysis_response
+===================== 18 failed, 32 passed =====================
 ```
 
-The 30 passing tests cover features that are **already built** for you (creating entries, listing entries, updating, etc.). The 7 failing tests are the features **you** need to implement. Each `assert 501 == 200` means the endpoint is returning "Not Implemented" (`501`) instead of a successful response (`200`).
-
-After completing all tasks, you should see:
-
-```
-============================= 37 passed ==============================
-```
+The passing tests cover features that are **already built** for you
+(creating entries, listing entries, updating, deleting all entries).
+The 18 failing tests correspond to Tasks 1–4 below — your job is to
+turn all of them green.
 
 ### For Each Task
 
@@ -203,15 +234,22 @@ After completing all tasks, you should see:
 
    **Run the linter** from the **project root** to check code style and catch common mistakes:
    ```bash
-   uv run ruff check api/
+   uv run ruff check .
    ```
    A linter is a tool that analyzes your code for potential errors, bugs, and style issues without running it. [Ruff](https://docs.astral.sh/ruff/) is a fast Python linter that checks for things like unused imports, incorrect syntax, and code that doesn't follow [Python style conventions (PEP 8)](https://pep8.org/).
 
+   **Run the formatter** to auto-format your code (CI also checks formatting):
+   ```bash
+   uv run ruff format .
+   ```
+
+   > 💡 **Tip:** If you ran `uv run pre-commit install` earlier, both `ruff check` and `ruff format` run automatically on every commit.
+
    **Run the type checker** from the **project root** to ensure proper type annotations:
    ```bash
-   uv run ty check api/
+   uv run pyright
    ```
-   A type checker verifies that your code uses [type hints](https://docs.python.org/3/library/typing.html) correctly. Type hints (like `def get_entry(entry_id: str) -> dict:`) help catch bugs early by ensuring you're passing the right types of data to functions. [ty](https://github.com/astral-sh/ty) is a fast Python type checker.
+   A type checker verifies that your code uses [type hints](https://docs.python.org/3/library/typing.html) correctly. Type hints (like `def get_entry(entry_id: str) -> dict:`) help catch bugs early by ensuring you're passing the right types of data to functions. [Pyright](https://github.com/microsoft/pyright) is Microsoft's fast Python type checker.
 
 4. **Commit and push** (only after tests pass!)
 
@@ -241,42 +279,112 @@ After completing all tasks, you should see:
 
 > ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory. If a test is failing, it means there's something left to implement — read the error message for clues!
 
+## 🤖 Continuous Integration
+
+Every push and pull request runs the GitHub Actions workflow in
+`.github/workflows/ci.yml`, which has two jobs:
+
+| Job  | What it checks | How to reproduce locally |
+|------|----------------|--------------------------|
+| `lint` | `ruff check`, `ruff format --check`, `pyright` | `uv run ruff check . && uv run ruff format --check . && uv run pyright` |
+| `test` | `pytest -v` against a real Postgres 16 service container, with `database_setup.sql` applied | `uv run pytest -v` |
+
+Both jobs run on every push to `main` and every PR. Your fork will
+show two green checks on a PR once **all** your implementations are complete
+(i.e., Tasks 1–4 are finished). Intermediate PRs that cover only some
+tasks will still have failing tests in CI — that's expected.
+No secrets are required — the `test` job uses a disposable Postgres
+service container, and Task 4 is exercised entirely with an injected
+mock OpenAI client so CI never calls a real LLM.
+
 ## 🎯 Development Tasks
 
-### 1. Logging Setup
+Each task below has a single acceptance check: the listed tests must
+pass (or the listed manual command must succeed for Task 5).
+
+### Task 1 — Logging Setup
 
 - Branch: `feature/logging-setup`
-- [ ] Configure logging in `api/main.py`
+- Edit: `api/main.py`
+- Acceptance: `uv run pytest tests/test_logging.py` passes
 
-### 2. API Implementation
+Configure `logging.basicConfig()` in `api/main.py` so the root logger
+ends up at INFO with at least one handler attached. The `journal`
+logger used throughout the service layer must continue to propagate.
 
-#### Task 2a: GET Single Entry Endpoint
+### Task 2a — GET Single Entry Endpoint
 
 - Branch: `feature/get-single-entry`
-- [ ] Implement **GET /entries/{entry_id}** in `api/routers/journal_router.py`
+- Edit: `api/routers/journal_router.py`
+- Acceptance: `uv run pytest tests/test_api.py::TestGetSingleEntry` passes
 
-#### Task 2b: DELETE Single Entry Endpoint
+Implement **GET /entries/{entry_id}** to fetch an entry via
+`entry_service.get_entry(entry_id)` and return 404 when not found.
+
+### Task 2b — DELETE Single Entry Endpoint
 
 - Branch: `feature/delete-entry`
-- [ ] Implement **DELETE /entries/{entry_id}** in `api/routers/journal_router.py`
+- Edit: `api/routers/journal_router.py`
+- Acceptance: `uv run pytest tests/test_api.py::TestDeleteEntry` passes
 
-### 3. AI-Powered Entry Analysis
+Implement **DELETE /entries/{entry_id}**, returning 404 when the entry
+does not exist.
+
+### Task 3 — Input Validation
+
+- Branch: `feature/input-validation`
+- Edit: `api/models/entry.py`, `api/routers/journal_router.py`
+- Acceptance:
+  - `uv run pytest tests/test_models.py::TestEntryCreateValidation` passes
+  - `uv run pytest tests/test_models.py::TestEntryUpdateModel` passes
+  - `uv run pytest tests/test_api.py::TestUpdateEntry::test_update_rejects_oversize_field` passes
+  - `uv run pytest tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string` passes
+
+Add validation to `EntryCreate` so empty, whitespace-only, and
+oversize (>256 char) fields are rejected and surrounding whitespace is
+stripped. Hint: `Annotated[str, StringConstraints(...)]` from Pydantic.
+
+Then create an `EntryUpdate` model in the same file with all three
+fields optional and the same validation rules, and wire it into the
+PATCH endpoint in `api/routers/journal_router.py`.
+
+### Task 4 — AI-Powered Entry Analysis
 
 - Branch: `feature/ai-analysis`
-- [ ] Implement `analyze_journal_entry()` in `api/services/llm_service.py`
-- [ ] Implement **POST /entries/{entry_id}/analyze** in `api/routers/journal_router.py`
+- Edit: `api/services/llm_service.py`
+- Acceptance: `uv run pytest tests/test_llm_service.py` passes
 
-This endpoint should return sentiment, a 2-sentence summary, and 2-4 key topics. See [AI Analysis Guide](#-ai-analysis-guide) below for details on the expected response format and LLM provider setup.
+The **POST /entries/{entry_id}/analyze** endpoint in
+`api/routers/journal_router.py` is already wired up — it fetches the
+entry, combines the fields into prompt text, calls
+`analyze_journal_entry()`, and maps errors to appropriate HTTP responses.
+Your job is to implement the LLM call itself in
+`api/services/llm_service.py`.
 
-### 4. Data Model Improvements (Optional)
+See [AI Analysis Guide](#-ai-analysis-guide) below for the expected
+response format and LLM provider setup.
 
-- Branch: `feature/data-model-improvements`  
-- [ ] Add validators to `api/models/entry.py`
-
-### 5. Cloud CLI Setup (Required for Deployment)
+### Task 5 — Cloud CLI Setup (manual)
 
 - Branch: `feature/cloud-cli-setup`
-- [ ] Uncomment one CLI tool in `.devcontainer/devcontainer.json`
+- Edit: `.devcontainer/devcontainer.json`
+- Acceptance: `az --version` / `aws --version` / `gcloud --version`
+  runs successfully in the rebuilt devcontainer
+
+Uncomment exactly one of the cloud CLI features in
+`.devcontainer/devcontainer.json`, rebuild the devcontainer, and
+verify the CLI is installed.
+
+### What the automated tests cover
+
+| Task | Automated? | How the tests verify it |
+|------|------------|-------------------------|
+| 1 — Logging | ✅ | `tests/test_logging.py` inspects the root logger state after importing `api.main` |
+| 2a — GET single | ✅ | `tests/test_api.py::TestGetSingleEntry` via the FastAPI test client |
+| 2b — DELETE single | ✅ | `tests/test_api.py::TestDeleteEntry` via the FastAPI test client |
+| 3 — Input validation | ✅ | `tests/test_models.py` unit tests + `tests/test_api.py::TestUpdateEntry` PATCH validation tests |
+| 4 — AI analysis | ✅ | `tests/test_llm_service.py` injects `MockAsyncOpenAI`; no real network calls |
+| 5 — Cloud CLI | ❌ | Manual verification: run `az --version` / `aws --version` / `gcloud --version` in the rebuilt devcontainer |
 
 ## 📊 Data Schema
 
@@ -293,7 +401,7 @@ Each journal entry follows this structure:
 
 ## 🤖 AI Analysis Guide
 
-For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this format:
+For **Task 4: AI-Powered Entry Analysis**, your endpoint should return this format:
 
 ```json
 {
@@ -305,23 +413,56 @@ For **Task 3: AI-Powered Entry Analysis**, your endpoint should return this form
 }
 ```
 
-**LLM Provider Setup:**
+### Task 4 setup
 
-1. Use **GitHub Models** (recommended for Phase 3) — it's free, uses your existing GitHub account, and requires no credit card. See the [GitHub Models docs](https://docs.github.com/en/github-models).
-2. Add the `openai` package: `uv add openai` then run `uv sync` from the project root.
-3. Add these to your `.env`:
-   ```
-   OPENAI_API_KEY=<your GitHub personal access token>
-   OPENAI_BASE_URL=https://models.inference.ai.azure.com
-   OPENAI_MODEL=gpt-4o-mini
-   ```
-   > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI). Since they all support the OpenAI SDK, the migration is just an environment variable change — no code rewrite needed.
+This project mandates the [OpenAI Python SDK](https://github.com/openai/openai-python),
+which works as a drop-in client for any OpenAI-compatible provider:
+
+| Provider | Cost | Notes |
+|----------|------|-------|
+| **GitHub Models** (default, recommended) | Free | Uses your GitHub account, no credit card needed |
+| OpenAI proper | Paid | Standard api.openai.com |
+| Azure OpenAI | Paid | Your Azure subscription |
+| Groq / Together / OpenRouter / Fireworks / DeepInfra | Varies | All expose OpenAI-compatible endpoints |
+| Ollama / LM Studio / vLLM | Free (local) | Run a model on your own machine |
+
+Configure your provider via `.env` — **no GitHub Actions secrets are
+required**, because CI uses an injected mock OpenAI client:
+
+```
+OPENAI_API_KEY=<your token or api key>
+OPENAI_BASE_URL=https://models.inference.ai.azure.com
+OPENAI_MODEL=gpt-4o-mini
+```
+
+These variables are loaded by [`api/config.py`](api/config.py)'s `Settings`
+class. If you mistype a variable name, `Settings()` will raise a
+`ValidationError` at app startup naming the missing field — no silent
+`None` from `os.getenv` that crashes later.
+
+Optional: once your implementation compiles, sanity-check it against
+a real provider with the bundled helper script:
+
+```bash
+uv run python -m scripts.verify_llm
+```
+
+> **Phase 4 preview:** In Phase 4, you'll migrate this same code to a
+> cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI).
+> Since they all support the OpenAI SDK, the migration is just an
+> environment variable change — no code rewrite needed.
 ## 🔧 Troubleshooting
 
 **API won't start?**
 - Make sure you're running `./start.sh` from the **project root** inside the dev container
 - Check PostgreSQL is running: `docker ps` (on your **host machine**)
 - Restart the database: `docker restart your-postgres-container-name` (on your **host machine**)
+
+**`pydantic_core._pydantic_core.ValidationError` on startup?**
+- One of the required env vars in your `.env` file is missing or mistyped.
+  The error message names the field (e.g. `database_url` or `openai_api_key`).
+  Add it to `.env` — the defaults in [`.env-sample`](.env-sample) are a good
+  starting point — and restart.
 
 **Can't connect to database?**
 - Verify `.env` file exists with correct `DATABASE_URL`

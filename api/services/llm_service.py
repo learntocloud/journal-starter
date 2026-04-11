@@ -16,9 +16,12 @@ logging.info(f"open api key: {os.getenv('OPENAI_API_KEY')}")
 logging.info(f"LLMService initialized with OpenAI base URL: {os.getenv('OPENAI_BASE_URL')}")
 
 
-async def analyze_journal_entry(entry_id: str, entry_text: str) -> dict:
-    """
-    Analyze a journal entry using your chosen LLM API.
+async def analyze_journal_entry(
+    entry_id: str,
+    entry_text: str,
+    client: AsyncOpenAI | None = None,
+) -> dict:
+    """Analyze a journal entry using an OpenAI-compatible LLM.
 
     Args:
     entry_id: The ID of the journal entry being analyzed
