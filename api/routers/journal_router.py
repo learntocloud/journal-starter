@@ -5,9 +5,8 @@ from fastapi.responses import JSONResponse
 from openai import AuthenticationError
 
 from api.config import Settings, get_settings
-from api.models.entry import AnalysisResponse, Entry, EntryCreate
+from api.models.entry import AnalysisResponse, Entry, EntryCreate, EntryUpdate
 from api.repositories.postgres_repository import PostgresDB
-from api.services import llm_service
 from api.services.entry_service import EntryService
 from api.services.llm_service import analyze_journal_entry
 
@@ -78,17 +77,19 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(
-    entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)
+    entry_id: str,
+    entry_update: EntryUpdate,
+    entry_service: EntryService = Depends(get_entry_service),
 ):
     """Update a journal entry.
 
-    TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
-    (import it from ``api.models.entry``) so PATCH requests are validated the
-    same way POST requests are. Without this, PATCH happily accepts
-    empty strings and 300-character bodies — see ``TestUpdateEntry`` in
-    tests/test_api.py.
+    All fields are validated the same way as POST requests:
+      - Rejects empty strings and whitespace-only input
+      - Strips surrounding whitespace
+      - Enforces maximum length of 256 characters
+      - All fields are optional for partial updates
     """
-    result = await entry_service.update_entry(entry_id, entry_update)
+    result = await entry_service.update_entry(entry_id, entry_update.model_dump(exclude_none=True))
     if not result:
         raise HTTPException(status_code=404, detail="Entry not found")
 
@@ -119,6 +120,7 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
     await entry_service.delete_entry(entry_id)
     return JSONResponse(content={"detail": "Entry deleted successfully"}, status_code=200)
 
+
 @router.delete("/entries")
 async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
     """Delete all journal entries"""
@@ -141,19 +143,19 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
         "topics": ["topic1", "topic2", "topic3"],
         "created_at": "timestamp"
     }
- 
     """
     entry = await entry_service.get_entry(entry_id)
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    entry_text = f"Work: {entry['work']}\nStruggle: {entry['struggle']}\nIntention: {entry['intention']}"
+    entry_text = (
+        f"Work: {entry['work']}\nStruggle: {entry['struggle']}\nIntention: {entry['intention']}"
+    )
     try:
-        analysis = await llm_service.analyze_journal_entry(entry_id, entry_text)
-
+        analysis = await analyze_journal_entry(entry_id, entry_text)
     except AuthenticationError as e:
-        raise HTTPException(status_code=401, detail=f"LLM authentication failed: {str(e)}") from e
+        raise HTTPException(status_code=401, detail=f"LLM authentication failed: {e!s}") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}") from e
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
 
     return analysis

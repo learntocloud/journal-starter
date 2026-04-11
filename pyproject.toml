@@ -11,7 +11,8 @@ dependencies = [
     "httpx",
     "openai",
     "pydantic-settings",
-    "openai",
+    "pytest>=9.0.2",
+    "pytest-asyncio",
 ]
 
 [project.optional-dependencies]
@@ -61,3 +62,9 @@ pythonVersion = "3.14"
 include = ["api", "scripts", "tests"]
 venvPath = "."
 venv = ".venv"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+    "ruff>=0.15.10",
+]
