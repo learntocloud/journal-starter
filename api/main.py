@@ -18,3 +18,4 @@ app = FastAPI(
     description="A simple journal API for tracking daily work, struggles, and intentions",
 )
 app.include_router(journal_router)
+# Logging PR
