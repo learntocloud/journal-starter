@@ -23,7 +23,7 @@ jobs:
                 version: 'latest'
             
             - name: Install dependencies
-              run:  uv sync --frozen
+              run:  uv sync --frozen --all-groups
 
             - name: Run tests
               run: uv run pytest
