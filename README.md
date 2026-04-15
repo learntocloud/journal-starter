@@ -475,19 +475,21 @@ uv run python -m scripts.verify_llm
 
 ## 🔄 What To Do If the Upstream Repo Has Changed
 
-If you forked this repository and started working on it, but the original `learntocloud/journal-starter` repo has since been updated (e.g., a redesign was merged), your fork is now behind. You have two options:
+If you forked this repository and started working on it, but the original `learntocloud/journal-starter` repo has since been updated (e.g. a redesign was merged), your fork is now behind. You have two options.
+
+> **Context:** The capstone redesign changed nearly every core file: the API router, models, services, tests, config, and project dependencies. If you had work in progress, expect conflicts in most files you touched.
 
 ---
 
-### Option A: Start Fresh (Recommended if you're early in the project)
+### Option A: Start Fresh (Recommended)
 
-The simplest approach — delete your fork and re-fork. Best if you haven't made much progress or want a clean slate.
+Delete your fork and re-fork. This is the simplest path, especially since the redesign changed the project structure significantly. Your old task code likely won't drop in cleanly anyway.
 
-1. **Save any work you want to keep.** Copy any files you've changed to a safe place outside the repo.
+1. **Save any work you want to keep.** Copy files you changed to a folder outside the repo. Focus on saving the *logic* you wrote (your route handlers, validation code, etc.), not entire files.
 
 2. **Delete your fork** on GitHub:
    - Go to your fork: `https://github.com/YOUR_USERNAME/journal-starter`
-   - **Settings** → scroll to the bottom → **Delete this repository**
+   - **Settings** > scroll to the bottom > **Delete this repository**
 
 3. **Re-fork** the repository by clicking "Fork" on the original repo: `https://github.com/learntocloud/journal-starter`
 
@@ -498,13 +500,13 @@ The simplest approach — delete your fork and re-fork. Best if you haven't made
    cd journal-starter
    ```
 
-5. **Re-apply your saved work** manually. Since the project may have been restructured, copy-pasting entire files may not work — review what changed and re-apply your logic to the new structure.
+5. **Re-apply your work** by looking at the new file structure and adding your logic back in. Don't copy-paste whole files from your old fork since the structure has changed. Instead, read through the new code and re-implement your task solutions to fit the updated project.
 
 ---
 
 ### Option B: Sync Your Fork with Upstream (The Git Learning Opportunity)
 
-This teaches you real-world Git skills — syncing a fork with its upstream source. This is how open-source contributors stay up to date.
+This is how open-source contributors keep their fork up to date. It's more involved, but it's a valuable skill to learn.
 
 1. **Add the upstream remote** (you only need to do this once):
 
@@ -540,19 +542,34 @@ This teaches you real-world Git skills — syncing a fork with its upstream sour
    git merge upstream/main
    ```
 
-   > ⚠️ **If you get merge conflicts:** Git will tell you which files have conflicts. Open them, look for the `<<<<<<<`, `=======`, `>>>>>>>` markers, and decide which code to keep. After resolving, run:
-   > ```bash
-   > git add .
-   > git commit -m "Merge upstream changes"
-   > ```
+5. **Handle merge conflicts.** You will almost certainly get conflicts. Git will list the conflicting files. Here's how to work through them:
 
-5. **Push the updated main to your fork:**
+   Open each conflicting file and look for conflict markers like this:
+
+   ```
+   <<<<<<< HEAD
+   # your code
+   =======
+   # upstream code
+   >>>>>>> upstream/main
+   ```
+
+   **For this redesign, accept the upstream (incoming) version in most cases.** The project structure changed significantly, so the upstream code is the correct foundation. If you had task work in a conflicting file, take note of what you wrote, accept the upstream version, and then re-add your logic on top of the new structure.
+
+   After resolving all conflicts:
+
+   ```bash
+   git add .
+   git commit -m "Merge upstream changes"
+   ```
+
+6. **Push the updated main to your fork:**
 
    ```bash
    git push origin main
    ```
 
-6. **Update any feature branches** you're working on:
+7. **Update any feature branches** you're working on:
 
    ```bash
    git checkout your-feature-branch
@@ -560,7 +577,7 @@ This teaches you real-world Git skills — syncing a fork with its upstream sour
    # Resolve any conflicts the same way as above
    ```
 
-> 💡 **Why `merge` instead of `rebase`?** Merge is safer for beginners — it preserves your commit history and is easier to resolve conflicts with. Rebase rewrites history, which can cause issues if you've already pushed your branch. Once you're comfortable with Git, feel free to explore `git rebase upstream/main` as an alternative.
+> 💡 **Why `merge` instead of `rebase`?** Merge is safer for beginners. It preserves your commit history and is more straightforward when resolving conflicts. Rebase rewrites history, which can cause issues if you've already pushed your branch. Once you're comfortable with Git, feel free to explore `git rebase upstream/main` as an alternative.
 
 ---
 
