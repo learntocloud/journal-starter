@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 
 from api.routers.journal_router import router as journal_router
@@ -8,7 +10,12 @@ from api.routers.journal_router import router as journal_router
 #   1. ``import logging`` at the top of this file.
 #   2. Call ``logging.basicConfig(level=logging.INFO, format="...")``.
 #   3. Log an INFO message on startup (e.g. "Journal API starting up").
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
+logger.info("Starting up Journal API...")
+
+app = FastAPI(title="Journal API")
 app = FastAPI(
     title="Journal API",
     description="A simple journal API for tracking daily work, struggles, and intentions",
