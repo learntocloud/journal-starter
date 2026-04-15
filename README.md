@@ -29,6 +29,7 @@ PRs opened against `learntocloud/journal-starter` will be closed without review.
 - [Data Schema](#-data-schema)
 - [AI Analysis Guide](#-ai-analysis-guide)
 - [Troubleshooting](#-troubleshooting)
+- [What To Do If the Upstream Repo Has Changed](#-what-to-do-if-the-upstream-repo-has-changed)
 - [Extras](#-extras)
 - [License](#-license)
 
@@ -471,6 +472,97 @@ uv run python -m scripts.verify_llm
 **Dev container won't open?**
 - Ensure Docker Desktop is running
 - Try: `Dev Containers: Rebuild and Reopen in Container`
+
+## 🔄 What To Do If the Upstream Repo Has Changed
+
+If you forked this repository and started working on it, but the original `learntocloud/journal-starter` repo has since been updated (e.g., a redesign was merged), your fork is now behind. You have two options:
+
+---
+
+### Option A: Start Fresh (Recommended if you're early in the project)
+
+The simplest approach — delete your fork and re-fork. Best if you haven't made much progress or want a clean slate.
+
+1. **Save any work you want to keep.** Copy any files you've changed to a safe place outside the repo.
+
+2. **Delete your fork** on GitHub:
+   - Go to your fork: `https://github.com/YOUR_USERNAME/journal-starter`
+   - **Settings** → scroll to the bottom → **Delete this repository**
+
+3. **Re-fork** the repository by clicking "Fork" on the original repo: `https://github.com/learntocloud/journal-starter`
+
+4. **Clone your new fork:**
+
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/journal-starter.git
+   cd journal-starter
+   ```
+
+5. **Re-apply your saved work** manually. Since the project may have been restructured, copy-pasting entire files may not work — review what changed and re-apply your logic to the new structure.
+
+---
+
+### Option B: Sync Your Fork with Upstream (The Git Learning Opportunity)
+
+This teaches you real-world Git skills — syncing a fork with its upstream source. This is how open-source contributors stay up to date.
+
+1. **Add the upstream remote** (you only need to do this once):
+
+   ```bash
+   git remote add upstream https://github.com/learntocloud/journal-starter.git
+   ```
+
+   Verify it:
+
+   ```bash
+   git remote -v
+   # origin    https://github.com/YOUR_USERNAME/journal-starter.git (fetch)
+   # origin    https://github.com/YOUR_USERNAME/journal-starter.git (push)
+   # upstream  https://github.com/learntocloud/journal-starter.git (fetch)
+   # upstream  https://github.com/learntocloud/journal-starter.git (push)
+   ```
+
+2. **Fetch the latest from upstream:**
+
+   ```bash
+   git fetch upstream
+   ```
+
+3. **Make sure you're on your main branch:**
+
+   ```bash
+   git checkout main
+   ```
+
+4. **Merge upstream changes into your main:**
+
+   ```bash
+   git merge upstream/main
+   ```
+
+   > ⚠️ **If you get merge conflicts:** Git will tell you which files have conflicts. Open them, look for the `<<<<<<<`, `=======`, `>>>>>>>` markers, and decide which code to keep. After resolving, run:
+   > ```bash
+   > git add .
+   > git commit -m "Merge upstream changes"
+   > ```
+
+5. **Push the updated main to your fork:**
+
+   ```bash
+   git push origin main
+   ```
+
+6. **Update any feature branches** you're working on:
+
+   ```bash
+   git checkout your-feature-branch
+   git merge main
+   # Resolve any conflicts the same way as above
+   ```
+
+> 💡 **Why `merge` instead of `rebase`?** Merge is safer for beginners — it preserves your commit history and is easier to resolve conflicts with. Rebase rewrites history, which can cause issues if you've already pushed your branch. Once you're comfortable with Git, feel free to explore `git rebase upstream/main` as an alternative.
+
+---
 
 ## 📚 Extras
 
