@@ -79,7 +79,7 @@ async def update_entry(
     entry_update: EntryUpdate,
     entry_service: EntryService = Depends(get_entry_service),
 ):
-    update_dict = entry_update.model_dump(exclude_unset=True)
+    update_data = entry_update.model_dump(exclude_unset=True)
     """Update a journal entry.
 
     TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
@@ -88,7 +88,7 @@ async def update_entry(
     empty strings and 300-character bodies — see ``TestUpdateEntry`` in
     tests/test_api.py.
     """
-    result = await entry_service.update_entry(entry_id, update_dict)
+    result = await entry_service.update_entry(entry_id, update_data)
     if not result:
         raise HTTPException(status_code=404, detail="Entry not found")
     return result
