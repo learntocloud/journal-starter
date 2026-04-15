@@ -4,10 +4,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, StringConstraints
 
+ValidText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=256)]
+
 
 class AnalysisResponse(BaseModel):
-    """Response model for journal entry analysis."""
-
     entry_id: str = Field(description="ID of the analyzed entry")
     sentiment: str = Field(description="Sentiment: positive, negative, or neutral")
     summary: str = Field(description="2 sentence summary of the entry")
@@ -18,21 +18,7 @@ class AnalysisResponse(BaseModel):
     )
 
 
-ValidText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=256)]
-
-
 class EntryCreate(BaseModel):
-    """Model for creating a new journal entry (user input).
-
-    TODO (Task 3): Add validation so that ``work``, ``struggle``, and ``intention``:
-      - reject empty strings and whitespace-only input
-      - strip surrounding whitespace
-      - have a max length of 256 characters
-
-    Hint: wrap the field type in ``Annotated[str, StringConstraints(...)]``.
-    See https://docs.pydantic.dev/latest/concepts/types/#constrained-types
-    """
-
     work: ValidText = Field(
         description="What did you work on today?",
         json_schema_extra={"example": "Studied FastAPI and built my first API endpoints"},
@@ -45,17 +31,6 @@ class EntryCreate(BaseModel):
         description="What will you study/work on tomorrow?",
         json_schema_extra={"example": "Practice PostgreSQL queries and database design"},
     )
-
-
-# TODO (Task 3): Define an ``EntryUpdate`` model for PATCH /entries/{entry_id}.
-#
-# Requirements:
-#   - All three fields (``work``, ``struggle``, ``intention``) must be optional.
-#   - Each field, when provided, must follow the same validation rules as
-#     ``EntryCreate`` (non-empty, whitespace-stripped, max 256 chars).
-#
-# Once defined, import ``EntryUpdate`` in ``api/routers/journal_router.py``
-# and use it as the type of the PATCH endpoint's request body.
 
 
 class EntryUpdate(BaseModel):
