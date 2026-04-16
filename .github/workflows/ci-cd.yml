@@ -25,6 +25,15 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            - name: Initialize Database Schema
+              env:
+                PGPASSWORD: ${{ secrets.DB_PASSWORD }}
+              run: |
+                psql -h localhost \
+                     -U ${{ secrets.DB_USER }} \
+                     -d journal_db \
+                     -f database_setup.sql
+
             - name: Set up Python
               uses: actions/setup-python@v5
               with:
