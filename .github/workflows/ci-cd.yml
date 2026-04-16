@@ -26,6 +26,9 @@ jobs:
               run:  uv sync --frozen --all-extras
 
             - name: Run tests
+              env:
+                # This provides a dummy string so the check in __aenter__ passes
+                DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db
               run: uv run pytest
 
     deploy-image:
