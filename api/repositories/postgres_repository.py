@@ -12,8 +12,6 @@ from api.repositories.interface_repository import DatabaseInterface
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is missing")
 
 class PostgresDB(DatabaseInterface):
     @staticmethod
@@ -24,6 +22,8 @@ class PostgresDB(DatabaseInterface):
         raise TypeError(f"Type {type(obj)} not serializable")
 
     async def __aenter__(self):
+        if not DATABASE_URL:
+            raise ValueError("DATABASE_URL environment variable is missing")
         self.pool = await asyncpg.create_pool(DATABASE_URL)
         return self
 

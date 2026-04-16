@@ -11,7 +11,7 @@ fi
 
 # Install dependencies
 echo "📥 Installing dependencies with uv..."
-uv sync
+uv sync --all-extras
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then
