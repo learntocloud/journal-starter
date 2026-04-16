@@ -7,6 +7,20 @@ on:
 jobs:
     build-and-test:
         runs-on: ubuntu-latest
+        services:
+          postgres:
+            image: postgres:15
+            env:
+              POSTGRES_USER: ${{ secrets.DB_USER }}
+              POSTGRES_PASSWORD: ${{ secrets.DB_PASSWORD }}
+              POSTGRES_DB: journal_db
+            ports:
+              - 5432:5432
+            options: >-
+              --health-cmd pg_isready
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
 
         steps:
             - uses: actions/checkout@v4
@@ -27,8 +41,7 @@ jobs:
 
             - name: Run tests
               env:
-                # This provides a dummy string so the check in __aenter__ passes
-                DATABASE_URL: postgresql://postgres:postgres@localhost:5432/journal_db
+                DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASSWORD }}@localhost:5432/journal_db
               run: uv run pytest
 
     deploy-image:
