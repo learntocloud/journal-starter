@@ -20,6 +20,7 @@ class Settings(BaseSettings):
         description="PostgreSQL connection URL (e.g. postgresql://user:pass@host:5432/db).",
     )
     openai_api_key: str = Field(
+        default="placeholder-key",
         description=(
             "API key for any OpenAI-compatible provider. Task 4 uses this to "
             "construct an AsyncOpenAI client; during Tasks 1-3 any non-empty "
