@@ -1,4 +1,10 @@
 import logging
+import os
+
+from azure.monitor.opentelemetry import configure_azure_monitor
+
+if os.environ.get("APPLICATIONINSIGHTS_CONNECTION_STRING"):
+    configure_azure_monitor(logger_name="journal")
 
 from fastapi import FastAPI
 
