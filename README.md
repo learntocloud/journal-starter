@@ -1,6 +1,6 @@
 # Topic 5: Capstone - Journal API
 
-[![CI](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml)
+[![CI](https://github.com/madebygps/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/madebygps/journal-starter/actions/workflows/ci.yml)
 
 Welcome to your Python capstone project! You'll be working with a **FastAPI + PostgreSQL** application that helps people track their daily learning journey. This will prepare you for deploying to the cloud in the next phase.
 
