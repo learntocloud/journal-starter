@@ -115,7 +115,11 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
     Hint: Look at how the update_entry endpoint checks for existence
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    entry = await entry_service.get_entry(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"entry {entry_id} doesn't exist")
+    await entry_service.delete_entry(entry["id"])
+    return HTTPException(status_code=200)
 
 
 @router.delete("/entries")

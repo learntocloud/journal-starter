@@ -14,3 +14,7 @@ content-type: application/json
   "struggle": "Understanding async/await syntax and when to use it",
   "intention": "Practice PostgreSQL queries and database design"
 }
+
+###
+
+DELETE http://localhost:8000/entries/61fe53ef-3522-40d0-be9f-202c07ab23fb
