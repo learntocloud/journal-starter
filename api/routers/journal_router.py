@@ -48,7 +48,7 @@ async def get_all_entries(entry_service: EntryService = Depends(get_entry_servic
 @router.get("/entries/{entry_id}")
 async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
     logger = logging.getLogger(__name__)
-    logger.info(f"@router.get_entry - single entry: {entry_id}")
+
     """
     TODO: Implement this endpoint to return a single journal entry by ID
 
@@ -70,7 +70,9 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
     Hint: Check the update_entry endpoint for similar patterns
     """
     entry = await entry_service.get_entry(entry_id)
+    # add check for fake id
     if entry is None:
+        logger.warning(f"@router.get_entry - Fake id: {entry_id}")
         raise HTTPException(status_code=404, detail="Entry doesn't exist!")
 
     return entry
