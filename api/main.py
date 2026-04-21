@@ -11,6 +11,7 @@ from api.routers.journal_router import router as journal_router
 #   2. Call ``logging.basicConfig(level=logging.INFO, format="...")``.
 #   3. Log an INFO message on startup (e.g. "Journal API starting up").
 
+# adding logger
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)s) - %(message)s",
