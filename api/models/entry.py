@@ -60,15 +60,6 @@ class EntryCreate(BaseModel):
     ]
 
 
-# TODO (Task 3): Define an ``EntryUpdate`` model for PATCH /entries/{entry_id}.
-#
-# Requirements:
-#   - All three fields (``work``, ``struggle``, ``intention``) must be optional.
-#   - Each field, when provided, must follow the same validation rules as
-#     ``EntryCreate`` (non-empty, whitespace-stripped, max 256 chars).
-#
-# Once defined, import ``EntryUpdate`` in ``api/routers/journal_router.py``
-# and use it as the type of the PATCH endpoint's request body.
 class EntryUpdate(BaseModel):
     work: (
         Annotated[
