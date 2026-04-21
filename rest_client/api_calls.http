@@ -1,5 +1,16 @@
-GET http://localhost:8000/entries/61fe53ef-3522-40d0-be9f-202c07ab23fb
+@baseURL = http://localhost:8000
 
+### 
+
+# @name entry_response
+GET {{baseURL}}/entries
+
+###
+
+# Added .entries[0]. to the path
+@id = {{entry_response.response.body.entries[0].id}}
+
+GET http://localhost:8000/entries/{{id}}
 ###
 
 GET http://localhost:8000/entries/fakefake12345
@@ -18,3 +29,12 @@ content-type: application/json
 ###
 
 DELETE http://localhost:8000/entries/61fe53ef-3522-40d0-be9f-202c07ab23fb
+
+###
+
+PATCH http://localhost:8000/entries/{{id}}
+content-type: application/json
+
+{
+  "additionalProp1": {}
+}
