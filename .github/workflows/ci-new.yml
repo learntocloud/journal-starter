@@ -21,6 +21,9 @@ jobs:
       - name: Run tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: https://models.github.ai/inference
+            #OPENAI_MODEL=gpt-4o-mini
+          GITHUB_MODEL: openai/gpt-4o
         run: pytest
 
 
