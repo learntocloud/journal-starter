@@ -39,6 +39,7 @@ jobs:
       
       - name: Run tests
         env:
+        
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: https://models.github.ai/inference
           GITHUB_MODEL: openai/gpt-4o
@@ -49,14 +50,18 @@ jobs:
   build:
     needs: build-and-test
     runs-on: ubuntu-latest
+    env:
+      ACR_REGISTRY: learntocloud.azurecr.io
+      ACR_USERNAME: learntocloud
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       
       - name: Build Docker image
-        run: docker build -t myapp:${{ github.sha }} .
+        run: docker build -t ${{ env.ACR_REGISTRY }}/myapp:${{ github.sha }} .
       
-      - name: Login to Registry
-        run: echo ${{ secrets.REGISTRY_PASSWORD }} | docker login -u ${{ secrets.REGISTRY_USER }} --password-stdin
+      - name: Login to Azure Container Registry
+        run: docker login -u ${{ env.ACR_USERNAME }} -p ${{ env.ACR_PASSWORD }} ${{ env.ACR_REGISTRY }}
       
-      - name: Push image
-        run: docker push myapp:${{ github.sha }}
+      - name: Push image to ACR
+        run: docker push ${{ env.ACR_REGISTRY }}/myapp:${{ github.sha }}
