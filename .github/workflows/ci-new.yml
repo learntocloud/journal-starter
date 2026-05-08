@@ -7,6 +7,20 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: career_journal
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       
@@ -18,13 +32,17 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
       
+      - name: Initialize database schema
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        run: psql -h localhost -U postgres -d career_journal -f database_setup.sql
+      
       - name: Run tests
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: https://models.github.ai/inference
-            #OPENAI_MODEL=gpt-4o-mini
           GITHUB_MODEL: openai/gpt-4o
-          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/career_journal
+          DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/career_journal
         run: pytest
 
 
