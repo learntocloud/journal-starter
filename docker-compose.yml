@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: journal_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: career_journal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database_setup.sql:/docker-entrypoint-initdb.d/database_setup.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - journal_network
+
+  app:
+    build: .
+    container_name: journal_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/career_journal
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      GITHUB_MODEL: ${GITHUB_MODEL}
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - journal_network
+
+volumes:
+  postgres_data:
+
+networks:
+  journal_network:

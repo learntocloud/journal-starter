@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+asyncpg
+pydantic>=2
+pydantic-settings
+httpx
+openai
+python-dotenv
+pytest>=9.0.2
+pytest-asyncio
