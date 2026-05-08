@@ -61,7 +61,7 @@ jobs:
         run: docker build -t ${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }} .
       
       - name: Login to Azure Container Registry
-        run: docker login -u ${{ env.ACR_USERNAME }} -p ${{ env.ACR_PASSWORD }} ${{ env.ACR_REGISTRY }}
+        run: echo ${{ env.ACR_PASSWORD }} | docker login -u ${{ env.ACR_USERNAME }} --password-stdin ${{ env.ACR_REGISTRY }}
       
       - name: Push image to ACR
         run: docker push ${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }}
