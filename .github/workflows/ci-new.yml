@@ -24,6 +24,7 @@ jobs:
           OPENAI_BASE_URL: https://models.github.ai/inference
             #OPENAI_MODEL=gpt-4o-mini
           GITHUB_MODEL: openai/gpt-4o
+          DATABASE_URL: postgresql://postgres:postgres@postgres:5432/career_journal
         run: pytest
 
 
