@@ -5,14 +5,14 @@ These tests verify that the service layer correctly interacts with the database
 and handles business logic properly.
 """
 
-from api.repositories.postgres_repository import PostgresDB
+from api.repositories.interface_repository import DatabaseInterface
 from api.services.entry_service import EntryService
 
 
 class TestEntryService:
     """Tests for the EntryService class."""
 
-    async def test_create_entry(self, test_db: PostgresDB):
+    async def test_create_entry(self, test_db: DatabaseInterface):
         """Test creating an entry through the service."""
         service = EntryService(test_db)
 
@@ -31,7 +31,7 @@ class TestEntryService:
         assert "created_at" in result
         assert "updated_at" in result
 
-    async def test_get_all_entries(self, test_db: PostgresDB):
+    async def test_get_all_entries(self, test_db: DatabaseInterface):
         """Test getting all entries through the service."""
         service = EntryService(test_db)
 
@@ -51,7 +51,7 @@ class TestEntryService:
         assert len(result) == 3
         assert all("id" in entry for entry in result)
 
-    async def test_get_entry_by_id(self, test_db: PostgresDB):
+    async def test_get_entry_by_id(self, test_db: DatabaseInterface):
         """Test getting a specific entry by ID."""
         service = EntryService(test_db)
 
@@ -71,7 +71,7 @@ class TestEntryService:
         assert result["id"] == "test-get"
         assert result["work"] == entry_data["work"]
 
-    async def test_get_nonexistent_entry(self, test_db: PostgresDB):
+    async def test_get_nonexistent_entry(self, test_db: DatabaseInterface):
         """Test getting an entry that doesn't exist."""
         service = EntryService(test_db)
 
@@ -79,7 +79,7 @@ class TestEntryService:
 
         assert result is None
 
-    async def test_update_entry(self, test_db: PostgresDB):
+    async def test_update_entry(self, test_db: DatabaseInterface):
         """Test updating an existing entry."""
         service = EntryService(test_db)
 
@@ -101,7 +101,7 @@ class TestEntryService:
         assert result["struggle"] == entry_data["struggle"]  # Unchanged
         assert result["intention"] == entry_data["intention"]  # Unchanged
 
-    async def test_update_nonexistent_entry(self, test_db: PostgresDB):
+    async def test_update_nonexistent_entry(self, test_db: DatabaseInterface):
         """Test updating an entry that doesn't exist."""
         service = EntryService(test_db)
 
@@ -110,7 +110,7 @@ class TestEntryService:
 
         assert result is None
 
-    async def test_delete_entry(self, test_db: PostgresDB):
+    async def test_delete_entry(self, test_db: DatabaseInterface):
         """Test deleting a specific entry."""
         service = EntryService(test_db)
 
@@ -134,7 +134,7 @@ class TestEntryService:
         entry = await service.get_entry("test-delete")
         assert entry is None
 
-    async def test_delete_all_entries(self, test_db: PostgresDB):
+    async def test_delete_all_entries(self, test_db: DatabaseInterface):
         """Test deleting all entries."""
         service = EntryService(test_db)
 

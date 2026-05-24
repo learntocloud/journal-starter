@@ -1,0 +1,10 @@
+name: journal-api
+services:
+  api:
+    project: .
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: .
+      remoteBuild: true

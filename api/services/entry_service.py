@@ -2,15 +2,15 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from api.repositories.postgres_repository import PostgresDB
+from api.repositories.interface_repository import DatabaseInterface
 
 logger = logging.getLogger("journal")
 
 
 class EntryService:
-    def __init__(self, db: PostgresDB):
+    def __init__(self, db: DatabaseInterface):
         self.db = db
-        logger.debug("EntryService initialized with PostgresDB client.")
+        logger.debug("EntryService initialized with database client.")
 
     async def create_entry(self, entry_data: dict[str, Any]) -> dict[str, Any]:
         """Creates a new entry."""

@@ -33,14 +33,14 @@ async def cleanup_database(request):
     if "no_db" in request.keywords:
         yield
         return
-    from api.repositories.postgres_repository import PostgresDB
+    from api.repositories.database import open_database
 
     database_url = get_settings().database_url
-    async with PostgresDB(database_url) as db:
+    async with open_database(database_url) as db:
         await db.delete_all_entries()
     yield
     # Clean up after test as well
-    async with PostgresDB(database_url) as db:
+    async with open_database(database_url) as db:
         await db.delete_all_entries()
 
 
@@ -50,9 +50,9 @@ async def test_db() -> AsyncGenerator:
     Provides a test database connection.
     The cleanup is handled by the cleanup_database fixture.
     """
-    from api.repositories.postgres_repository import PostgresDB
+    from api.repositories.database import open_database
 
-    async with PostgresDB(get_settings().database_url) as db:
+    async with open_database(get_settings().database_url) as db:
         yield db
 
 
