@@ -147,7 +147,7 @@ resource "azurerm_federated_identity_credential" "k8s_federation" {
 
   # Crucial Security String: Restricts trust to a specific namespace and ServiceAccount name
   # Pattern format: system:serviceaccount:<K8S_NAMESPACE>:<SERVICE_ACCOUNT_NAME>
-  subject = "system:serviceaccount:journal:journal-api"
+  subject = "system:serviceaccount:default:journal-api"
 }
 
 resource "azurerm_user_assigned_identity" "github_deploy" {

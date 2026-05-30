@@ -7,20 +7,6 @@ resource "azurerm_key_vault" "journal_kv" {
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   soft_delete_retention_days = 7
   sku_name                   = "standard"
-
-  access_policy {
-    tenant_id = data.azurerm_client_config.current.tenant_id
-    object_id = data.azurerm_client_config.current.object_id
-
-    secret_permissions = [
-      "Set",
-      "Get",
-      "Delete",
-      "Purge",
-      "Recover",
-      "List"
-    ]
-  }
 }
 
 resource "azurerm_key_vault_secret" "postgres_password" {
@@ -69,4 +55,20 @@ resource "azurerm_key_vault_access_policy" "acr_pull" {
 
   secret_permissions = ["Get", "List"]
   depends_on         = [azurerm_user_assigned_identity.acr_pull]
+}
+
+# This replaces your inline block
+resource "azurerm_key_vault_access_policy" "terraform_user" {
+  key_vault_id = azurerm_key_vault.journal_kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_client_config.current.object_id
+
+  secret_permissions = [
+    "Set",
+    "Get",
+    "Delete",
+    "Purge",
+    "Recover",
+    "List"
+  ]
 }
