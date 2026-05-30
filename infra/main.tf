@@ -156,10 +156,20 @@ resource "azurerm_user_assigned_identity" "github_deploy" {
   resource_group_name = azurerm_resource_group.resource_group.name
 }
 
-# Assign the AcrPull role to the Managed Identity over the ACR scope
+# Assign the AcrPush role to the Managed Identity over the ACR scope
 resource "azurerm_role_assignment" "github_acr_push" {
   scope                = data.azurerm_container_registry.acr.id
   role_definition_name = "AcrPush"
+  principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
+
+  # Prevents deployment failures if Azure replication is slightly delayed
+  skip_service_principal_aad_check = true
+}
+
+# Assign the AcrPull role to the Managed Identity over the ACR scope
+resource "azurerm_role_assignment" "github_acr_pull" {
+  scope                = data.azurerm_container_registry.acr.id
+  role_definition_name = "AcrPull"
   principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
 
   # Prevents deployment failures if Azure replication is slightly delayed
@@ -201,5 +211,15 @@ resource "azurerm_role_assignment" "acr_pull_keyvault" {
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_user_assigned_identity.acr_pull.principal_id
 
+  skip_service_principal_aad_check = true
+}
+
+resource "azurerm_role_assignment" "aks_kubelet_acr_pull" {
+  # Reference the resource directly instead of using a data block
+  scope                            = azurerm_container_registry.acr.id
+  role_definition_name             = "AcrPull"
+  
+  # This targets the built-in identity AKS uses to manage nodes and pull images
+  principal_id                     = azurerm_kubernetes_cluster.cluster.kubelet_identity[0].object_id
   skip_service_principal_aad_check = true
 }

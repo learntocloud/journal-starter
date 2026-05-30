@@ -61,3 +61,12 @@ resource "azurerm_key_vault_access_policy" "csi_driver" {
   secret_permissions = ["Get", "List"]
   depends_on         = [azurerm_kubernetes_cluster.cluster]
 }
+
+resource "azurerm_key_vault_access_policy" "acr_pull" {
+  key_vault_id = azurerm_key_vault.journal_kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_user_assigned_identity.acr_pull.principal_id
+
+  secret_permissions = ["Get", "List"]
+  depends_on         = [azurerm_user_assigned_identity.acr_pull]
+}

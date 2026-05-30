@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: journal-api
 spec:
-  type: NodePort
+  type: LoadBalancer
   selector:
     app: journal-api
   ports:
