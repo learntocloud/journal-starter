@@ -40,7 +40,9 @@ metric_readers = []
 if otlp_endpoint:
     metric_readers.append(PeriodicExportingMetricReader(OTLPMetricExporter(endpoint=otlp_endpoint)))
 else:
-    metric_readers.append(PeriodicExportingMetricReader(ConsoleMetricExporter(), export_interval_millis=5000))
+    metric_readers.append(
+        PeriodicExportingMetricReader(ConsoleMetricExporter(), export_interval_millis=5000)
+    )
 
 meter_provider = MeterProvider(
     resource=resource,
@@ -56,7 +58,9 @@ entry_created_counter = meter.create_counter(
 # Logging and correlation
 logger_provider = LoggerProvider(resource=resource)
 if otlp_endpoint:
-    logger_provider.add_log_record_processor(BatchLogRecordProcessor(OTLPLogExporter(endpoint=otlp_endpoint)))
+    logger_provider.add_log_record_processor(
+        BatchLogRecordProcessor(OTLPLogExporter(endpoint=otlp_endpoint))
+    )
 else:
     logger_provider.add_log_record_processor(BatchLogRecordProcessor(ConsoleLogExporter()))
 set_logger_provider(logger_provider)

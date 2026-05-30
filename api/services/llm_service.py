@@ -18,12 +18,8 @@ _openai_client = None
 def get_openai_client():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError(
-            "Missing OPENAI_API_KEY. Set OPENAI_API_KEY or pass a client explicitly."
-        )
-    client = openai.OpenAI(
-        base_url=os.getenv("OPENAI_BASE_URL"), api_key=api_key
-    )
+        raise ValueError("Missing OPENAI_API_KEY. Set OPENAI_API_KEY or pass a client explicitly.")
+    client = openai.OpenAI(base_url=os.getenv("OPENAI_BASE_URL"), api_key=api_key)
     logging.info(f"LLMService initialized with OpenAI base URL: {os.getenv('OPENAI_BASE_URL')}")
     return client
 
