@@ -5,7 +5,8 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  lint-and-test:
+    name: Test
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -23,15 +24,27 @@ jobs:
           - 5432:5432
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: '3.11'
-      
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.14
+
       - name: Install dependencies
-        run: pip install -r requirements.txt
-      
+        run: uv sync --locked --all-extras
+
+      - name: Ruff check
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Pyright type check
+        run: uv run pyright
+
       - name: Initialize database schema
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
@@ -39,16 +52,16 @@ jobs:
       
       - name: Run tests
         env:
-        
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: https://models.github.ai/inference
           GITHUB_MODEL: openai/gpt-4o
           DATABASE_URL: postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/career_journal
-        run: pytest
+        run: uv run pytest
 
 
   build:
-    needs: build-and-test
+    name: Build and Push
+    needs: lint-and-test
     runs-on: ubuntu-latest
     env:
       ACR_REGISTRY: learntocloud.azurecr.io
@@ -65,3 +78,44 @@ jobs:
       
       - name: Push image to ACR
         run: docker push ${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }}
+   
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      ACR_REGISTRY: learntocloud.azurecr.io
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      # Hop 1: Authenticate GitHub Actions to Azure via OIDC
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Connect to your specific AKS cluster
+      - name: Set AKS Context
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: 'learntocloud' # <-- Update this
+          cluster-name: 'learntocloud'      # <-- Update this
+
+      # Substitute the placeholder with the newly built image tag
+      - name: Substitute Image Placeholder
+        run: |
+          FULL_IMAGE_NAME="${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }}"
+          sed -i "s|IMAGE_PLACEHOLDER|$FULL_IMAGE_NAME|g" k8s/deployment.yaml
+          
+          # Print output to logs to verify successful replacement
+          cat k8s/deployment.yaml | grep "image:"
+
+      # Apply the updated configurations to the cluster
+      - name: Deploy Manifests to K8s
+        run: |
+          kubectl apply -f k8s/
+  
