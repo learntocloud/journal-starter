@@ -8,3 +8,7 @@ openai
 python-dotenv
 pytest>=9.0.2
 pytest-asyncio
+opentelemetry-api
+opentelemetry-sdk
+opentelemetry-instrumentation-fastapi
+opentelemetry-exporter-otlp

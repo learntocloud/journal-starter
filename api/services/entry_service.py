@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from api.repositories.postgres_repository import PostgresDB
+from api.telemetry import entry_created_counter, tracer
 
 logger = logging.getLogger("journal")
 
@@ -18,12 +19,20 @@ class EntryService:
         now = datetime.now(UTC)
         entry = {**entry_data, "created_at": now, "updated_at": now}
         logger.debug("Entry created: %s", entry)
-        return await self.db.create_entry(entry)
+
+        with tracer.start_as_current_span("db.create_entry"):
+            created_entry = await self.db.create_entry(entry)
+
+        entry_created_counter.add(1, {"module": "entry_service"})
+        logger.info("Entry created and metric updated")
+        return created_entry
 
     async def get_all_entries(self) -> list[dict[str, Any]]:
         """Gets all entries."""
         logger.info("Fetching all entries")
-        entries = await self.db.get_all_entries()
+        with tracer.start_as_current_span("db.get_all_entries"):
+            entries = await self.db.get_all_entries()
+
         logger.debug("Fetched %d entries", len(entries))
         return entries
 
