@@ -117,8 +117,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "dns_link" {
 # Create the User-Assigned Managed Identity
 resource "azurerm_user_assigned_identity" "acr_pull" {
   name                = var.acr_identity_name
-  location            = data.azurerm_kubernetes_cluster.aks.location
-  resource_group_name = data.azurerm_kubernetes_cluster.aks.resource_group_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.resource_group.name
 }
 
 # Assign the AcrPull role to the Managed Identity over the ACR scope
@@ -134,10 +134,10 @@ resource "azurerm_role_assignment" "acr_pull_assignment" {
 # Create the Federated Identity Credential
 resource "azurerm_federated_identity_credential" "k8s_federation" {
   name                = "journal-api-federation"
-  resource_group_name = data.azurerm_kubernetes_cluster.aks.resource_group_name
+  resource_group_name = azurerm_resource_group.resource_group.name
 
   # The Azure Managed Identity that will hold this trust configuration
-  parent_id = data.azurerm_user_assigned_identity.acr_pull.id
+  parent_id = azurerm_user_assigned_identity.acr_pull.id
 
   # Must always be exactly this array for Azure AD Workload Identity exchanges
   audience = ["api://AzureADTokenExchange"]
@@ -152,12 +152,22 @@ resource "azurerm_federated_identity_credential" "k8s_federation" {
 
 resource "azurerm_user_assigned_identity" "github_deploy" {
   name                = "github-deploy-identity"
-  location            = data.azurerm_kubernetes_cluster.aks.location
-  resource_group_name = data.azurerm_kubernetes_cluster.aks.resource_group_name
+  location            = var.location
+  resource_group_name = azurerm_resource_group.resource_group.name
+}
+
+# Assign the AcrPull role to the Managed Identity over the ACR scope
+resource "azurerm_role_assignment" "github_acr_push" {
+  scope                = data.azurerm_container_registry.acr.id
+  role_definition_name = "AcrPush"
+  principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
+
+  # Prevents deployment failures if Azure replication is slightly delayed
+  skip_service_principal_aad_check = true
 }
 
 resource "azurerm_role_assignment" "aks_cluster_user" {
-  scope                = data.azurerm_kubernetes_cluster.aks.id
+  scope                = azurerm_kubernetes_cluster.cluster.id
   role_definition_name = "Azure Kubernetes Service Cluster User Role"
   principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
 
@@ -165,14 +175,14 @@ resource "azurerm_role_assignment" "aks_cluster_user" {
 }
 
 resource "azurerm_role_assignment" "aks_rbac_writer" {
-  scope                = data.azurerm_kubernetes_cluster.aks.id
+  scope                = azurerm_kubernetes_cluster.cluster.id
   role_definition_name = "Azure Kubernetes Service RBAC Writer"
   principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
 }
 
 resource "azurerm_federated_identity_credential" "github_federation" {
   name                = "github-actions-main-branch"
-  resource_group_name = data.azurerm_kubernetes_cluster.aks.resource_group_name
+  resource_group_name = azurerm_resource_group.resource_group.name
   parent_id           = azurerm_user_assigned_identity.github_deploy.id
 
   # Must be this exact value for GitHub Actions

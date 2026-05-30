@@ -65,16 +65,21 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ACR_REGISTRY: journalapicontainerregistry.azurecr.io
-      ACR_USERNAME: learntocloud
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       
       - name: Build Docker image
         run: docker build -t ${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }} .
       
+      - name: Azure Login via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
       - name: Login to Azure Container Registry
-        run: echo ${{ env.ACR_PASSWORD }} | docker login -u ${{ env.ACR_USERNAME }} --password-stdin ${{ env.ACR_REGISTRY }}
+        run: az acr login --name journalapicontainerregistry
       
       - name: Push image to ACR
         run: docker push ${{ env.ACR_REGISTRY }}/journal-starter-app:${{ github.sha }}
