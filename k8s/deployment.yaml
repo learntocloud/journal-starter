@@ -18,6 +18,8 @@ spec:
       containers:
       - name: journal-api
         image: IMAGE_PLACEHOLDER
+        ports:
+        - containerPort: 8000
         envFrom:
         - secretRef:
             name: journal-secret
@@ -25,6 +27,21 @@ spec:
         - name: secrets-store-inline
           mountPath: "/mnt/secrets"
           readOnly: true
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
       volumes:
         - name: secrets-store-inline
           csi:
@@ -32,16 +49,3 @@ spec:
             readOnly: true
             volumeAttributes:
               secretProviderClass: "azure-kv-sync"
-      ports:
-        - containerPort: 8000
-      resources:
-        limits:
-          memory: "512Mi"
-          cpu: "500m"
-        requests:
-          memory: "256Mi"
-          cpu: "250m"
-      livenessProbe:
-        httpGet:
-          path: /health
-          port: 8000

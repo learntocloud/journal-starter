@@ -13,6 +13,12 @@ app = FastAPI(
 )
 app.include_router(journal_router)
 
+
+@app.get("/health")
+def health():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
 # Configure logging at INFO level
 logging.basicConfig(
     level=logging.INFO, format="%(levelname)s: %(message)s", handlers=[logging.StreamHandler()]
