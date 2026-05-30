@@ -195,3 +195,11 @@ resource "azurerm_federated_identity_credential" "github_federation" {
   # Format: repo:<org-or-username>/<repository-name>:ref:refs/heads/<branch-name>
   subject = "repo:sudheer-yelleti/journal-starter:ref:refs/heads/main"
 }
+
+resource "azurerm_role_assignment" "acr_pull_keyvault" {
+  scope                = azurerm_key_vault.journal_kv.id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = azurerm_user_assigned_identity.acr_pull.principal_id
+
+  skip_service_principal_aad_check = true
+}
