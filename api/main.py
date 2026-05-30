@@ -19,6 +19,7 @@ def health():
     """Health check endpoint"""
     return {"status": "healthy"}
 
+
 # Configure logging at INFO level
 logging.basicConfig(
     level=logging.INFO, format="%(levelname)s: %(message)s", handlers=[logging.StreamHandler()]
