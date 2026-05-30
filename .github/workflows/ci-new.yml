@@ -64,7 +64,7 @@ jobs:
     needs: lint-and-test
     runs-on: ubuntu-latest
     env:
-      ACR_REGISTRY: learntocloud.azurecr.io
+      ACR_REGISTRY: journalapicontainerregistry.azurecr.io
       ACR_USERNAME: learntocloud
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
     steps:
@@ -85,7 +85,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      ACR_REGISTRY: learntocloud.azurecr.io
+      ACR_REGISTRY: journalapicontainerregistry.azurecr.io
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
