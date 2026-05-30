@@ -50,10 +50,7 @@ async def analyze_journal_entry(
 
     """
     # Use provided client or fall back to a lazily created client
-    if client is not None:
-        api_client = client
-    else:
-        api_client = _openai_client or get_openai_client()
+    api_client = client if client is not None else _openai_client or get_openai_client()
 
     # Trace the sentiment analysis work with a dedicated span.
     with tracer.start_as_current_span("llm.analyze_sentiment") as span:
