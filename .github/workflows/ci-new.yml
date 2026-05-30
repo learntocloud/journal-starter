@@ -63,6 +63,8 @@ jobs:
     name: Build and Push
     needs: lint-and-test
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     env:
       ACR_REGISTRY: journalapicontainerregistry.azurecr.io
     steps:
