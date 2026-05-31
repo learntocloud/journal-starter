@@ -34,23 +34,30 @@ spec:
           readOnly: true
         resources:
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "1Gi"
+            cpu: "1000m"
           requests:
             memory: "256Mi"
-            cpu: "250m"
+            cpu: "500m"
+        startupProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          # Gives the app up to 150 seconds (30 * 5s) to start
+          failureThreshold: 30
+          periodSeconds: 5
         livenessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 0
           periodSeconds: 10
           failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /health
             port: 8000
-          initialDelaySeconds: 15
+          initialDelaySeconds: 0
           periodSeconds: 5
           failureThreshold: 3
       volumes:
