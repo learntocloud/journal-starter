@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 import uuid
 from datetime import datetime
 from typing import Any
@@ -24,9 +25,11 @@ class PostgresDB(DatabaseInterface):
     async def __aenter__(self):
         try:
             parsed = urlparse(self._database_url)
-            logging.info(f"PostgresDB connecting to host: {parsed.hostname} on port: {parsed.port}")
+            msg = f"CRITICAL_DEBUG: Connecting to DB Host: '{parsed.hostname}' Port: '{parsed.port}'"
+            print(msg, file=sys.stderr, flush=True)
+            logging.info(msg)
         except Exception as e:
-            logging.error(f"PostgresDB failed to parse URL for logging: {e}")
+            print(f"CRITICAL_DEBUG: Failed to parse URL: {e}", file=sys.stderr, flush=True)
 
         self.pool = await asyncpg.create_pool(self._database_url)
         return self

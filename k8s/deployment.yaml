@@ -26,6 +26,8 @@ spec:
         - secretRef:
             name: journal-secret
         env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
         - name: OTEL_SERVICE_NAME
           value: "journal-api"
         volumeMounts:

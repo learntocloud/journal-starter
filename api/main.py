@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from urllib.parse import urlparse
 
 from dotenv import load_dotenv
@@ -13,19 +14,20 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 logging.getLogger().setLevel(logging.INFO)
+logging.captureWarnings(True)
 
 # Log the database target to debug DNS resolution issues
 db_url = os.getenv("DATABASE_URL")
 if db_url:
     try:
         parsed = urlparse(db_url)
-        logging.info(
-            f"Database connection attempt targeting host: {parsed.hostname} on port: {parsed.port}"
-        )
+        msg = f"STARTUP_DEBUG: DB Host: {parsed.hostname} Port: {parsed.port}"
+        print(msg, file=sys.stderr, flush=True)
+        logging.info(msg)
     except Exception as e:
-        logging.error(f"Failed to parse DATABASE_URL for logging: {e}")
+        print(f"STARTUP_DEBUG: Parse Error: {e}", file=sys.stderr, flush=True)
 else:
-    logging.warning("DATABASE_URL environment variable is not set.")
+    print("STARTUP_DEBUG: DATABASE_URL IS MISSING", file=sys.stderr, flush=True)
 
 from fastapi import FastAPI  # noqa: E402
 
