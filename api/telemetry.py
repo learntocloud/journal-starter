@@ -8,6 +8,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 SERVICE_NAME = "journal-api"
 connection_string = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
+logger = logging.getLogger(SERVICE_NAME)
 
 # Initialize Telemetry
 if connection_string:
@@ -16,15 +17,16 @@ if connection_string:
     try:
         configure_azure_monitor(
             connection_string=connection_string,
+            logger_name=SERVICE_NAME,
         )
-        logging.info("Azure Monitor OpenTelemetry successfully configured.")
+        logger.info("Azure Monitor OpenTelemetry successfully configured.")
     except Exception as e:
-        logging.warning(f"Azure Monitor OpenTelemetry could not be configured: {e}")
+        logger.warning(f"Azure Monitor OpenTelemetry could not be configured: {e}")
 else:
     # Ensure logs still show up in console during local dev if AI is off
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO)
-    logging.info("APPLICATIONINSIGHTS_CONNECTION_STRING not found. Azure Monitor export disabled.")
+    logger.info("APPLICATIONINSIGHTS_CONNECTION_STRING not found. Azure Monitor export disabled.")
 
 
 def instrument_app(app):

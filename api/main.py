@@ -18,7 +18,7 @@ from fastapi import FastAPI  # noqa: E402
 from api.routers.journal_router import router as journal_router  # noqa: E402
 from api.telemetry import instrument_app  # noqa: E402
 
-logging.info("Journal API started.")
+logging.getLogger("journal-api").info("Journal API started.")
 
 app = FastAPI(
     title="Journal API",
