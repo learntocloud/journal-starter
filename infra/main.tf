@@ -48,11 +48,10 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   }
 
   network_profile {
-    network_plugin    = "kubenet"
+    network_plugin    = "azure"
     load_balancer_sku = "standard"
     service_cidr      = "10.1.0.0/16"
     dns_service_ip    = "10.1.0.10"
-    pod_cidr          = "10.2.0.0/16"
   }
 
   tags = {
