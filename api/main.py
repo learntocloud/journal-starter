@@ -19,7 +19,9 @@ db_url = os.getenv("DATABASE_URL")
 if db_url:
     try:
         parsed = urlparse(db_url)
-        logging.info(f"Database connection attempt targeting host: {parsed.hostname} on port: {parsed.port}")
+        logging.info(
+            f"Database connection attempt targeting host: {parsed.hostname} on port: {parsed.port}"
+        )
     except Exception as e:
         logging.error(f"Failed to parse DATABASE_URL for logging: {e}")
 else:
