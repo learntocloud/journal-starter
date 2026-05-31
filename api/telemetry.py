@@ -15,7 +15,6 @@ if connection_string:
     try:
         configure_azure_monitor(
             connection_string=connection_string,
-            logger_name=SERVICE_NAME,
         )
         logging.info("Azure Monitor OpenTelemetry successfully configured.")
     except Exception as e:

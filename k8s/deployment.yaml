@@ -23,6 +23,9 @@ spec:
         envFrom:
         - secretRef:
             name: journal-secret
+        env:
+        - name: OTEL_SERVICE_NAME
+          value: "journal-api"
         volumeMounts:
         - name: secrets-store-inline
           mountPath: "/mnt/secrets"
