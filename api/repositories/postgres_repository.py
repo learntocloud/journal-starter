@@ -25,10 +25,14 @@ class PostgresDB(DatabaseInterface):
     async def __aenter__(self):
         try:
             parsed = urlparse(self._database_url)
-            msg = f"CRITICAL_DEBUG: Connecting to DB Host: '{parsed.hostname}' Port: '{parsed.port}'"
+            msg = (
+                f"CRITICAL_DEBUG: Connecting to DB Host: '{parsed.hostname}' Port: '{parsed.port}'"
+            )
             print(msg, file=sys.stderr, flush=True)  # noqa: T201
             logging.info(msg)
-            logging.info(f"CRITICAL_DEBUG: Connecting to DB Host: '{parsed.hostname}' Port: '{parsed.port}'")
+            logging.info(
+                f"CRITICAL_DEBUG: Connecting to DB Host: '{parsed.hostname}' Port: '{parsed.port}'"
+            )
         except Exception as e:
             print(f"CRITICAL_DEBUG: Failed to parse URL: {e}", file=sys.stderr, flush=True)  # noqa: T201
             logging.error(f"CRITICAL_DEBUG: Failed to parse URL: {e}")
