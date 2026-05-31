@@ -23,6 +23,7 @@ if connection_string:
 else:
     logging.info("APPLICATIONINSIGHTS_CONNECTION_STRING not found. Azure Monitor export disabled.")
 
+
 def instrument_app(app):
     """
     Instruments the FastAPI app for OpenTelemetry.
@@ -34,13 +35,12 @@ def instrument_app(app):
         meter_provider=metrics.get_meter_provider(),
     )
 
+
 # Standard OpenTelemetry entry points
 tracer = trace.get_tracer(SERVICE_NAME)
 meter = metrics.get_meter(SERVICE_NAME)
 
 # Define metrics used in the application
 entry_created_counter = meter.create_counter(
-    "journal.entries.created",
-    unit="1",
-    description="Total number of journal entries created"
+    "journal.entries.created", unit="1", description="Total number of journal entries created"
 )
