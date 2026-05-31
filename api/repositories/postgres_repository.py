@@ -1,9 +1,9 @@
 import json
+import logging
 import uuid
 from datetime import datetime
-import logging
-from urllib.parse import urlparse
 from typing import Any
+from urllib.parse import urlparse
 
 import asyncpg
 
