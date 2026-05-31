@@ -4,24 +4,6 @@ resource "azurerm_resource_group" "resource_group" {
 }
 
 
-# Get the ACR data
-data "azurerm_container_registry" "acr" {
-  name                = azurerm_container_registry.acr.name
-  resource_group_name = azurerm_resource_group.resource_group.name
-}
-
-# Fetch information about your existing AKS cluster
-data "azurerm_kubernetes_cluster" "aks" {
-  name                = azurerm_kubernetes_cluster.cluster.name
-  resource_group_name = azurerm_kubernetes_cluster.cluster.resource_group_name
-
-}
-
-data "azurerm_user_assigned_identity" "acr_pull" {
-  name                = azurerm_user_assigned_identity.acr_pull.name
-  resource_group_name = azurerm_user_assigned_identity.acr_pull.resource_group_name
-}
-
 # Create the Azure Container Registry
 resource "azurerm_container_registry" "acr" {
   name                = var.acr_name
@@ -30,6 +12,13 @@ resource "azurerm_container_registry" "acr" {
   sku                 = "Standard"
   admin_enabled       = false
 
+}
+
+resource "azurerm_subnet" "aks_subnet" {
+  name                 = "aks-subnet"
+  resource_group_name  = azurerm_resource_group.resource_group.name
+  virtual_network_name = azurerm_virtual_network.network.name
+  address_prefixes     = ["10.0.1.0/24"]
 }
 
 
@@ -50,10 +39,20 @@ resource "azurerm_kubernetes_cluster" "cluster" {
     name       = "default"
     node_count = 1
     vm_size    = "Standard_a2_v2"
+    vnet_subnet_id = azurerm_subnet.aks_subnet.id
+    temporary_name_for_rotation = "tempnodepool"
   }
 
   identity {
     type = "SystemAssigned"
+  }
+
+  network_profile {
+    network_plugin    = "kubenet"
+    load_balancer_sku = "standard"
+    service_cidr      = "10.1.0.0/16"
+    dns_service_ip    = "10.1.0.10"
+    pod_cidr          = "10.2.0.0/16"
   }
 
   tags = {
@@ -88,9 +87,9 @@ resource "azurerm_postgresql_flexible_server" "example" {
   resource_group_name = azurerm_resource_group.resource_group.name
   location            = azurerm_resource_group.resource_group.location
   version             = "15"
-  #delegated_subnet_id           = azurerm_subnet.private_subnet.id
-  #private_dns_zone_id           = azurerm_private_dns_zone.dns_zone.id
-  public_network_access_enabled = true
+  delegated_subnet_id           = azurerm_subnet.private_subnet.id
+  private_dns_zone_id           = azurerm_private_dns_zone.dns_zone.id
+  public_network_access_enabled = false
   administrator_login           = "postgres"
   administrator_password        = azurerm_key_vault_secret.postgres_password.value
 
@@ -98,6 +97,8 @@ resource "azurerm_postgresql_flexible_server" "example" {
   storage_tier = "P4"
 
   sku_name = "B_Standard_B1ms"
+
+  depends_on = [azurerm_private_dns_zone_virtual_network_link.dns_link]
 
 }
 
@@ -123,7 +124,7 @@ resource "azurerm_user_assigned_identity" "acr_pull" {
 
 # Assign the AcrPull role to the Managed Identity over the ACR scope
 resource "azurerm_role_assignment" "acr_pull_assignment" {
-  scope                = data.azurerm_container_registry.acr.id
+  scope                = azurerm_container_registry.acr.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_user_assigned_identity.acr_pull.principal_id
 
@@ -143,7 +144,7 @@ resource "azurerm_federated_identity_credential" "k8s_federation" {
   audience = ["api://AzureADTokenExchange"]
 
   # Dynamically points to your AKS Cluster's secure token issuer
-  issuer = data.azurerm_kubernetes_cluster.aks.oidc_issuer_url
+  issuer = azurerm_kubernetes_cluster.cluster.oidc_issuer_url
 
   # Crucial Security String: Restricts trust to a specific namespace and ServiceAccount name
   # Pattern format: system:serviceaccount:<K8S_NAMESPACE>:<SERVICE_ACCOUNT_NAME>
@@ -158,7 +159,7 @@ resource "azurerm_user_assigned_identity" "github_deploy" {
 
 # Assign the AcrPush role to the Managed Identity over the ACR scope
 resource "azurerm_role_assignment" "github_acr_push" {
-  scope                = data.azurerm_container_registry.acr.id
+  scope                = azurerm_container_registry.acr.id
   role_definition_name = "AcrPush"
   principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
 
@@ -168,7 +169,7 @@ resource "azurerm_role_assignment" "github_acr_push" {
 
 # Assign the AcrPull role to the Managed Identity over the ACR scope
 resource "azurerm_role_assignment" "github_acr_pull" {
-  scope                = data.azurerm_container_registry.acr.id
+  scope                = azurerm_container_registry.acr.id
   role_definition_name = "AcrPull"
   principal_id         = azurerm_user_assigned_identity.github_deploy.principal_id
 
@@ -224,11 +225,26 @@ resource "azurerm_role_assignment" "aks_kubelet_acr_pull" {
   skip_service_principal_aad_check = true
 }
 
+resource "azurerm_role_assignment" "aks_network" {
+  scope                = azurerm_virtual_network.network.id
+  role_definition_name = "Network Contributor"
+  principal_id         = azurerm_kubernetes_cluster.cluster.identity[0].principal_id
+}
+
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "journal-api-law"
+  location            = azurerm_resource_group.resource_group.location
+  resource_group_name = azurerm_resource_group.resource_group.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
 resource "azurerm_application_insights" "journalapi" {
   name                = "journal-api-appinsights"
   location            = var.location
   resource_group_name = azurerm_resource_group.resource_group.name
   application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.law.id
 }
 
 resource "azurerm_key_vault_secret" "app_insights_connection_string" {

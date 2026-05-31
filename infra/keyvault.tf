@@ -31,12 +31,8 @@ resource "azurerm_key_vault_secret" "openai_api_key" {
 
 resource "azurerm_key_vault_secret" "database_url" {
   name         = "databaseurl"
-  value        = "placeholder"
+  value        = "postgresql://postgres:${azurerm_key_vault_secret.postgres_password.value}@${azurerm_postgresql_flexible_server.example.fqdn}:5432/postgres?sslmode=require"
   key_vault_id = azurerm_key_vault.journal_kv.id
-
-  lifecycle {
-    ignore_changes = [value]
-  }
 }
 
 resource "azurerm_key_vault_access_policy" "csi_driver" {
