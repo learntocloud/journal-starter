@@ -1,4 +1,5 @@
 import logging
+
 from dotenv import load_dotenv
 
 # 1. Load env vars and configure logging BEFORE other imports
@@ -14,8 +15,9 @@ logging.getLogger().setLevel(logging.INFO)
 
 logging.info("Journal API started.")
 
-# noqa: E402 is used because environment loading must occur before these modules are imported.
 from fastapi import FastAPI  # noqa: E402
+
+# Environment loading must occur before these modules are imported.
 from api.routers.journal_router import router as journal_router  # noqa: E402
 from api.telemetry import instrument_app  # noqa: E402
 
