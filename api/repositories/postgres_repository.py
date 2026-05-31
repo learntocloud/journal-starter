@@ -1,6 +1,8 @@
 import json
 import uuid
 from datetime import datetime
+import logging
+from urllib.parse import urlparse
 from typing import Any
 
 import asyncpg
@@ -20,6 +22,12 @@ class PostgresDB(DatabaseInterface):
         raise TypeError(f"Type {type(obj)} not serializable")
 
     async def __aenter__(self):
+        try:
+            parsed = urlparse(self._database_url)
+            logging.info(f"PostgresDB connecting to host: {parsed.hostname} on port: {parsed.port}")
+        except Exception as e:
+            logging.error(f"PostgresDB failed to parse URL for logging: {e}")
+
         self.pool = await asyncpg.create_pool(self._database_url)
         return self
 
