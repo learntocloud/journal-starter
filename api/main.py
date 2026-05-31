@@ -22,12 +22,15 @@ if db_url:
     try:
         parsed = urlparse(db_url)
         msg = f"STARTUP_DEBUG: DB Host: {parsed.hostname} Port: {parsed.port}"
-        print(msg, file=sys.stderr, flush=True)
+        print(msg, file=sys.stderr, flush=True)  # noqa: T201
         logging.info(msg)
+        logging.info(f"STARTUP_DEBUG: DB Host: {parsed.hostname} Port: {parsed.port}")
     except Exception as e:
-        print(f"STARTUP_DEBUG: Parse Error: {e}", file=sys.stderr, flush=True)
+        print(f"STARTUP_DEBUG: Parse Error: {e}", file=sys.stderr, flush=True)  # noqa: T201
+        logging.error(f"STARTUP_DEBUG: Parse Error: {e}")
 else:
-    print("STARTUP_DEBUG: DATABASE_URL IS MISSING", file=sys.stderr, flush=True)
+    print("STARTUP_DEBUG: DATABASE_URL IS MISSING", file=sys.stderr, flush=True)  # noqa: T201
+    logging.warning("STARTUP_DEBUG: DATABASE_URL IS MISSING")
 
 from fastapi import FastAPI  # noqa: E402
 
