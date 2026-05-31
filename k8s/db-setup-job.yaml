@@ -11,7 +11,7 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /database_setup.sql
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /scripts/database_setup.sql
         env:
         - name: DATABASE_URL
           valueFrom:
