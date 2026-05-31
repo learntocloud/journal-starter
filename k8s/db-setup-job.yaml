@@ -1,10 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-setup-script
+data:
+  database_setup.sql: |
+    CREATE TABLE IF NOT EXISTS entries (
+        id VARCHAR PRIMARY KEY,
+        data JSONB NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE NOT NULL
+    );
+
+    -- Creates an index on created_at for faster queries
+    CREATE INDEX IF NOT EXISTS idx_entries_created_at ON entries(created_at);
+
+    -- Creates an index on the JSON data for faster searches
+    CREATE INDEX IF NOT EXISTS idx_entries_data_gin ON entries USING GIN (data);
+
+---
+
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: db-setup
 spec:
+  backoffLimit: 4
   template:
+    metadata:
+      labels:
+        # Tells AKS to inject the Azure Workload Identity token
+        azure.workload.identity/use: "true" 
     spec:
+      # Uses the Service Account authorized in your Terraform Key Vault setup
+      serviceAccountName: journal-api 
       containers:
       - name: psql
         image: postgres:15
@@ -31,7 +59,7 @@ spec:
       - name: secrets-store-inline
         csi:
           driver: secrets-store.csi.k8s.io
+          readOnly: true 
           volumeAttributes:
             secretProviderClass: "azure-kv-sync"
       restartPolicy: OnFailure
-  backoffLimit: 4

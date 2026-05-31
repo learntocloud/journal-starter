@@ -101,6 +101,13 @@ resource "azurerm_postgresql_flexible_server" "example" {
 
 }
 
+resource "azurerm_postgresql_flexible_server_database" "journal_db" {
+  name      = "career_journal"
+  server_id = azurerm_postgresql_flexible_server.example.id
+  collation = "en_US.utf8"
+  charset   = "utf8"
+}
+
 resource "azurerm_private_dns_zone" "dns_zone" {
   name                = "journal.postgres.database.azure.com"
   resource_group_name = azurerm_resource_group.resource_group.name
