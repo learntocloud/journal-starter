@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 # 1. Load env vars and configure logging BEFORE other imports
 # so that telemetry and database initialization can see the environment.
-load_dotenv(override=True)
+load_dotenv(override=False)  # Don't override existing env vars, especially in production
 logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s: %(message)s",

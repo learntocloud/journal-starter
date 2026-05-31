@@ -1,4 +1,6 @@
+import logging
 from collections.abc import AsyncGenerator
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
@@ -16,6 +18,12 @@ router = APIRouter()
 async def get_entry_service(
     settings: Settings = Depends(get_settings),
 ) -> AsyncGenerator[EntryService]:
+    try:
+        parsed = urlparse(settings.database_url)
+        logging.info(f"Database connection attempt targeting host: {parsed.hostname}")
+    except Exception as e:
+        logging.error(f"Failed to parse database URL in router: {e}")
+
     async with PostgresDB(settings.database_url) as db:
         yield EntryService(db)
 
