@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-setup
+spec:
+  template:
+    spec:
+      containers:
+      - name: psql
+        image: postgres:15
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f /database_setup.sql
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: journal-secret
+              key: DATABASE_URL
+        volumeMounts:
+        - name: sql-script
+          mountPath: /scripts
+        - name: secrets-store-inline
+          mountPath: "/mnt/secrets"
+          readOnly: true
+      volumes:
+      - name: sql-script
+        configMap:
+          name: db-setup-script
+      - name: secrets-store-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          volumeAttributes:
+            secretProviderClass: "azure-kv-sync"
+      restartPolicy: OnFailure
+  backoffLimit: 4
