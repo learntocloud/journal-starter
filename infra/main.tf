@@ -223,3 +223,18 @@ resource "azurerm_role_assignment" "aks_kubelet_acr_pull" {
   principal_id                     = azurerm_kubernetes_cluster.cluster.kubelet_identity[0].object_id
   skip_service_principal_aad_check = true
 }
+
+resource "azurerm_application_insights" "journalapi" {
+  name                = "journal-api-appinsights"
+  location            = var.location
+  resource_group_name = azurerm_resource_group.resource_group.name
+  application_type    = "web"
+}
+
+resource "azurerm_key_vault_secret" "app_insights_connection_string" {
+  name         = "AppInsightsConnectionString"
+  value        = azurerm_application_insights.journalapi.connection_string
+  key_vault_id = azurerm_key_vault.journal_kv.id
+
+  depends_on = [azurerm_application_insights.journalapi]
+}
