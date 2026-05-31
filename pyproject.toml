@@ -18,6 +18,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi",
     "opentelemetry-exporter-otlp",
     "azure-monitor-opentelemetry",
+    "opentelemetry-instrumentation-asyncpg",
 ]
 
 [project.optional-dependencies]

@@ -12,13 +12,13 @@ logging.basicConfig(
 )
 logging.getLogger().setLevel(logging.INFO)
 
-logging.info("Journal API started.")
-
 from fastapi import FastAPI  # noqa: E402
 
-# Environment loading must occur before these modules are imported.
+# Environment loading must occur before local modules are imported.
 from api.routers.journal_router import router as journal_router  # noqa: E402
 from api.telemetry import instrument_app  # noqa: E402
+
+logging.info("Journal API started.")
 
 app = FastAPI(
     title="Journal API",

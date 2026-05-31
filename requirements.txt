@@ -13,3 +13,4 @@ opentelemetry-sdk
 opentelemetry-instrumentation-fastapi
 opentelemetry-exporter-otlp
 azure-monitor-opentelemetry
+opentelemetry-instrumentation-asyncpg

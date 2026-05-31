@@ -3,6 +3,7 @@ import os
 
 from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import metrics, trace
+from opentelemetry.instrumentation.asyncpg import AsyncPGInstrumentor
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 SERVICE_NAME = "journal-api"
@@ -20,6 +21,9 @@ if connection_string:
     except Exception as e:
         logging.warning(f"Azure Monitor OpenTelemetry could not be configured: {e}")
 else:
+    # Ensure logs still show up in console during local dev if AI is off
+    if not logging.getLogger().handlers:
+        logging.basicConfig(level=logging.INFO)
     logging.info("APPLICATIONINSIGHTS_CONNECTION_STRING not found. Azure Monitor export disabled.")
 
 
@@ -33,6 +37,10 @@ def instrument_app(app):
         tracer_provider=trace.get_tracer_provider(),
         meter_provider=metrics.get_meter_provider(),
     )
+
+    # Instrument database calls
+    # This captures SQL queries and durations automatically
+    AsyncPGInstrumentor().instrument()
 
 
 # Standard OpenTelemetry entry points
