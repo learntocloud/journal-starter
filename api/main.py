@@ -9,7 +9,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(levelname)s: %(message)s",
     handlers=[logging.StreamHandler()],
-    force=True,  # Ensures configuration is applied even if handlers already exist (required for pytest)
 )
 logging.getLogger().setLevel(logging.INFO)
 
