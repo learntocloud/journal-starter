@@ -80,7 +80,8 @@ VALID_ANALYSIS_JSON = json.dumps(
 async def test_analyze_entry_actually_calls_llm():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
+    # type: ignore[arg-type]
+    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)
 
     assert len(client.create_calls) >= 1, (
         "Expected analyze_journal_entry to call client.chat.completions.create() at least once."
@@ -90,7 +91,8 @@ async def test_analyze_entry_actually_calls_llm():
 async def test_analyze_entry_sends_entry_text_in_prompt():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
+    # type: ignore[arg-type]
+    await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)
 
     call = client.create_calls[0]
     assert "messages" in call
@@ -104,7 +106,8 @@ async def test_analyze_entry_sends_entry_text_in_prompt():
 async def test_analyze_entry_returns_valid_analysis_response():
     client = MockAsyncOpenAI(_make_completion(VALID_ANALYSIS_JSON))
 
-    result = await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)  # type: ignore[arg-type]
+    # type: ignore[arg-type]
+    result = await analyze_journal_entry("entry-1", SAMPLE_ENTRY_TEXT, client=client)
 
     validated = AnalysisResponse.model_validate(result)
     assert validated.entry_id == "entry-1"
