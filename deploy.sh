@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# deploy.sh — Journal API two-tier deployment on Azure (idempotent).
+# deploy.sh — Journal API deployment on Azure (idempotent, self-contained).
 #
-# Provisions a two-tier architecture in a single virtual network AND deploys the
-# running application onto it:
+# Provisions a two-tier architecture in a single virtual network, a managed
+# Azure OpenAI resource for the AI feature, AND deploys the running application:
 #
 #   Public tier  (public subnet):  API VM with a public IP. It clones this repo,
 #                                   installs dependencies with uv, runs the
@@ -13,8 +13,12 @@
 #                                   installs PostgreSQL, creates the app role and
 #                                   database, and applies the `entries` schema.
 #                                   It is reachable only from the public subnet.
+#   Managed AI   (Azure OpenAI):    Cognitive Services (kind=OpenAI) account with
+#                                   a chat model deployment; the API calls its
+#                                   OpenAI-compatible endpoint for /analyze.
 #
 # Traffic flow:  Internet --443/TLS--> API VM --> app --5432(private only)--> DB VM
+#                                              \--> Azure OpenAI (managed, HTTPS)
 #
 # The database is never publicly reachable: it has no public IP and its network
 # security group only admits PostgreSQL traffic from the API (public) subnet.
@@ -23,21 +27,28 @@
 # already exist (create-or-skip), so re-running converges to the same state.
 #
 # Configuration (override via environment variables):
-#   RESOURCE_GROUP    Resource group name         (default: journal-rg)
-#   LOCATION          Azure region                (default: centralus)
-#   PREFIX            Name prefix for resources    (default: journal)
-#   ADMIN_SOURCE_IP   CIDR allowed to SSH (22)     (default: none -> SSH denied)
-#   VM_SIZE           VM size                      (default: Standard_B1s)
-#   VM_IMAGE          VM image                     (default: Ubuntu2204)
-#   ADMIN_USERNAME    VM admin username            (default: azureuser)
-#   REPO_URL          Git URL of the app to deploy (default: this repo on GitHub)
-#   REPO_BRANCH       Git branch to deploy         (default: main)
-#   DB_NAME           Application database name    (default: journal)
-#   DB_USER           Application database user    (default: journal)
-#   DB_PASSWORD       Application database password (default: random)
-#   OPENAI_API_KEY    Key for the LLM analyze feature (default: placeholder)
-#   OPENAI_BASE_URL   OpenAI-compatible base URL   (default: GitHub Models)
-#   OPENAI_MODEL      Model name for analysis      (default: gpt-4o-mini)
+#   RESOURCE_GROUP    Resource group name          (default: journal-rg)
+#   LOCATION          Azure region                 (default: centralus)
+#   PREFIX            Name prefix for resources     (default: journal)
+#   ADMIN_SOURCE_IP   CIDR allowed to SSH (22)      (default: none -> SSH denied)
+#   VM_SIZE           VM size                       (default: Standard_B1s)
+#   VM_IMAGE          VM image                      (default: Ubuntu2204)
+#   ADMIN_USERNAME    VM admin username             (default: azureuser)
+#   REPO_URL          Git URL of the app to deploy  (default: this repo on GitHub)
+#   REPO_BRANCH       Git branch to deploy          (default: main)
+#   DB_NAME           Application database name     (default: journal)
+#   DB_USER           Application database user     (default: journal)
+#   DB_PASSWORD       Application database password  (default: random)
+#   DEPLOY_OPENAI     Provision Azure OpenAI (true) or use an external key (false)
+#                                                    (default: true)
+#   OPENAI_DEPLOYMENT Model deployment name         (default: gpt-4o-mini)
+#   OPENAI_MODEL_NAME Azure OpenAI model name       (default: gpt-4o-mini)
+#   OPENAI_MODEL_VERSION Model version              (default: 2024-07-18)
+#   OPENAI_DEPLOY_SKU Deployment SKU                (default: GlobalStandard)
+#   OPENAI_CAPACITY   Deployment capacity (k TPM)   (default: 20)
+#   OPENAI_API_KEY    External LLM key when DEPLOY_OPENAI=false (default: placeholder)
+#   OPENAI_BASE_URL   External base URL when DEPLOY_OPENAI=false (default: GitHub Models)
+#   OPENAI_MODEL      External model when DEPLOY_OPENAI=false    (default: gpt-4o-mini)
 #
 # Requires: azure-cli (az), logged in via `az login`.
 
@@ -61,10 +72,20 @@ DB_USER="${DB_USER:-journal}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16)}"
 APP_DIR="/opt/journal-app"
 
-# LLM "analyze" feature (capstone Task 4). Optional: leave the placeholder to
-# deploy the architecture without a live key, or export a real key/base URL/model
-# to enable the analyze endpoint. The key is injected at runtime and never
-# committed to the repository.
+# Azure OpenAI (managed AI tier). By default deploy.sh provisions the resource so
+# the deployment is self-contained. Set DEPLOY_OPENAI=false to instead point the
+# API at an external OpenAI-compatible endpoint via OPENAI_API_KEY/BASE_URL/MODEL.
+DEPLOY_OPENAI="${DEPLOY_OPENAI:-true}"
+OPENAI_DEPLOYMENT="${OPENAI_DEPLOYMENT:-gpt-5-mini}"
+OPENAI_MODEL_NAME="${OPENAI_MODEL_NAME:-gpt-5-mini}"
+OPENAI_MODEL_VERSION="${OPENAI_MODEL_VERSION:-2025-08-07}"
+OPENAI_DEPLOY_SKU="${OPENAI_DEPLOY_SKU:-GlobalStandard}"
+OPENAI_CAPACITY="${OPENAI_CAPACITY:-20}"
+# A globally-unique subdomain is required; derive a deterministic suffix from the
+# resource group so re-runs converge on the same account name.
+OPENAI_SUFFIX="$(printf '%s' "$RESOURCE_GROUP" | md5sum | cut -c1-8)"
+OPENAI_ACCOUNT_NAME="${OPENAI_ACCOUNT_NAME:-${PREFIX}-openai-${OPENAI_SUFFIX}}"
+# External-endpoint defaults (used only when DEPLOY_OPENAI=false).
 OPENAI_API_KEY="${OPENAI_API_KEY:-placeholder-not-used-for-architecture-verification}"
 OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://models.inference.ai.azure.com}"
 OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
@@ -113,6 +134,68 @@ if ! $AZ account show --only-show-errors >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
+# Idempotency helpers
+# ---------------------------------------------------------------------------
+group_exists() { $AZ group exists --name "$RESOURCE_GROUP" --only-show-errors | grep -q true; }
+
+exists() {
+  # exists <az-show-subcommand...> -> 0 if the resource exists.
+  "$@" --only-show-errors >/dev/null 2>&1
+}
+
+# ---------------------------------------------------------------------------
+# 1. Resource group
+# ---------------------------------------------------------------------------
+log "Resource group: $RESOURCE_GROUP ($LOCATION)"
+if group_exists; then
+  info "already exists, skipping"
+else
+  $AZ group create --name "$RESOURCE_GROUP" --location "$LOCATION" "${AZ_QUIET[@]}"
+  info "created"
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Managed AI tier: Azure OpenAI account + model deployment
+#    Provisioned before the API VM so its endpoint/key can be baked into the
+#    application's .env via cloud-init.
+# ---------------------------------------------------------------------------
+if [ "$DEPLOY_OPENAI" = "true" ]; then
+  log "Azure OpenAI account: $OPENAI_ACCOUNT_NAME"
+  if exists $AZ cognitiveservices account show -g "$RESOURCE_GROUP" -n "$OPENAI_ACCOUNT_NAME"; then
+    info "already exists, skipping"
+  else
+    $AZ cognitiveservices account create -n "$OPENAI_ACCOUNT_NAME" -g "$RESOURCE_GROUP" \
+      -l "$LOCATION" --kind OpenAI --sku S0 --custom-domain "$OPENAI_ACCOUNT_NAME" \
+      --yes "${AZ_QUIET[@]}"
+    info "created"
+  fi
+
+  log "Azure OpenAI model deployment: $OPENAI_DEPLOYMENT ($OPENAI_MODEL_NAME $OPENAI_MODEL_VERSION)"
+  if exists $AZ cognitiveservices account deployment show -g "$RESOURCE_GROUP" \
+      -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT"; then
+    info "already exists, skipping"
+  else
+    $AZ cognitiveservices account deployment create -g "$RESOURCE_GROUP" \
+      -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT" \
+      --model-name "$OPENAI_MODEL_NAME" --model-version "$OPENAI_MODEL_VERSION" \
+      --model-format OpenAI \
+      --sku-name "$OPENAI_DEPLOY_SKU" --sku-capacity "$OPENAI_CAPACITY" "${AZ_QUIET[@]}"
+    info "created"
+  fi
+
+  # Resolve the endpoint + key and point the app at the OpenAI-compatible route.
+  OPENAI_ENDPOINT="$($AZ cognitiveservices account show -g "$RESOURCE_GROUP" \
+    -n "$OPENAI_ACCOUNT_NAME" --query properties.endpoint -o tsv --only-show-errors)"
+  OPENAI_API_KEY="$($AZ cognitiveservices account keys list -g "$RESOURCE_GROUP" \
+    -n "$OPENAI_ACCOUNT_NAME" --query key1 -o tsv --only-show-errors)"
+  OPENAI_BASE_URL="${OPENAI_ENDPOINT%/}/openai/v1"
+  OPENAI_MODEL="$OPENAI_DEPLOYMENT"
+  info "endpoint: $OPENAI_BASE_URL (model: $OPENAI_MODEL)"
+else
+  log "Azure OpenAI: DEPLOY_OPENAI=false -> using external endpoint $OPENAI_BASE_URL"
+fi
+
+# ---------------------------------------------------------------------------
 # Cloud-init: private-tier PostgreSQL VM
 #   Installs PostgreSQL, creates the app role + database, applies the schema,
 #   and only accepts connections from the public (API) subnet.
@@ -139,6 +222,8 @@ runcmd:
   # Listen on all interfaces; the NSG restricts reachability to the API subnet.
   - sed -i "s/^#\\?listen_addresses.*/listen_addresses = '*'/" /etc/postgresql/*/main/postgresql.conf
   # Only the public/API subnet may authenticate, using scram-sha-256.
+  # (Append via tee: cloud-init runcmd runs under dash, which does not expand
+  #  globs in redirection targets, only in command arguments.)
   - echo "host ${DB_NAME} ${DB_USER} ${PUBLIC_SUBNET_CIDR} scram-sha-256" | tee -a /etc/postgresql/*/main/pg_hba.conf
   - systemctl enable postgresql
   - systemctl restart postgresql
@@ -238,28 +323,7 @@ cleanup() { rm -f "$DB_CLOUD_INIT" "$API_CLOUD_INIT"; }
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-# Idempotency helpers
-# ---------------------------------------------------------------------------
-group_exists() { $AZ group exists --name "$RESOURCE_GROUP" --only-show-errors | grep -q true; }
-
-exists() {
-  # exists <az-show-subcommand...> -> 0 if the resource exists.
-  "$@" --only-show-errors >/dev/null 2>&1
-}
-
-# ---------------------------------------------------------------------------
-# 1. Resource group
-# ---------------------------------------------------------------------------
-log "Resource group: $RESOURCE_GROUP ($LOCATION)"
-if group_exists; then
-  info "already exists, skipping"
-else
-  $AZ group create --name "$RESOURCE_GROUP" --location "$LOCATION" "${AZ_QUIET[@]}"
-  info "created"
-fi
-
-# ---------------------------------------------------------------------------
-# 2. Network security groups
+# 3. Network security groups
 # ---------------------------------------------------------------------------
 log "Network security group (public/API tier): $API_NSG_NAME"
 if exists $AZ network nsg show -g "$RESOURCE_GROUP" -n "$API_NSG_NAME"; then
@@ -322,7 +386,7 @@ if ! exists $AZ network nsg rule show -g "$RESOURCE_GROUP" --nsg-name "$DB_NSG_N
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Virtual network + subnets (each bound to its tier's NSG)
+# 4. Virtual network + subnets (each bound to its tier's NSG)
 # ---------------------------------------------------------------------------
 log "Virtual network: $VNET_NAME ($VNET_CIDR)"
 if exists $AZ network vnet show -g "$RESOURCE_GROUP" -n "$VNET_NAME"; then
@@ -354,7 +418,7 @@ $AZ network vnet subnet update -g "$RESOURCE_GROUP" --vnet-name "$VNET_NAME" \
 info "private subnet associated with $DB_NSG_NAME"
 
 # ---------------------------------------------------------------------------
-# 4. Public-tier API VM (public IP + NIC in public subnet)
+# 5. Public-tier API VM (public IP + NIC in public subnet)
 # ---------------------------------------------------------------------------
 log "Public IP for API VM: $API_PUBLIC_IP_NAME"
 if exists $AZ network public-ip show -g "$RESOURCE_GROUP" -n "$API_PUBLIC_IP_NAME"; then
@@ -376,7 +440,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 5. Private-tier database VM (NIC in private subnet, static IP, NO public IP)
+# 6. Private-tier database VM (NIC in private subnet, static IP, NO public IP)
 #    Created before the API VM so the API's DATABASE_URL is already valid.
 # ---------------------------------------------------------------------------
 log "NIC for database VM: $DB_NIC_NAME (private subnet $DB_PRIVATE_IP, no public IP)"
@@ -422,7 +486,7 @@ API_IP="$($AZ network public-ip show -g "$RESOURCE_GROUP" -n "$API_PUBLIC_IP_NAM
 log "Deployment complete"
 cat <<EOF
 
-  Two-tier architecture provisioned in resource group '$RESOURCE_GROUP':
+  Deployed in resource group '$RESOURCE_GROUP':
 
     Public tier (public subnet $PUBLIC_SUBNET_CIDR):
       API VM        : $API_VM_NAME
@@ -434,7 +498,11 @@ cat <<EOF
       Private IP    : $DB_PRIVATE_IP
       PostgreSQL    : database '$DB_NAME' reachable only from $PUBLIC_SUBNET_CIDR on 5432
 
+    Managed AI:
+      Azure OpenAI  : $([ "$DEPLOY_OPENAI" = "true" ] && echo "$OPENAI_ACCOUNT_NAME (deployment: $OPENAI_MODEL)" || echo "external endpoint $OPENAI_BASE_URL")
+
   Traffic flow: Internet --443/TLS--> API VM --> app --5432(private)--> Database VM
+                                              \\--> Azure OpenAI (managed, HTTPS)
 
   NOTE: the VMs run cloud-init on first boot (installing packages, Python via uv,
   and dependencies), so the API may take a few minutes to answer after 'created'.

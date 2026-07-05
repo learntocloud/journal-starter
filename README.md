@@ -451,15 +451,19 @@ application onto it**. Verification fetches `deploy.sh` from your **public** for
 and grades it alongside your architecture description, so the description must
 match what the script actually builds.
 
-`deploy.sh` does two things:
+`deploy.sh` does three things:
 
 1. **Provisions the infrastructure** — a virtual network with public/private
-   subnets, network security groups, and two Ubuntu VMs.
+   subnets, network security groups, two Ubuntu VMs, and a managed Azure OpenAI
+   resource.
 2. **Deploys the application** via cloud-init — the database VM installs
    PostgreSQL and applies the `entries` schema; the API VM clones this repo,
    installs dependencies with [`uv`](https://docs.astral.sh/uv/), runs the
    FastAPI app under systemd on `localhost:8000`, and puts nginx in front of it
    to terminate TLS on 443.
+3. **Wires up the AI feature** — it creates an Azure OpenAI account with a chat
+   model deployment and injects its endpoint/key into the API's `.env`, so the
+   `POST /entries/{id}/analyze` endpoint works out of the box.
 
 ### Running it
 
@@ -484,17 +488,25 @@ dependencies), so the API takes a few minutes to start answering after the
 script prints "Deployment complete". Once it is up, browse to
 `https://<API_PUBLIC_IP>/docs`.
 
-#### Optional: enable the AI "analyze" endpoint
+#### The AI "analyze" endpoint
 
-The core API (creating and reading journal entries) works with no extra setup.
-The `POST /entries/{id}/analyze` endpoint (capstone Task 4) additionally calls an
-OpenAI-compatible LLM, so it needs a real API key. Provide it at runtime; it is
-written into the API VM's `.env` and is never committed to the repository:
+By default `deploy.sh` provisions a **managed Azure OpenAI** resource
+(Cognitive Services, `kind=OpenAI`) with a `gpt-5-mini` deployment and points the
+API at its OpenAI-compatible `/openai/v1` endpoint, so the
+`POST /entries/{id}/analyze` endpoint (capstone Task 4) works with no extra
+setup. The key is read from Azure at deploy time and written only into the API
+VM's `.env`; it is never committed to the repository.
+
+You can change the model with `OPENAI_DEPLOYMENT` / `OPENAI_MODEL_NAME` /
+`OPENAI_MODEL_VERSION`. To skip provisioning Azure OpenAI and instead use an
+external OpenAI-compatible endpoint (for example GitHub Models), set
+`DEPLOY_OPENAI=false` and provide your own key:
 
 ```bash
+DEPLOY_OPENAI=false \
 OPENAI_API_KEY=your-key \
 OPENAI_BASE_URL=https://models.inference.ai.azure.com \  # default (GitHub Models)
-OPENAI_MODEL=gpt-4o-mini \                                # default
+OPENAI_MODEL=gpt-4o-mini \
 ./deploy.sh
 ```
 
@@ -544,16 +556,16 @@ deterministic.
 ```
 Internet ──443/TLS──▶ API VM (public subnet)
                           │  nginx terminates TLS, proxies to app :8000
-                          ▼
-                     Database VM (private subnet)
-                          │  PostgreSQL :5432
-                          ▼  reachable only from the public subnet
+                          ├──▶ Database VM (private subnet)
+                          │        PostgreSQL :5432 (reachable only from public subnet)
+                          └──▶ Azure OpenAI (managed, outbound HTTPS) for /analyze
 ```
 
 Clients reach the API only over HTTPS on the public IP. The API talks to
 PostgreSQL over the VNet's private address space, and the database accepts
 connections **exclusively** from the API subnet. No path exists from the
-Internet to the database.
+Internet to the database. For the AI `analyze` endpoint the API makes an outbound
+HTTPS call to the managed Azure OpenAI resource.
 
 ### Sample architecture description
 
@@ -576,7 +588,9 @@ specific to what `deploy.sh` provisions, which is what the verifier checks:
 > private IP. Traffic therefore flows Internet → (443/TLS) API VM → application →
 > (5432, private only) database VM, so the database is never directly reachable from
 > the Internet and all external access is encrypted and confined to the application
-> tier.
+> tier. For journal-entry analysis the API makes an outbound HTTPS call to a managed
+> Azure OpenAI resource; no inbound path to the database or the AI service is ever
+> exposed to the Internet.
 
 ## 🔧 Troubleshooting
 
