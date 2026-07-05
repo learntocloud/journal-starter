@@ -490,23 +490,20 @@ script prints "Deployment complete". Once it is up, browse to
 
 #### The AI "analyze" endpoint
 
-By default `deploy.sh` provisions a **managed Azure OpenAI** resource
-(Cognitive Services, `kind=OpenAI`) with a `gpt-5-mini` deployment and points the
-API at its OpenAI-compatible `/openai/v1` endpoint, so the
-`POST /entries/{id}/analyze` endpoint (capstone Task 4) works with no extra
-setup. The key is read from Azure at deploy time and written only into the API
-VM's `.env`; it is never committed to the repository.
+`deploy.sh` provisions a **managed Azure OpenAI** resource (Cognitive Services,
+`kind=OpenAI`) with a `gpt-5-mini` deployment and points the API at its
+OpenAI-compatible `/openai/v1` endpoint, so the `POST /entries/{id}/analyze`
+endpoint (capstone Task 4) works with no extra setup. The key is read from Azure
+at deploy time and written only into the API VM's `.env`; it is never committed
+to the repository.
 
 You can change the model with `OPENAI_DEPLOYMENT` / `OPENAI_MODEL_NAME` /
-`OPENAI_MODEL_VERSION`. To skip provisioning Azure OpenAI and instead use an
-external OpenAI-compatible endpoint (for example GitHub Models), set
-`DEPLOY_OPENAI=false` and provide your own key:
+`OPENAI_MODEL_VERSION`, for example:
 
 ```bash
-DEPLOY_OPENAI=false \
-OPENAI_API_KEY=your-key \
-OPENAI_BASE_URL=https://models.inference.ai.azure.com \  # default (GitHub Models)
-OPENAI_MODEL=gpt-4o-mini \
+OPENAI_DEPLOYMENT=gpt-5-mini \
+OPENAI_MODEL_NAME=gpt-5-mini \
+OPENAI_MODEL_VERSION=2025-08-07 \
 ./deploy.sh
 ```
 

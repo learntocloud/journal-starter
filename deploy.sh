@@ -39,16 +39,12 @@
 #   DB_NAME           Application database name     (default: journal)
 #   DB_USER           Application database user     (default: journal)
 #   DB_PASSWORD       Application database password  (default: random)
-#   DEPLOY_OPENAI     Provision Azure OpenAI (true) or use an external key (false)
-#                                                    (default: true)
-#   OPENAI_DEPLOYMENT Model deployment name         (default: gpt-4o-mini)
-#   OPENAI_MODEL_NAME Azure OpenAI model name       (default: gpt-4o-mini)
-#   OPENAI_MODEL_VERSION Model version              (default: 2024-07-18)
+#   OPENAI_ACCOUNT_NAME Azure OpenAI account name   (default: <prefix>-openai-<hash>)
+#   OPENAI_DEPLOYMENT Model deployment name         (default: gpt-5-mini)
+#   OPENAI_MODEL_NAME Azure OpenAI model name       (default: gpt-5-mini)
+#   OPENAI_MODEL_VERSION Model version              (default: 2025-08-07)
 #   OPENAI_DEPLOY_SKU Deployment SKU                (default: GlobalStandard)
 #   OPENAI_CAPACITY   Deployment capacity (k TPM)   (default: 20)
-#   OPENAI_API_KEY    External LLM key when DEPLOY_OPENAI=false (default: placeholder)
-#   OPENAI_BASE_URL   External base URL when DEPLOY_OPENAI=false (default: GitHub Models)
-#   OPENAI_MODEL      External model when DEPLOY_OPENAI=false    (default: gpt-4o-mini)
 #
 # Requires: azure-cli (az), logged in via `az login`.
 
@@ -72,10 +68,9 @@ DB_USER="${DB_USER:-journal}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16)}"
 APP_DIR="/opt/journal-app"
 
-# Azure OpenAI (managed AI tier). By default deploy.sh provisions the resource so
-# the deployment is self-contained. Set DEPLOY_OPENAI=false to instead point the
-# API at an external OpenAI-compatible endpoint via OPENAI_API_KEY/BASE_URL/MODEL.
-DEPLOY_OPENAI="${DEPLOY_OPENAI:-true}"
+# Managed AI tier: deploy.sh always provisions an Azure OpenAI resource and points
+# the API at its OpenAI-compatible /openai/v1 endpoint. The endpoint, key, and
+# model name are resolved from the created resource below.
 OPENAI_DEPLOYMENT="${OPENAI_DEPLOYMENT:-gpt-5-mini}"
 OPENAI_MODEL_NAME="${OPENAI_MODEL_NAME:-gpt-5-mini}"
 OPENAI_MODEL_VERSION="${OPENAI_MODEL_VERSION:-2025-08-07}"
@@ -85,10 +80,6 @@ OPENAI_CAPACITY="${OPENAI_CAPACITY:-20}"
 # resource group so re-runs converge on the same account name.
 OPENAI_SUFFIX="$(printf '%s' "$RESOURCE_GROUP" | md5sum | cut -c1-8)"
 OPENAI_ACCOUNT_NAME="${OPENAI_ACCOUNT_NAME:-${PREFIX}-openai-${OPENAI_SUFFIX}}"
-# External-endpoint defaults (used only when DEPLOY_OPENAI=false).
-OPENAI_API_KEY="${OPENAI_API_KEY:-placeholder-not-used-for-architecture-verification}"
-OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://models.inference.ai.azure.com}"
-OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
 
 # Network layout
 VNET_NAME="${PREFIX}-vnet"
@@ -159,41 +150,37 @@ fi
 #    Provisioned before the API VM so its endpoint/key can be baked into the
 #    application's .env via cloud-init.
 # ---------------------------------------------------------------------------
-if [ "$DEPLOY_OPENAI" = "true" ]; then
-  log "Azure OpenAI account: $OPENAI_ACCOUNT_NAME"
-  if exists $AZ cognitiveservices account show -g "$RESOURCE_GROUP" -n "$OPENAI_ACCOUNT_NAME"; then
-    info "already exists, skipping"
-  else
-    $AZ cognitiveservices account create -n "$OPENAI_ACCOUNT_NAME" -g "$RESOURCE_GROUP" \
-      -l "$LOCATION" --kind OpenAI --sku S0 --custom-domain "$OPENAI_ACCOUNT_NAME" \
-      --yes "${AZ_QUIET[@]}"
-    info "created"
-  fi
-
-  log "Azure OpenAI model deployment: $OPENAI_DEPLOYMENT ($OPENAI_MODEL_NAME $OPENAI_MODEL_VERSION)"
-  if exists $AZ cognitiveservices account deployment show -g "$RESOURCE_GROUP" \
-      -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT"; then
-    info "already exists, skipping"
-  else
-    $AZ cognitiveservices account deployment create -g "$RESOURCE_GROUP" \
-      -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT" \
-      --model-name "$OPENAI_MODEL_NAME" --model-version "$OPENAI_MODEL_VERSION" \
-      --model-format OpenAI \
-      --sku-name "$OPENAI_DEPLOY_SKU" --sku-capacity "$OPENAI_CAPACITY" "${AZ_QUIET[@]}"
-    info "created"
-  fi
-
-  # Resolve the endpoint + key and point the app at the OpenAI-compatible route.
-  OPENAI_ENDPOINT="$($AZ cognitiveservices account show -g "$RESOURCE_GROUP" \
-    -n "$OPENAI_ACCOUNT_NAME" --query properties.endpoint -o tsv --only-show-errors)"
-  OPENAI_API_KEY="$($AZ cognitiveservices account keys list -g "$RESOURCE_GROUP" \
-    -n "$OPENAI_ACCOUNT_NAME" --query key1 -o tsv --only-show-errors)"
-  OPENAI_BASE_URL="${OPENAI_ENDPOINT%/}/openai/v1"
-  OPENAI_MODEL="$OPENAI_DEPLOYMENT"
-  info "endpoint: $OPENAI_BASE_URL (model: $OPENAI_MODEL)"
+log "Azure OpenAI account: $OPENAI_ACCOUNT_NAME"
+if exists $AZ cognitiveservices account show -g "$RESOURCE_GROUP" -n "$OPENAI_ACCOUNT_NAME"; then
+  info "already exists, skipping"
 else
-  log "Azure OpenAI: DEPLOY_OPENAI=false -> using external endpoint $OPENAI_BASE_URL"
+  $AZ cognitiveservices account create -n "$OPENAI_ACCOUNT_NAME" -g "$RESOURCE_GROUP" \
+    -l "$LOCATION" --kind OpenAI --sku S0 --custom-domain "$OPENAI_ACCOUNT_NAME" \
+    --yes "${AZ_QUIET[@]}"
+  info "created"
 fi
+
+log "Azure OpenAI model deployment: $OPENAI_DEPLOYMENT ($OPENAI_MODEL_NAME $OPENAI_MODEL_VERSION)"
+if exists $AZ cognitiveservices account deployment show -g "$RESOURCE_GROUP" \
+    -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT"; then
+  info "already exists, skipping"
+else
+  $AZ cognitiveservices account deployment create -g "$RESOURCE_GROUP" \
+    -n "$OPENAI_ACCOUNT_NAME" --deployment-name "$OPENAI_DEPLOYMENT" \
+    --model-name "$OPENAI_MODEL_NAME" --model-version "$OPENAI_MODEL_VERSION" \
+    --model-format OpenAI \
+    --sku-name "$OPENAI_DEPLOY_SKU" --sku-capacity "$OPENAI_CAPACITY" "${AZ_QUIET[@]}"
+  info "created"
+fi
+
+# Resolve the endpoint + key and point the app at the OpenAI-compatible route.
+OPENAI_ENDPOINT="$($AZ cognitiveservices account show -g "$RESOURCE_GROUP" \
+  -n "$OPENAI_ACCOUNT_NAME" --query properties.endpoint -o tsv --only-show-errors)"
+OPENAI_API_KEY="$($AZ cognitiveservices account keys list -g "$RESOURCE_GROUP" \
+  -n "$OPENAI_ACCOUNT_NAME" --query key1 -o tsv --only-show-errors)"
+OPENAI_BASE_URL="${OPENAI_ENDPOINT%/}/openai/v1"
+OPENAI_MODEL="$OPENAI_DEPLOYMENT"
+info "endpoint: $OPENAI_BASE_URL (model: $OPENAI_MODEL)"
 
 # ---------------------------------------------------------------------------
 # Cloud-init: private-tier PostgreSQL VM
@@ -499,7 +486,7 @@ cat <<EOF
       PostgreSQL    : database '$DB_NAME' reachable only from $PUBLIC_SUBNET_CIDR on 5432
 
     Managed AI:
-      Azure OpenAI  : $([ "$DEPLOY_OPENAI" = "true" ] && echo "$OPENAI_ACCOUNT_NAME (deployment: $OPENAI_MODEL)" || echo "external endpoint $OPENAI_BASE_URL")
+      Azure OpenAI  : $OPENAI_ACCOUNT_NAME (deployment: $OPENAI_MODEL)
 
   Traffic flow: Internet --443/TLS--> API VM --> app --5432(private)--> Database VM
                                               \\--> Azure OpenAI (managed, HTTPS)
