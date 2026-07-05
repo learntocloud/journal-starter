@@ -28,6 +28,7 @@ PRs opened against `learntocloud/journal-starter` will be closed without review.
 - [Development Tasks](#-development-tasks)
 - [Data Schema](#-data-schema)
 - [AI Analysis Guide](#-ai-analysis-guide)
+- [Phase 4: Deployment Architecture](#-phase-4-deployment-architecture)
 - [Troubleshooting](#-troubleshooting)
 - [Extras](#-extras)
 - [License](#-license)
@@ -440,6 +441,104 @@ uv run python -m scripts.verify_llm
 > cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI).
 > Since they all support the OpenAI SDK, the migration is just an
 > environment variable change — no code rewrite needed.
+## ☁️ Phase 4: Deployment Architecture
+
+Phase 4 asks you to deploy the Journal API to the cloud as a **two-tier
+architecture** and describe that architecture in your own words. This repo ships
+an idempotent [`deploy.sh`](deploy.sh) at the project root that provisions the
+reference design on Azure using the Azure CLI (`az`). Verification fetches
+`deploy.sh` from your **public** fork and grades it alongside your architecture
+description, so the description must match what the script actually builds.
+
+### Running it
+
+```bash
+az login
+./deploy.sh
+```
+
+Configuration is driven by environment variables with sensible defaults, for
+example:
+
+```bash
+RESOURCE_GROUP=journal-rg \
+LOCATION=centralus \
+ADMIN_SOURCE_IP=203.0.113.10/32 \  # your IP, to allow SSH (22); omit to keep SSH denied
+./deploy.sh
+```
+
+The script is **safe to re-run**: every resource is created only if it does not
+already exist (create-or-skip), so repeated runs converge to the same state.
+
+### Network layout
+
+- A single **virtual network** (`10.0.0.0/16`) split into two subnets:
+  - **Public subnet** (`10.0.1.0/24`) — the application tier.
+  - **Private subnet** (`10.0.2.0/24`) — the data tier.
+- Each subnet is bound to its own **network security group (NSG)**, so the two
+  tiers are isolated from each other and from the Internet by default.
+
+### VM placement
+
+| Tier | VM | Subnet | Public IP? | Role |
+|------|----|--------|-----------|------|
+| Public | `journal-api-vm` | public subnet | ✅ Yes | Runs the FastAPI app behind nginx |
+| Private | `journal-db-vm` | private subnet | ❌ No | Runs PostgreSQL, reachable only from the API tier |
+
+The database VM has **no public IP address**, so it cannot be reached directly
+from the Internet.
+
+### Security rules
+
+- **API NSG (public tier):**
+  - Allow inbound **443** (HTTPS) from the Internet — TLS-terminated ingress.
+  - Allow inbound **80** (HTTP) from the Internet — nginx redirects it to 443.
+  - Allow inbound **22** (SSH) only from an explicit `ADMIN_SOURCE_IP`; if unset,
+    SSH stays denied by Azure's default rules.
+- **Database NSG (private tier):**
+  - Allow inbound **5432** (PostgreSQL) **only** from the public subnet
+    (`10.0.1.0/24`).
+  - Explicitly **deny all inbound traffic from the Internet**.
+- **TLS termination:** nginx on the API VM terminates TLS on port 443 (using a
+  self-signed certificate generated at boot) and reverse-proxies to the FastAPI
+  app on `localhost:8000`.
+
+### Traffic flow
+
+```
+Internet ──443/TLS──▶ API VM (public subnet)
+                          │  nginx terminates TLS, proxies to app :8000
+                          ▼
+                     Database VM (private subnet)
+                          │  PostgreSQL :5432
+                          ▼  reachable only from the public subnet
+```
+
+Clients reach the API only over HTTPS on the public IP. The API talks to
+PostgreSQL over the VNet's private address space, and the database accepts
+connections **exclusively** from the API subnet. No path exists from the
+Internet to the database.
+
+### Sample architecture description
+
+You can adapt the paragraph below as your Phase 4 architecture description. It is
+specific to what `deploy.sh` provisions, which is what the verifier checks:
+
+> The Journal API is deployed on Azure as a two-tier architecture inside a single
+> virtual network (`10.0.0.0/16`). The **public tier** lives in a public subnet
+> (`10.0.1.0/24`) and hosts an Ubuntu VM that runs the FastAPI application behind
+> nginx; nginx terminates TLS on port 443 and reverse-proxies requests to the app
+> on `localhost:8000`. This VM has a static public IP, and its network security
+> group only admits HTTPS (443) and HTTP (80, redirected to HTTPS) from the
+> Internet, plus SSH (22) restricted to a single admin IP. The **private tier**
+> lives in a separate private subnet (`10.0.2.0/24`) and hosts a second VM running
+> PostgreSQL. That database VM has **no public IP** and its network security group
+> allows inbound PostgreSQL (5432) **only** from the public subnet while explicitly
+> denying all inbound traffic from the Internet. Traffic therefore flows
+> Internet → (443/TLS) API VM → application → (5432, private only) database VM, so
+> the database is never directly reachable from the Internet and all external
+> access is encrypted and confined to the application tier.
+
 ## 🔧 Troubleshooting
 
 **API won't start?**
