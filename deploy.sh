@@ -35,6 +35,9 @@
 #   DB_NAME           Application database name    (default: journal)
 #   DB_USER           Application database user    (default: journal)
 #   DB_PASSWORD       Application database password (default: random)
+#   OPENAI_API_KEY    Key for the LLM analyze feature (default: placeholder)
+#   OPENAI_BASE_URL   OpenAI-compatible base URL   (default: GitHub Models)
+#   OPENAI_MODEL      Model name for analysis      (default: gpt-4o-mini)
 #
 # Requires: azure-cli (az), logged in via `az login`.
 
@@ -57,6 +60,14 @@ DB_NAME="${DB_NAME:-journal}"
 DB_USER="${DB_USER:-journal}"
 DB_PASSWORD="${DB_PASSWORD:-$(openssl rand -hex 16)}"
 APP_DIR="/opt/journal-app"
+
+# LLM "analyze" feature (capstone Task 4). Optional: leave the placeholder to
+# deploy the architecture without a live key, or export a real key/base URL/model
+# to enable the analyze endpoint. The key is injected at runtime and never
+# committed to the repository.
+OPENAI_API_KEY="${OPENAI_API_KEY:-placeholder-not-used-for-architecture-verification}"
+OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://models.inference.ai.azure.com}"
+OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
 
 # Network layout
 VNET_NAME="${PREFIX}-vnet"
@@ -159,7 +170,9 @@ write_files:
     permissions: '0600'
     content: |
       DATABASE_URL=${DATABASE_URL}
-      OPENAI_API_KEY=placeholder-not-used-for-architecture-verification
+      OPENAI_API_KEY=${OPENAI_API_KEY}
+      OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      OPENAI_MODEL=${OPENAI_MODEL}
   - path: /etc/systemd/system/journal-api.service
     content: |
       [Unit]

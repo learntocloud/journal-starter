@@ -484,6 +484,24 @@ dependencies), so the API takes a few minutes to start answering after the
 script prints "Deployment complete". Once it is up, browse to
 `https://<API_PUBLIC_IP>/docs`.
 
+#### Optional: enable the AI "analyze" endpoint
+
+The core API (creating and reading journal entries) works with no extra setup.
+The `POST /entries/{id}/analyze` endpoint (capstone Task 4) additionally calls an
+OpenAI-compatible LLM, so it needs a real API key. Provide it at runtime; it is
+written into the API VM's `.env` and is never committed to the repository:
+
+```bash
+OPENAI_API_KEY=your-key \
+OPENAI_BASE_URL=https://models.inference.ai.azure.com \  # default (GitHub Models)
+OPENAI_MODEL=gpt-4o-mini \                                # default
+./deploy.sh
+```
+
+Without a real key, the deployment still stands up completely and the entries
+endpoints work; only the analyze endpoint returns an auth error. The AI feature
+is not part of the Phase 4 deployment-architecture rubric.
+
 The script is **safe to re-run**: every resource is created only if it does not
 already exist (create-or-skip), so repeated runs converge to the same state.
 
