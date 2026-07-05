@@ -446,9 +446,20 @@ uv run python -m scripts.verify_llm
 Phase 4 asks you to deploy the Journal API to the cloud as a **two-tier
 architecture** and describe that architecture in your own words. This repo ships
 an idempotent [`deploy.sh`](deploy.sh) at the project root that provisions the
-reference design on Azure using the Azure CLI (`az`). Verification fetches
-`deploy.sh` from your **public** fork and grades it alongside your architecture
-description, so the description must match what the script actually builds.
+reference design on Azure using the Azure CLI (`az`) **and deploys the running
+application onto it**. Verification fetches `deploy.sh` from your **public** fork
+and grades it alongside your architecture description, so the description must
+match what the script actually builds.
+
+`deploy.sh` does two things:
+
+1. **Provisions the infrastructure** — a virtual network with public/private
+   subnets, network security groups, and two Ubuntu VMs.
+2. **Deploys the application** via cloud-init — the database VM installs
+   PostgreSQL and applies the `entries` schema; the API VM clones this repo,
+   installs dependencies with [`uv`](https://docs.astral.sh/uv/), runs the
+   FastAPI app under systemd on `localhost:8000`, and puts nginx in front of it
+   to terminate TLS on 443.
 
 ### Running it
 
@@ -464,8 +475,14 @@ example:
 RESOURCE_GROUP=journal-rg \
 LOCATION=centralus \
 ADMIN_SOURCE_IP=203.0.113.10/32 \  # your IP, to allow SSH (22); omit to keep SSH denied
+REPO_URL=https://github.com/YOUR_USERNAME/journal-starter.git \  # app to deploy
 ./deploy.sh
 ```
+
+The VMs run cloud-init on first boot (installing packages, Python via `uv`, and
+dependencies), so the API takes a few minutes to start answering after the
+script prints "Deployment complete". Once it is up, browse to
+`https://<API_PUBLIC_IP>/docs`.
 
 The script is **safe to re-run**: every resource is created only if it does not
 already exist (create-or-skip), so repeated runs converge to the same state.
@@ -482,11 +499,12 @@ already exist (create-or-skip), so repeated runs converge to the same state.
 
 | Tier | VM | Subnet | Public IP? | Role |
 |------|----|--------|-----------|------|
-| Public | `journal-api-vm` | public subnet | ✅ Yes | Runs the FastAPI app behind nginx |
-| Private | `journal-db-vm` | private subnet | ❌ No | Runs PostgreSQL, reachable only from the API tier |
+| Public | `journal-api-vm` | public subnet | ✅ Yes | Runs the FastAPI app (systemd + uv) behind nginx |
+| Private | `journal-db-vm` | private subnet (static `10.0.2.10`) | ❌ No | Runs PostgreSQL with the `entries` schema, reachable only from the API tier |
 
 The database VM has **no public IP address**, so it cannot be reached directly
-from the Internet.
+from the Internet. It uses a fixed private IP so the API's `DATABASE_URL` is
+deterministic.
 
 ### Security rules
 
@@ -526,18 +544,21 @@ specific to what `deploy.sh` provisions, which is what the verifier checks:
 
 > The Journal API is deployed on Azure as a two-tier architecture inside a single
 > virtual network (`10.0.0.0/16`). The **public tier** lives in a public subnet
-> (`10.0.1.0/24`) and hosts an Ubuntu VM that runs the FastAPI application behind
-> nginx; nginx terminates TLS on port 443 and reverse-proxies requests to the app
-> on `localhost:8000`. This VM has a static public IP, and its network security
-> group only admits HTTPS (443) and HTTP (80, redirected to HTTPS) from the
-> Internet, plus SSH (22) restricted to a single admin IP. The **private tier**
-> lives in a separate private subnet (`10.0.2.0/24`) and hosts a second VM running
-> PostgreSQL. That database VM has **no public IP** and its network security group
-> allows inbound PostgreSQL (5432) **only** from the public subnet while explicitly
-> denying all inbound traffic from the Internet. Traffic therefore flows
-> Internet → (443/TLS) API VM → application → (5432, private only) database VM, so
-> the database is never directly reachable from the Internet and all external
-> access is encrypted and confined to the application tier.
+> (`10.0.1.0/24`) and hosts an Ubuntu VM that runs the FastAPI application (managed
+> by systemd and installed with uv) behind nginx; nginx terminates TLS on port 443
+> and reverse-proxies requests to the app on `localhost:8000`. This VM has a static
+> public IP, and its network security group only admits HTTPS (443) and HTTP (80,
+> redirected to HTTPS) from the Internet, plus SSH (22) restricted to a single
+> admin IP. The **private tier** lives in a separate private subnet (`10.0.2.0/24`)
+> and hosts a second VM running PostgreSQL (with the application's `entries`
+> schema) on a fixed private IP (`10.0.2.10`). That database VM has **no public
+> IP** and its network security group allows inbound PostgreSQL (5432) **only** from
+> the public subnet while explicitly denying all inbound traffic from the Internet.
+> The API reaches the database over the VNet's private address space using that
+> private IP. Traffic therefore flows Internet → (443/TLS) API VM → application →
+> (5432, private only) database VM, so the database is never directly reachable from
+> the Internet and all external access is encrypted and confined to the application
+> tier.
 
 ## 🔧 Troubleshooting
 
