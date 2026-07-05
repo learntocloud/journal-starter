@@ -317,7 +317,6 @@ else
     --image "$VM_IMAGE" --size "$VM_SIZE" \
     --admin-username "$ADMIN_USERNAME" --generate-ssh-keys \
     --nics "$DB_NIC_NAME" \
-    --public-ip-address "" \
     --custom-data "$DB_CLOUD_INIT" "${AZ_QUIET[@]}"
   info "created (PostgreSQL via cloud-init, private only)"
 fi
