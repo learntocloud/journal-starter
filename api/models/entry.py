@@ -1,7 +1,12 @@
 from datetime import UTC, datetime
+from typing import Annotated
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
+
+ValidatedStr = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=256)
+]
 
 
 class AnalysisResponse(BaseModel):
@@ -29,20 +34,35 @@ class EntryCreate(BaseModel):
     See https://docs.pydantic.dev/latest/concepts/types/#constrained-types
     """
 
-    work: str = Field(
+    work: ValidatedStr = Field(
         max_length=256,
         description="What did you work on today?",
         json_schema_extra={"example": "Studied FastAPI and built my first API endpoints"},
     )
-    struggle: str = Field(
+    struggle: ValidatedStr = Field(
         max_length=256,
         description="What's one thing you struggled with today?",
         json_schema_extra={"example": "Understanding async/await syntax and when to use it"},
     )
-    intention: str = Field(
+    intention: ValidatedStr = Field(
         max_length=256,
         description="What will you study/work on tomorrow?",
         json_schema_extra={"example": "Practice PostgreSQL queries and database design"},
+    )
+
+
+class EntryUpdate(BaseModel):
+    work: ValidatedStr | None = Field(
+        default=None,
+        description="What did you work on today?",
+    )
+    struggle: ValidatedStr | None = Field(
+        default=None,
+        description="What's one thing you struggled with today?",
+    )
+    intention: ValidatedStr | None = Field(
+        default=None,
+        description="What will you study/work on tomorrow?",
     )
 
 

@@ -12,7 +12,10 @@ Set OPENAI_API_KEY, and optionally OPENAI_BASE_URL and OPENAI_MODEL
 in your .env file. Settings are loaded by ``api.config.Settings``.
 """
 
+import json
+
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from api.config import get_settings
 
@@ -62,6 +65,56 @@ async def analyze_journal_entry(
       4. Parse the assistant's JSON response with ``json.loads()``.
       5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
     """
+
+    if client is None:
+        client = _default_client()
+
+    messages: list[ChatCompletionMessageParam] = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful assistant that analyzes journal entries. "
+                "You will receive a journal entry and must return a JSON object "
+                "with the following fields: sentiment (one of 'positive', 'negative', 'neutral'), "
+                "summary (a brief summary of the entry), and topics (a list of key topics)."
+            ),
+        },
+        {
+            "role": "user",
+            "content": entry_text,
+        },
+    ]
+
+    kwargs = {
+        "model": get_settings().openai_model,
+        "messages": messages,
+    }
+
+    # Only inject response_format if using an OpenAI model that supports it
+    if "gpt" in get_settings().openai_model:
+        kwargs["response_format"] = {"type": "json_object"}
+
+    response = await client.chat.completions.create(**kwargs)
+
+    # The response from the LLM is expected to be a JSON string in the content of the assistant's message.
+    assistant_message = response.choices[0].message.content or "{}"
+
+    clean_json = (
+        assistant_message.strip()
+        .removeprefix("```json")
+        .removeprefix("```")
+        .removesuffix("```")
+        .strip()
+    )
+    analysis_data = json.loads(clean_json)
+    return {
+        "entry_id": entry_id,
+        # **json.loads(assistant_message),
+        "sentiment": analysis_data.get("sentiment", ""),
+        "summary": analysis_data.get("summary", ""),
+        "topics": analysis_data.get("topics", []),
+    }
+
     raise NotImplementedError(
         "Task 4: implement analyze_journal_entry using the openai SDK. "
         "See tests/test_llm_service.py for the test contract."

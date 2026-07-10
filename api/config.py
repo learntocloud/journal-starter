@@ -53,4 +53,5 @@ def get_settings() -> Settings:
             openai_api_key="...",
         )
     """
+
     return Settings()  # type: ignore[call-arg]
