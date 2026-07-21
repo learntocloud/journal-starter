@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,6 +10,8 @@ from api.services.entry_service import EntryService
 from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
 
 async def get_entry_service(
@@ -66,7 +69,12 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
     Hint: Check the update_entry endpoint for similar patterns
     """
-    raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
+    entry = await entry_service.get_entry(entry_id)
+
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Entry is not found!")
+
+    return entry
 
 
 @router.patch("/entries/{entry_id}")
