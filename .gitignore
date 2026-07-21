@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#My files
+tee_checklist.txt
+
 # C extensions
 *.so
 
