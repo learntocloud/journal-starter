@@ -12,7 +12,7 @@
 #   export AWS_REGION="us-east-1"
 #   export KEY_NAME="your-existing-key-pair"
 #   export MY_IP_CIDR="your-public-ip/32"
-#   export REPOSITORY_URL="https://github.com/your-user/journal-starter.git"
+#   export REPOSITORY_URL="https://github.com/hoismail/journal-starter.git"
 
 # Then run:
 #   chmod +x deploy.sh
@@ -215,7 +215,7 @@ if [[ "$DB_SG_ID" == "None" ]]; then
         --query 'GroupId')"
 fi
 
-# Duplicate-rule errors are harmless during a repeated deployment.
+# Ignore duplicate security-group rules during repeated deployments.
 aws ec2 authorize-security-group-ingress \
     --group-id "$API_SG_ID" \
     --protocol tcp --port 22 --cidr "$MY_IP_CIDR" 2>/dev/null || true
