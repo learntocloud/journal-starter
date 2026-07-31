@@ -91,3 +91,34 @@ jobs:
 
       - name: Run tests
         run: uv run pytest -v
+
+  build and publish docker image:
+  needs: [lint, test]
+    name: Build and publish Docker image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/journal-api:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/journal-api:latest
