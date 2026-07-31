@@ -92,7 +92,7 @@ jobs:
       - name: Run tests
         run: uv run pytest -v
 
-  build and publish docker image:
+  build_and_publish_docker_image:
     name: Build and publish Docker image
     needs: [lint, test]
     runs-on: ubuntu-latest
