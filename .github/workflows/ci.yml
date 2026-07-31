@@ -93,14 +93,14 @@ jobs:
         run: uv run pytest -v
 
   build and publish docker image:
-  needs: [lint, test]
     name: Build and publish Docker image
+    needs: [lint, test]
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
       id-token: write
-      
+
     steps:
       - uses: actions/checkout@v4
 
