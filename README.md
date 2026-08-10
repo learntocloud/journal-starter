@@ -295,14 +295,15 @@ Both jobs run on every push to `main` and every PR. Your fork will
 show two green checks on a PR once **all** your implementations are complete
 (i.e., Tasks 1–4 are finished). Intermediate PRs that cover only some
 tasks will still have failing tests in CI — that's expected.
-No secrets are required — the `test` job uses a disposable Postgres
-service container, and Task 4 is exercised entirely with an injected
-mock OpenAI client so CI never calls a real LLM.
+CI intentionally receives no learner or provider credentials. The `test`
+job uses a disposable Postgres service container, and Task 4 is exercised
+with an injected mock OpenAI client so CI never calls a real LLM. Task 4's
+required live verification is run locally instead.
 
 ## 🎯 Development Tasks
 
-Each task below has a single acceptance check: the listed tests must
-pass (or the listed manual command must succeed for Task 5).
+Complete every acceptance check listed for a task. Automated tests must pass,
+and the manual verification commands listed for Tasks 4 and 5 must succeed.
 
 ### Task 1 — Logging Setup
 
@@ -354,7 +355,9 @@ PATCH endpoint in `api/routers/journal_router.py`.
 
 - Branch: `feature/ai-analysis`
 - Edit: `api/services/llm_service.py`
-- Acceptance: `uv run pytest tests/test_llm_service.py` passes
+- Acceptance:
+  - `uv run pytest tests/test_llm_service.py` passes
+  - `uv run python -m scripts.verify_llm` succeeds against a live LLM provider
 
 The **POST /entries/{entry_id}/analyze** endpoint in
 `api/routers/journal_router.py` is already wired up — it fetches the
@@ -385,7 +388,7 @@ verify the CLI is installed.
 | 2a — GET single | ✅ | `tests/test_api.py::TestGetSingleEntry` via the FastAPI test client |
 | 2b — DELETE single | ✅ | `tests/test_api.py::TestDeleteEntry` via the FastAPI test client |
 | 3 — Input validation | ✅ | `tests/test_models.py` unit tests + `tests/test_api.py::TestUpdateEntry` PATCH validation tests |
-| 4 — AI analysis | ✅ | `tests/test_llm_service.py` injects `MockAsyncOpenAI`; no real network calls |
+| 4 — AI analysis | ✅ | CI injects `MockAsyncOpenAI`; required live verification runs locally with `uv run python -m scripts.verify_llm` |
 | 5 — Cloud CLI | ❌ | Manual verification: run `az --version` / `aws --version` / `gcloud --version` in the rebuilt devcontainer |
 
 ## 📊 Data Schema
@@ -426,8 +429,9 @@ Choose a provider and model that support the Responses API:
 | Microsoft Foundry Models | `https://<resource>.services.ai.azure.com/openai/v1/` | Your deployment name |
 | OpenAI | `https://api.openai.com/v1` | A model available to your account |
 
-Configure your provider via `.env` — **no GitHub Actions secrets are
-required**, because CI uses an injected mock OpenAI client:
+Configure your provider via `.env`. CI intentionally remains mocked and does
+not receive learner or provider credentials, so these values must not be
+added to the GitHub Actions workflow:
 
 ```
 OPENAI_API_KEY=<your provider API key>
@@ -444,12 +448,16 @@ For Microsoft Foundry, create a model deployment and copy its endpoint, key,
 and deployment name from the portal. See the
 [Foundry Models endpoint documentation](https://learn.microsoft.com/azure/foundry/foundry-models/concepts/endpoints).
 
-Optional: once your implementation compiles, sanity-check it against
-a real provider with the bundled helper script:
+To complete Task 4, verify the implementation against a live provider with
+the bundled helper script:
 
 ```bash
 uv run python -m scripts.verify_llm
 ```
+
+This live check is required for local acceptance but is not part of CI. Both
+Microsoft Foundry Models and OpenAI remain supported, provided the selected
+model or deployment supports the OpenAI Responses API.
 
 > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a
 > cloud AI platform. Providers with a Responses API-compatible endpoint only

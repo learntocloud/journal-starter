@@ -1,4 +1,4 @@
-"""Optional local helper for Task 4.
+"""Required local live verification for Task 4.
 
 Runs ``analyze_journal_entry`` against the real OpenAI client configured
 via environment variables, prints the result, and validates that it
@@ -7,9 +7,9 @@ matches ``AnalysisResponse``.
 Usage:
     uv run python -m scripts.verify_llm
 
-This script is NOT part of CI. It exists so learners can sanity-check
-their Task 4 implementation against a real LLM provider before wiring
-anything into the API.
+This script is not part of CI, which remains mocked and credential-free.
+Learners must run it against a supported live LLM provider to complete
+Task 4.
 """
 
 from __future__ import annotations
