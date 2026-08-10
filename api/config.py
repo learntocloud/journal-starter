@@ -27,12 +27,10 @@ class Settings(BaseSettings):
         ),
     )
     openai_base_url: str = Field(
-        default="https://models.inference.ai.azure.com",
-        description="Base URL for the OpenAI-compatible provider.",
+        description="OpenAI-compatible v1 endpoint for the selected provider.",
     )
     openai_model: str = Field(
-        default="gpt-4o-mini",
-        description="Model name passed to chat.completions.create().",
+        description="Provider model ID or deployment name passed to chat.completions.create().",
     )
 
     model_config = SettingsConfigDict(
@@ -51,6 +49,8 @@ def get_settings() -> Settings:
         app.dependency_overrides[get_settings] = lambda: Settings(
             database_url="...",
             openai_api_key="...",
+            openai_base_url="https://example.invalid/v1",
+            openai_model="...",
         )
     """
     return Settings()  # type: ignore[call-arg]

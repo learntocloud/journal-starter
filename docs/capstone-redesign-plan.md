@@ -1,5 +1,9 @@
 # Capstone Redesign & CI Plan
 
+> **Historical document:** This plan records the original redesign. Its GitHub
+> Models setup is obsolete following the service's retirement. Use the current
+> [README](../README.md#task-4-setup) for supported provider configuration.
+
 > **Status:** Approved for implementation. All open questions resolved (see
 > [Decisions](#decisions)). Nothing in this document is implemented yet aside
 > from a small router stub fix already on `main`. Ships as a single PR with

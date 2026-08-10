@@ -1,15 +1,15 @@
 """Task 4: Implement analyze_journal_entry using any OpenAI-compatible API.
 
 This project mandates the OpenAI Python SDK, which works with:
-  - GitHub Models (default, free, no credit card required)
+  - Microsoft Foundry Models
   - OpenAI proper
   - Azure OpenAI
   - Groq, Together, OpenRouter, Fireworks, DeepInfra
   - Ollama, LM Studio, vLLM (local)
   - Anthropic via their OpenAI-compat endpoint
 
-Set OPENAI_API_KEY, and optionally OPENAI_BASE_URL and OPENAI_MODEL
-in your .env file. Settings are loaded by ``api.config.Settings``.
+Set OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_MODEL in your .env file.
+Settings are loaded by ``api.config.Settings``.
 """
 
 from openai import AsyncOpenAI
@@ -58,7 +58,7 @@ async def analyze_journal_entry(
       2. Build a messages list that includes ``entry_text`` somewhere
          (the unit tests check that the entry text reaches the LLM).
       3. Call ``client.chat.completions.create(...)`` with a model name
-         (use ``get_settings().openai_model`` — defaults to "gpt-4o-mini").
+         (use ``get_settings().openai_model``).
       4. Parse the assistant's JSON response with ``json.loads()``.
       5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
     """

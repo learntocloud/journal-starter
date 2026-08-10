@@ -1,5 +1,9 @@
 # Capstone Redesign — Implementation Plan
 
+> **Historical document:** This plan records the original redesign. Its GitHub
+> Models setup is obsolete following the service's retirement. Use the current
+> [README](../README.md#task-4-setup) for supported provider configuration.
+
 Concrete work order for the single PR that ships the capstone redesign.
 For rationale, audit findings, and rejected alternatives, see
 [capstone-redesign-plan.md](capstone-redesign-plan.md).

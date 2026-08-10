@@ -39,7 +39,8 @@ async def main() -> int:
     except ValidationError as exc:
         print(
             "ERROR: application settings are invalid. "
-            "Check your .env file has OPENAI_API_KEY (and DATABASE_URL) set.\n"
+            "Check your .env file has DATABASE_URL, OPENAI_API_KEY, "
+            "OPENAI_BASE_URL, and OPENAI_MODEL set.\n"
             f"{exc}",
             file=sys.stderr,
         )
