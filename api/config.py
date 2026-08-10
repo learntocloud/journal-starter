@@ -21,16 +21,16 @@ class Settings(BaseSettings):
     )
     openai_api_key: str = Field(
         description=(
-            "API key for any OpenAI-compatible provider. Task 4 uses this to "
+            "API key for a provider that supports the OpenAI Responses API. Task 4 uses it to "
             "construct an AsyncOpenAI client; during Tasks 1-3 any non-empty "
             "placeholder works."
         ),
     )
     openai_base_url: str = Field(
-        description="OpenAI-compatible v1 endpoint for the selected provider.",
+        description="Responses API-compatible v1 endpoint for the selected provider.",
     )
     openai_model: str = Field(
-        description="Provider model ID or deployment name passed to chat.completions.create().",
+        description="Provider model ID or deployment name passed to responses.create().",
     )
 
     model_config = SettingsConfigDict(
