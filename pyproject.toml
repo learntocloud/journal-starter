@@ -11,6 +11,11 @@ dependencies = [
     "pydantic>=2",
     "pydantic-settings",
     "openai",
+    "opentelemetry-api>=1.44.0",
+    "opentelemetry-sdk>=1.44.0",
+    "opentelemetry-instrumentation-fastapi>=0.65b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
+    "opentelemetry-exporter-otlp>=1.44.0",
 ]
 
 [project.optional-dependencies]
@@ -60,3 +65,8 @@ pythonVersion = "3.14"
 include = ["api", "scripts", "tests"]
 venvPath = "."
 venv = ".venv"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]

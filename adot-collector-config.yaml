@@ -1,0 +1,70 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 128
+
+  batch:
+    timeout: 5s
+
+exporters:
+  awsxray:
+    region: us-east-1
+    aws_log_groups:
+      - /journal-api/application
+
+  awsemf:
+    region: us-east-1
+    namespace: JournalAPI
+    log_group_name: /journal-api/metrics
+    log_stream_name: local-development
+    dimension_rollup_option: NoDimensionRollup
+    log_retention: 7
+
+  awscloudwatchlogs:
+    region: us-east-1
+    log_group_name: /journal-api/application
+    log_stream_name: local-development
+    log_retention: 7
+
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - awsxray
+        - debug
+
+    metrics:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - awsemf
+        - debug
+
+    logs:
+      receivers:
+        - otlp
+      processors:
+        - memory_limiter
+        - batch
+      exporters:
+        - awscloudwatchlogs
+        - debug

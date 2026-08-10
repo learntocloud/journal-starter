@@ -7,6 +7,11 @@ from api.models.entry import AnalysisResponse, Entry, EntryCreate, EntryUpdate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
 from api.services.llm_service import analyze_journal_entry
+from api.telemetry import (
+    journal_entries_created,
+    logger,
+    tracer,
+)
 
 router = APIRouter()
 
@@ -28,8 +33,17 @@ async def create_entry(
         work=entry_data.work, struggle=entry_data.struggle, intention=entry_data.intention
     )
 
-    # Store the entry in the database
-    created_entry = await entry_service.create_entry(entry.model_dump())
+    with tracer.start_as_current_span("database.create_journal_entry"):
+        created_entry = await entry_service.create_entry(entry.model_dump())
+
+    journal_entries_created.add(1)
+
+    logger.info("Journal entry created")
+
+    return {
+        "detail": "Entry created successfully",
+        "entry": created_entry,
+    }
 
     # Return success response (FastAPI handles datetime serialization automatically)
     return {"detail": "Entry created successfully", "entry": created_entry}

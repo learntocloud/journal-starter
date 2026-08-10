@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-setup
+spec:
+  template:
+    metadata:
+      labels:
+        app: database-setup
+    spec:
+      restartPolicy: Never
+
+      containers:
+        - name: database-setup
+          image: postgres:15
+
+          envFrom:
+            - secretRef:
+                name: journal-api-db-secret
+
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: journal-api-db-secret
+                  key: DATABASE_PASSWORD
+
+          command:
+            - /bin/sh
+            - -c
+            - |
+              psql \
+                -h "$DATABASE_HOST" \
+                -p "$DATABASE_PORT" \
+                -U "$DATABASE_USER" \
+                -d "$DATABASE_NAME" \
+                -f /sql/database_setup.sql
+
+          volumeMounts:
+            - name: database-script
+              mountPath: /sql
+              readOnly: true
+
+      volumes:
+        - name: database-script
+          configMap:
+            name: database-setup-sql
+
+  backoffLimit: 3

@@ -1,0 +1,40 @@
+{
+	"servers": {
+		"github": {
+			"type": "http",
+			"url": "https://api.githubcopilot.com/mcp/",
+			"headers": {
+				"Authorization": "Bearer ${input:github_mcp_pat_new}",
+				"X-MCP-Toolsets": "repos,issues,pull_requests,actions"
+			}
+		},
+		"CloudWatch MCP Server": {
+			"autoApprove": [],
+			"disabled": false,
+			"command": "uvx",
+			"args": [
+				"--python",
+				"3.12",
+				"--with",
+				"boto3[crt]",
+				"--with",
+				"botocore[crt]",
+				"awslabs.cloudwatch-mcp-server@latest"
+			],
+			"env": {
+				"AWS_PROFILE": "default",
+				"FASTMCP_LOG_LEVEL": "ERROR"
+			},
+			"transportType": "stdio",
+			"type": "stdio"
+		}
+	},
+	"inputs": [
+		{
+			"type": "promptString",
+			"id": "github_mcp_pat_new",
+			"description": "GitHub Personal Access Token",
+			"password": true
+		}
+	]
+}

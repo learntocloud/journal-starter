@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: journal-api
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: journal-api
+
+  template:
+    metadata:
+      labels:
+        app: journal-api
+
+    spec:
+      containers:
+        - name: journal-api
+          image: IMAGE_PLACEHOLDER
+
+          ports:
+            - containerPort: 8000

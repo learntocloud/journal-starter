@@ -1,17 +1,28 @@
-import logging
-
 from fastapi import FastAPI
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
+from api.request_logging import log_http_request
 from api.routers.journal_router import router as journal_router
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logging.info("Journal API starting up")
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logging.info("Journal API starting up")
+from api.telemetry import logger
 
 app = FastAPI(
     title="Journal API",
     description="A simple journal API for tracking daily work, struggles, and intentions",
 )
+
 app.include_router(journal_router)
+
+FastAPIInstrumentor.instrument_app(app)
+
+logger.info(
+    "Journal API started",
+    extra={
+        "service.name": "journal-api",
+        "event.name": "application.started",
+    },
+)
+
+
+@app.middleware("http")
+async def request_logging_middleware(request, call_next):
+    return await log_http_request(request, call_next)

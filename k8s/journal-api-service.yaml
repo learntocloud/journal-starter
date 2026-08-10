@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: journal-api-service
+spec:
+  type: LoadBalancer
+
+  selector:
+    app: journal-api
+
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 8000

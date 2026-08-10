@@ -46,7 +46,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -64,9 +64,6 @@ jobs:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: career_journal
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
-      # Required by api.config.Settings so the app boots. Tests never call a
-      # real LLM — Task 4 uses an injected MockAsyncOpenAI client — so any
-      # non-empty value works.
       OPENAI_API_KEY: ci-placeholder-not-used-by-mock
 
     steps:
@@ -100,6 +97,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -114,11 +112,57 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push Docker image
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image to ECR and GHCR
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.login-ecr.outputs.registry }}/journal-api:${{ github.sha }}
-            ${{ steps.login-ecr.outputs.registry }}/journal-api:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
+            ghcr.io/${{ github.repository_owner }}/journal-api:latest
+
+  deploy:
+    name: Deploy to EKS
+    needs: build_and_publish_docker_image
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Connect kubectl to EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name "${{ secrets.EKS_CLUSTER_NAME }}"
+
+      - name: Substitute image and apply Kubernetes manifests
+        env:
+          IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}|g" k8s/journal-api-deployment.yaml
+          kubectl apply -f k8s/
+
+      - name: Verify rollout
+        run: kubectl rollout status deployment/journal-api --timeout=180s
