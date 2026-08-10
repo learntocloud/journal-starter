@@ -418,21 +418,20 @@ For **Task 4: AI-Powered Entry Analysis**, your endpoint should return this form
 ### Task 4 setup
 
 This project mandates the [OpenAI Python SDK](https://github.com/openai/openai-python),
-which works as a drop-in client for any OpenAI-compatible provider:
+using its [Responses API](https://platform.openai.com/docs/api-reference/responses).
+Choose a provider and model that support the Responses API:
 
 | Provider | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
 |----------|-----------------------|----------------|
 | Microsoft Foundry Models | `https://<resource>.services.ai.azure.com/openai/v1/` | Your deployment name |
 | OpenAI | `https://api.openai.com/v1` | A model available to your account |
-| Groq / Together / OpenRouter / Fireworks / DeepInfra | Provider's OpenAI-compatible endpoint | A model available from the provider |
-| Ollama / LM Studio / vLLM | Local server's OpenAI-compatible endpoint | Your locally installed model |
 
 Configure your provider via `.env` — **no GitHub Actions secrets are
 required**, because CI uses an injected mock OpenAI client:
 
 ```
 OPENAI_API_KEY=<your provider API key>
-OPENAI_BASE_URL=<your provider OpenAI-compatible v1 endpoint>
+OPENAI_BASE_URL=<your provider Responses API-compatible v1 endpoint>
 OPENAI_MODEL=<your provider model ID or deployment name>
 ```
 
@@ -453,7 +452,7 @@ uv run python -m scripts.verify_llm
 ```
 
 > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a
-> cloud AI platform. Providers with an OpenAI-compatible endpoint only
+> cloud AI platform. Providers with a Responses API-compatible endpoint only
 > require environment variable changes; providers without one need an adapter.
 
 ## 🔧 Troubleshooting

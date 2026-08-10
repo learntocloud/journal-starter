@@ -8,9 +8,9 @@ dependencies = [
     "fastapi",
     "uvicorn",
     "asyncpg",
-    "pydantic>=2",
+    "pydantic>=2.13.4",
     "pydantic-settings",
-    "openai",
+    "openai>=2.53.0",
 ]
 
 [project.optional-dependencies]
