@@ -301,8 +301,8 @@ mock OpenAI client so CI never calls a real LLM.
 
 ## 🎯 Development Tasks
 
-Each task below has a single acceptance check: the listed tests must
-pass (or the listed manual command must succeed for Task 5).
+Each task below lists its acceptance checks. All listed checks must pass
+or succeed.
 
 ### Task 1 — Logging Setup
 
@@ -354,7 +354,10 @@ PATCH endpoint in `api/routers/journal_router.py`.
 
 - Branch: `feature/ai-analysis`
 - Edit: `api/services/llm_service.py`
-- Acceptance: `uv run pytest tests/test_llm_service.py` passes
+- Acceptance:
+  - `uv run pytest tests/test_llm_service.py` passes with the injected mock client
+  - `uv run python -m scripts.verify_llm` succeeds against a live LLM using
+    your configured provider credentials
 
 The **POST /entries/{entry_id}/analyze** endpoint in
 `api/routers/journal_router.py` is already wired up — it fetches the
@@ -385,7 +388,7 @@ verify the CLI is installed.
 | 2a — GET single | ✅ | `tests/test_api.py::TestGetSingleEntry` via the FastAPI test client |
 | 2b — DELETE single | ✅ | `tests/test_api.py::TestDeleteEntry` via the FastAPI test client |
 | 3 — Input validation | ✅ | `tests/test_models.py` unit tests + `tests/test_api.py::TestUpdateEntry` PATCH validation tests |
-| 4 — AI analysis | ✅ | `tests/test_llm_service.py` injects `MockAsyncOpenAI`; no real network calls |
+| 4 — AI analysis | ✅ + required live check | CI runs `tests/test_llm_service.py` with injected `MockAsyncOpenAI`; acceptance also requires `uv run python -m scripts.verify_llm` locally against a live LLM |
 | 5 — Cloud CLI | ❌ | Manual verification: run `az --version` / `aws --version` / `gcloud --version` in the rebuilt devcontainer |
 
 ## 📊 Data Schema
@@ -426,8 +429,10 @@ Choose a provider and model that support the Responses API:
 | Microsoft Foundry Models | `https://<resource>.services.ai.azure.com/openai/v1/` | Your deployment name |
 | OpenAI | `https://api.openai.com/v1` | A model available to your account |
 
-Configure your provider via `.env` — **no GitHub Actions secrets are
-required**, because CI uses an injected mock OpenAI client:
+Configure your provider via `.env`. These credentials are required for the
+live Task 4 acceptance check, but **must not be added to GitHub Actions**:
+CI remains fully mocked with an injected OpenAI client and receives no LLM
+secrets.
 
 ```
 OPENAI_API_KEY=<your provider API key>
@@ -444,12 +449,16 @@ For Microsoft Foundry, create a model deployment and copy its endpoint, key,
 and deployment name from the portal. See the
 [Foundry Models endpoint documentation](https://learn.microsoft.com/azure/foundry/foundry-models/concepts/endpoints).
 
-Optional: once your implementation compiles, sanity-check it against
-a real provider with the bundled helper script:
+After the mocked unit tests pass, complete the required live LLM acceptance
+check with the bundled helper:
 
 ```bash
 uv run python -m scripts.verify_llm
 ```
+
+The command must call your configured provider successfully and validate the
+response as an `AnalysisResponse`. Run it locally with your `.env` credentials;
+it is intentionally not part of CI.
 
 > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a
 > cloud AI platform. Providers with a Responses API-compatible endpoint only
