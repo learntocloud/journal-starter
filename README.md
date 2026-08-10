@@ -86,15 +86,16 @@ cp .env-sample .env
 ```
 
 The sample already contains `DATABASE_URL` (pointing at the devcontainer's
-Postgres service) and a placeholder for `OPENAI_API_KEY`. Leave the
-placeholder in place for Tasks 1–3; you'll replace it with a real token
-from your chosen LLM provider when you reach [Task 4](#task-4--ai-powered-entry-analysis).
+Postgres service) and placeholders for the three `OPENAI_*` settings. Leave
+the placeholders in place for Tasks 1–3; you'll replace them with values from
+your chosen LLM provider when you reach
+[Task 4](#task-4--ai-powered-entry-analysis).
 
-> **Why is the placeholder needed?** The app uses [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
-> to validate configuration at startup. If `OPENAI_API_KEY` is missing
-> entirely, `Settings()` raises a `ValidationError` before FastAPI boots.
-> Any non-empty string satisfies that validation — tests never call a real
-> LLM because Task 4 is exercised with an injected mock client.
+> **Why are the placeholders needed?** The app uses
+> [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
+> to validate configuration at startup. If a required setting is missing,
+> `Settings()` raises a `ValidationError` before FastAPI boots. Tests never
+> contact the placeholder endpoint because Task 4 uses an injected mock client.
 
 ### 3. Set Up Your Development Environment
 
@@ -419,27 +420,30 @@ For **Task 4: AI-Powered Entry Analysis**, your endpoint should return this form
 This project mandates the [OpenAI Python SDK](https://github.com/openai/openai-python),
 which works as a drop-in client for any OpenAI-compatible provider:
 
-| Provider | Cost | Notes |
-|----------|------|-------|
-| **GitHub Models** (default, recommended) | Free | Uses your GitHub account, no credit card needed |
-| OpenAI proper | Paid | Standard api.openai.com |
-| Azure OpenAI | Paid | Your Azure subscription |
-| Groq / Together / OpenRouter / Fireworks / DeepInfra | Varies | All expose OpenAI-compatible endpoints |
-| Ollama / LM Studio / vLLM | Free (local) | Run a model on your own machine |
+| Provider | `OPENAI_BASE_URL` | `OPENAI_MODEL` |
+|----------|-----------------------|----------------|
+| Microsoft Foundry Models | `https://<resource>.services.ai.azure.com/openai/v1/` | Your deployment name |
+| OpenAI | `https://api.openai.com/v1` | A model available to your account |
+| Groq / Together / OpenRouter / Fireworks / DeepInfra | Provider's OpenAI-compatible endpoint | A model available from the provider |
+| Ollama / LM Studio / vLLM | Local server's OpenAI-compatible endpoint | Your locally installed model |
 
 Configure your provider via `.env` — **no GitHub Actions secrets are
 required**, because CI uses an injected mock OpenAI client:
 
 ```
-OPENAI_API_KEY=<your token or api key>
-OPENAI_BASE_URL=https://models.inference.ai.azure.com
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=<your provider API key>
+OPENAI_BASE_URL=<your provider OpenAI-compatible v1 endpoint>
+OPENAI_MODEL=<your provider model ID or deployment name>
 ```
 
 These variables are loaded by [`api/config.py`](api/config.py)'s `Settings`
-class. If you mistype a variable name, `Settings()` will raise a
-`ValidationError` at app startup naming the missing field — no silent
-`None` from `os.getenv` that crashes later.
+class. All three are required because endpoints and model names differ between
+providers. If you mistype a variable name, `Settings()` will raise a
+`ValidationError` at app startup naming the missing field.
+
+For Microsoft Foundry, create a model deployment and copy its endpoint, key,
+and deployment name from the portal. See the
+[Foundry Models endpoint documentation](https://learn.microsoft.com/azure/foundry/foundry-models/concepts/endpoints).
 
 Optional: once your implementation compiles, sanity-check it against
 a real provider with the bundled helper script:
@@ -449,9 +453,9 @@ uv run python -m scripts.verify_llm
 ```
 
 > **Phase 4 preview:** In Phase 4, you'll migrate this same code to a
-> cloud AI platform (Azure OpenAI, AWS Bedrock, or GCP Vertex AI).
-> Since they all support the OpenAI SDK, the migration is just an
-> environment variable change — no code rewrite needed.
+> cloud AI platform. Providers with an OpenAI-compatible endpoint only
+> require environment variable changes; providers without one need an adapter.
+
 ## 🔧 Troubleshooting
 
 **API won't start?**
