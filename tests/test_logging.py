@@ -65,3 +65,15 @@ def test_api_main_emits_startup_log(caplog):
         "application logger configured in api.telemetry. No INFO records were "
         "captured."
     )
+
+
+def test_telemetry_uses_environment_service_name(monkeypatch):
+    """Telemetry should read OTEL_SERVICE_NAME from the environment."""
+    monkeypatch.setenv("OTEL_SERVICE_NAME", "custom-service")
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+
+    import api.telemetry as telemetry
+
+    reloaded = importlib.reload(telemetry)
+
+    assert reloaded.resource.attributes["service.name"] == "custom-service"

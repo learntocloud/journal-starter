@@ -1,4 +1,5 @@
 import logging
+import os
 
 from opentelemetry import metrics, trace
 from opentelemetry._logs import set_logger_provider
@@ -11,6 +12,7 @@ from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
     OTLPSpanExporter,
 )
+from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -19,11 +21,15 @@ from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-OTLP_ENDPOINT = "http://host.docker.internal:4317"
+OTLP_ENDPOINT = os.getenv(
+    "OTEL_EXPORTER_OTLP_ENDPOINT",
+    "http://host.docker.internal:4317",
+)
+SERVICE_NAME = os.getenv("OTEL_SERVICE_NAME", "journal-api")
 
 resource = Resource.create(
     {
-        "service.name": "journal-api",
+        "service.name": SERVICE_NAME,
         "service.version": "1.0.0",
         "deployment.environment": "development",
         "cloud.provider": "aws",
@@ -55,9 +61,11 @@ def configure_metrics() -> None:
         export_interval_millis=10_000,
     )
 
+    prometheus_metric_reader = PrometheusMetricReader()
+
     meter_provider = MeterProvider(
         resource=resource,
-        metric_readers=[metric_reader],
+        metric_readers=[metric_reader, prometheus_metric_reader],
     )
 
     metrics.set_meter_provider(meter_provider)

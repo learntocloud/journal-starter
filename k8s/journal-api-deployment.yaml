@@ -17,7 +17,35 @@ spec:
     spec:
       containers:
         - name: journal-api
-          image: IMAGE_PLACEHOLDER
-
+          image: PLACEHOLDER
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
+            
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4317"
+
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+
+            - name: OTEL_SERVICE_NAME
+              value: "journal-api"
+          
+          envFrom:
+            - secretRef:
+                name: journal-api-secrets
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 20
