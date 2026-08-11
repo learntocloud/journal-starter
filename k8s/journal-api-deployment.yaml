@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: journal-api
-          image: PLACEHOLDER
+          image: IMAGE_PLACEHOLDER
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
