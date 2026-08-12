@@ -161,7 +161,7 @@ jobs:
         env:
           IMAGE: ${{ steps.login-ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
-          sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}|g" k8s/journal-api-deployment.yaml
+          sed -i "s|IMAGE_PLACEHOLDER|${IMAGE}|g" k8s/deployment.yaml
           kubectl apply -f k8s/
 
       - name: Verify rollout
