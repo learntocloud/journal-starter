@@ -10,6 +10,11 @@ RUN uv sync --frozen --no-dev
 
 COPY . .
 
+RUN useradd --create-home --shell /bin/bash appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
 ENV PYTHONPATH=/app
 
 EXPOSE 8000

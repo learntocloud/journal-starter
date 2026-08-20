@@ -2,30 +2,94 @@
 
 ## Project Overview
 
-Journal API is an end-to-end DevOps and cloud engineering project that demonstrates the deployment, automation, operation, and observability of a containerized FastAPI application on AWS.
+Journal API is an end-to-end cloud and DevOps engineering project demonstrating the evolution of a Python FastAPI application from local application development through traditional cloud deployment and ultimately into a containerized, Kubernetes-based platform on AWS.
 
-The project began as a traditional two-tier deployment using Amazon EC2 and PostgreSQL and was later evolved into a containerized, Kubernetes-based architecture using Docker, Amazon ECR, Amazon EKS, Amazon RDS, GitHub Actions, and a complete observability stack.
+The project covers the full application and infrastructure lifecycle, including application development, automated testing, containerization, Infrastructure as Code, CI/CD, Kubernetes orchestration, managed databases, networking, and observability.
 
-The project demonstrates practical experience with:
+The final architecture uses Docker, Amazon ECR, Amazon EKS, Amazon RDS, Terraform, GitHub Actions, and the LGTM observability stack with OpenTelemetry.
 
-* AWS cloud infrastructure
-* Docker containerization
-* Kubernetes and Amazon EKS
-* CI/CD automation with GitHub Actions
-* Infrastructure as Code with Terraform
-* PostgreSQL and Amazon RDS
-* AWS networking and security
-* Prometheus metrics and alerting
-* Grafana dashboards
-* Centralized logging with Loki
-* Distributed tracing with Tempo
-* OpenTelemetry
+---
+
+## Project Attribution
+
+This project is based on the [Learn to Cloud Journal Starter](https://github.com/learntocloud/journal-starter) repository.
+
+The starter repository provided the foundation for the FastAPI journal application. I extended the application itself before using it as the workload for a broader cloud and DevOps engineering project.
+
+My work on the project can be divided into two main areas: **application development** and **cloud/platform engineering**.
+
+### Application Development
+
+I extended the starter application with additional API functionality and improvements to validation, logging, testing, and external service integration.
+
+Key additions include:
+
+* Added retrieval of individual journal entries by ID.
+* Added deletion of individual journal entries with appropriate HTTP responses and error handling.
+* Introduced reusable Pydantic validation models with shared string constraints, whitespace handling, empty-input prevention, and maximum-length validation.
+* Added separate request models for create and update operations.
+* Replaced print-based debugging with structured Python application logging.
+* Added AI-powered journal analysis for generating structured summaries and sentiment analysis.
+* Implemented the AI integration asynchronously and used dependency injection to keep external services testable.
+* Expanded automated test coverage with `pytest`, including mocked AI clients to avoid external API dependencies during testing.
+* Used Ruff and Pyright for linting and static type checking.
+* Developed and validated application changes through a pull-request-based workflow.
+
+### Cloud & Platform Engineering
+
+After extending the application, I evolved its deployment and operational model through several stages:
+
+```text
+FastAPI Application
+        |
+        v
+Application Feature Development
+        |
+        v
+EC2 Two-Tier Deployment
+        |
+        v
+Docker Containerization
+        |
+        v
+Amazon ECR
+        |
+        v
+Amazon EKS + Amazon RDS
+        |
+        v
+GitHub Actions CI/CD
+        |
+        v
+Terraform Infrastructure as Code
+        |
+        v
+Observability
+Prometheus + Grafana + Loki + Tempo + OpenTelemetry
+```
+
+The platform engineering work includes:
+
+* Containerizing the FastAPI application with Docker.
+* Building AWS networking using public and private subnets across multiple Availability Zones.
+* Provisioning AWS infrastructure using Terraform.
+* Migrating the application from an EC2-based deployment to Amazon EKS.
+* Using Amazon RDS for managed PostgreSQL.
+* Publishing application container images to Amazon ECR.
+* Deploying and managing the application using Kubernetes.
+* Implementing liveness and readiness health probes.
+* Building CI/CD automation using GitHub Actions.
+* Using GitHub Actions OIDC for AWS authentication instead of long-lived access keys.
+* Automating testing, container builds, ECR publishing, and Kubernetes deployments.
+* Implementing metrics with Prometheus.
+* Building dashboards and alerting with Grafana.
+* Centralizing application logs with Loki.
+* Implementing distributed tracing with Tempo.
+* Instrumenting the application and telemetry pipeline with OpenTelemetry.
 
 ---
 
 # Architecture
-
-The production architecture runs the Journal API as a containerized workload on Amazon EKS.
 
 <br>
 
@@ -35,7 +99,21 @@ The production architecture runs the Journal API as a containerized workload on 
 
 <br>
 
+The production architecture runs the Journal API as a containerized workload on Amazon EKS.
+
 The EKS environment spans multiple Availability Zones and uses private subnets for application workloads and database resources.
+
+### Why EKS?
+
+Amazon EKS is intentionally more infrastructure than this application's current workload requires.
+
+A small CRUD API like Journal API could be deployed more simply and cost-effectively using a service such as Amazon ECS with Fargate or AWS App Runner. EKS was chosen because one of the primary goals of this project was to gain hands-on experience building and operating a Kubernetes-based platform on AWS.
+
+Using EKS provided practical experience with Kubernetes deployments, services, health probes, rolling deployments, container scheduling, networking, CI/CD integration, and Kubernetes-native observability.
+
+The architecture therefore represents a **learning and platform-engineering environment rather than the minimum infrastructure required to run the application**.
+
+For a low-traffic production workload where cost and operational simplicity were the primary requirements, I would evaluate a simpler managed compute platform before choosing Kubernetes.
 
 ---
 
@@ -306,6 +384,24 @@ The Terraform configuration includes infrastructure such as:
 
 This makes the infrastructure repeatable, reviewable, and easier to reproduce.
 
+## Terraform State Management
+
+Terraform state is stored remotely in Amazon S3 rather than being maintained locally.
+
+The backend infrastructure is separated from the main application infrastructure because the S3 state bucket must exist before Terraform can initialize and use it as a remote backend.
+
+A dedicated `bootstrap/` Terraform configuration provisions the state bucket with:
+
+* S3 versioning for state recovery
+* Server-side encryption
+* Public access blocking
+
+The main Terraform configuration in `infra/` uses this bucket through an S3 backend defined in `backend.tf`.
+
+S3-native state locking is enabled to prevent concurrent Terraform operations from modifying the state at the same time.
+
+Separating the backend infrastructure from the application infrastructure provides a reliable foundation for managing Terraform state while keeping the main AWS infrastructure reproducible and version controlled.
+
 ---
 
 # Application Features
@@ -340,7 +436,9 @@ journal-starter/
 │
 ├── k8s/                    # Kubernetes manifests
 │
-├── terraform/              # Infrastructure as Code
+├── bootstrap/              # Terraform remote-state infrastructure
+│           
+├── infra/                  # Infrastructure as Code
 │
 ├── tests/                  # Automated application tests
 │
@@ -376,41 +474,6 @@ PostgreSQL
 ```
 
 This initial deployment established the networking and infrastructure foundation before the application was containerized and migrated to Amazon EKS.
-
----
-
-# Project Evolution
-
-The project demonstrates the progression of an application from a traditional server deployment toward a modern DevOps and cloud-native architecture.
-
-```text
-FastAPI Application
-        |
-        v
-EC2 Two-Tier Deployment
-        |
-        v
-Docker Containerization
-        |
-        v
-Amazon ECR
-        |
-        v
-Kubernetes / Amazon EKS
-        |
-        v
-
-GitHub Actions CI/CD
-        |
-        v
-Terraform Infrastructure as Code
-        |
-        v
-Full Observability
-Prometheus + Grafana + Loki + Tempo + OpenTelemetry
-```
-
-Each phase introduced additional automation, scalability, reliability, and operational visibility.
 
 ---
 
