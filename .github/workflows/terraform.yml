@@ -1,0 +1,80 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - "bootstrap/**"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+      - "bootstrap/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    env:
+      TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+      TF_VAR_db_username: ${{ secrets.DB_USERNAME }}
+
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        run: terraform validate
+      
+      - name: Terraform Plan
+        run: terraform plan -input=false 
+      
+  bootstrap:
+    name: Bootstrap Terraform
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: bootstrap
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+
+    - name: Terraform Format
+      run: terraform fmt -check
+
+    - name: Terraform Init
+      run: terraform init -backend=false
+
+    - name: Terraform Validate
+      run: terraform validate
