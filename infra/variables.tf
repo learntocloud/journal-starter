@@ -94,3 +94,8 @@ variable "db_password" {
   description = "The password for the RDS database"
   type        = string
 }
+
+variable "github_actions_role_arn" {
+  description = "The ARN of the GitHub Actions role for EKS access"
+  type        = string
+}

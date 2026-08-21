@@ -42,3 +42,8 @@ variable "eks_node_max_nodes" {
   description = "Maximum number of EKS worker nodes"
   type        = number
 }
+
+variable "github_actions_role_arn" {
+  description = "The ARN of the GitHub Actions role for EKS access"
+  type        = string
+}
