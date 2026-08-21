@@ -45,6 +45,10 @@ resource "aws_eks_cluster" "journal-api-eks-cluster" {
   role_arn = aws_iam_role.JournalApiEKSClusterRole.arn
   version  = var.kubernetes_version
 
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy
   ]
