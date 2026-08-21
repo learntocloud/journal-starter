@@ -19,6 +19,26 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = aws_eks_cluster.journal-api-eks-cluster.name
+  principal_arn = var.github_actions_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions" {
+  cluster_name  = aws_eks_cluster.journal-api-eks-cluster.name
+  principal_arn = var.github_actions_role_arn
+
+  policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [
+    aws_eks_access_entry.github_actions
+  ]
+}
 
 resource "aws_eks_cluster" "journal-api-eks-cluster" {
   name     = var.eks_cluster_name

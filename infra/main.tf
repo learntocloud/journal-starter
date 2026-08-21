@@ -19,13 +19,14 @@ module "eks" {
   public_subnet_ids  = module.network.public_subnet_ids
   private_subnet_ids = module.network.private_subnet_ids
 
-  eks_cluster_name       = var.eks_cluster_name
-  kubernetes_version     = var.kubernetes_version
-  eks_node_group_name    = var.eks_node_group_name
-  eks_node_instance_type = var.eks_node_instance_type
-  eks_node_desired_nodes = var.eks_node_desired_nodes
-  eks_node_min_nodes     = var.eks_node_min_nodes
-  eks_node_max_nodes     = var.eks_node_max_nodes
+  eks_cluster_name        = var.eks_cluster_name
+  github_actions_role_arn = var.github_actions_role_arn
+  kubernetes_version      = var.kubernetes_version
+  eks_node_group_name     = var.eks_node_group_name
+  eks_node_instance_type  = var.eks_node_instance_type
+  eks_node_desired_nodes  = var.eks_node_desired_nodes
+  eks_node_min_nodes      = var.eks_node_min_nodes
+  eks_node_max_nodes      = var.eks_node_max_nodes
 }
 
 module "database" {
