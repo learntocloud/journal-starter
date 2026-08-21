@@ -4,6 +4,10 @@ metadata:
   name: journal-api-service
   labels:
     app: journal-api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:744763865781:certificate/e369c746-3e71-4940-8aea-44ed50ba44c1"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+
 spec:
   type: LoadBalancer
 
@@ -11,7 +15,7 @@ spec:
     app: journal-api
 
   ports:
-    - name: http
+    - name: https
       protocol: TCP
-      port: 80
+      port: 443
       targetPort: 8000
