@@ -62,6 +62,69 @@ resource "aws_eks_cluster" "journal-api-eks-cluster" {
   }
 }
 
+data "tls_certificate" "eks" {
+  url = aws_eks_cluster.journal-api-eks-cluster.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list = ["sts.amazonaws.com"]
+
+  thumbprint_list = [
+    data.tls_certificate.eks.certificates[0].sha1_fingerprint
+  ]
+
+  url = aws_eks_cluster.journal-api-eks-cluster.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_policy" "aws_load_balancer_controller" {
+  name        = "AWSLoadBalancerControllerIAMPolicy"
+  description = "IAM policy for AWS Load Balancer Controller"
+
+  policy = file("${path.module}/iam_policy.json")
+}
+
+resource "aws_iam_role" "aws_load_balancer_controller" {
+  name = "AWSLoadBalancerControllerRole"
+
+  assume_role_policy = data.aws_iam_policy_document.aws_load_balancer_controller_assume_role.json
+}
+
+resource "aws_iam_role_policy_attachment" "aws_load_balancer_controller" {
+  role       = aws_iam_role.aws_load_balancer_controller.name
+  policy_arn = aws_iam_policy.aws_load_balancer_controller.arn
+}
+
+data "aws_iam_policy_document" "aws_load_balancer_controller_assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type = "Federated"
+      identifiers = [
+        aws_iam_openid_connect_provider.eks.arn
+      ]
+    }
+
+    actions = [
+      "sts:AssumeRoleWithWebIdentity"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.journal-api-eks-cluster.identity[0].oidc[0].issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.journal-api-eks-cluster.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      values = [
+        "system:serviceaccount:kube-system:aws-load-balancer-controller"
+      ]
+    }
+  }
+}
+
 resource "aws_iam_role" "JournalApiEKSWorkerNodeRole" {
   name = "JournalApiEKSWorkerNodeRole"
   assume_role_policy = jsonencode({

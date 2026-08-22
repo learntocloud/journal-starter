@@ -2,14 +2,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: journal-api-service
-  labels:
-    app: journal-api
   annotations:
-    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:744763865781:certificate/e369c746-3e71-4940-8aea-44ed50ba44c1"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-east-1:744763865781:certificate/e0abccc5-4b59-4e92-ac0c-824c15e74e23"
     service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
 
 spec:
   type: LoadBalancer
+  loadBalancerClass: service.k8s.aws/nlb
 
   selector:
     app: journal-api
