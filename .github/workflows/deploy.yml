@@ -58,6 +58,20 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
           aws-region: us-east-1
+          
+      - name: Check AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Connect kubectl to EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region us-east-1 \
+            --name journal-api-eks-cluster
+
+      - name: Test Kubernetes authentication
+        run: |
+          kubectl get nodes
+          kubectl auth can-i get pods --all-namespaces
 
       - name: Login to Amazon ECR
         id: login-ecr
