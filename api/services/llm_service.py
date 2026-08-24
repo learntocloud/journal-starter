@@ -9,8 +9,9 @@ Set OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_MODEL in your .env file.
 Settings are loaded by ``api.config.Settings``.
 """
 
+import json
 from openai import AsyncOpenAI
-
+from api.models.entry import AnalysisResponse
 from api.config import get_settings
 
 
@@ -59,7 +60,56 @@ async def analyze_journal_entry(
       4. Parse ``response.output_text`` with ``json.loads()``.
       5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
     """
-    raise NotImplementedError(
-        "Task 4: implement analyze_journal_entry using the openai SDK. "
-        "See tests/test_llm_service.py for the test contract."
+    if client is None:
+        client = _default_client()
+
+    response = await client.responses.create(
+        model=get_settings().openai_model,
+        instructions="""
+    Analyze the provided entry.
+
+    Determine:
+    - sentiment: positive, negative, or neutral
+    - summary: exactly 2 sentences summarizing the entry
+    - topics: 2-4 key topics explicitly mentioned in the entry
+
+    Do not invent information that is not present in the entry.
+    """,
+        input=entry_text,
+        text={
+        "format": {
+            "type": "json_schema",
+            "name": "entry_analysis",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "sentiment": {
+                        "type": "string",
+                        "enum": ["positive", "negative", "neutral"]
+                    },
+                    "summary": {
+                        "type": "string"
+                    },
+                    "topics": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 2,
+                        "maxItems": 4
+                    }
+                },
+                "required": ["sentiment", "summary", "topics"],
+                "additionalProperties": False
+            }
+        }}
     )
+    result = AnalysisResponse.model_validate({
+        **json.loads(response.output_text), "entry_id": entry_id
+    })
+    return {
+        "entry_id": entry_id,
+        "sentiment": result.sentiment,
+        "summary": result.summary,
+        "topics": result.topics,
+        "created_at": result.created_at,
+    }
