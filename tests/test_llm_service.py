@@ -74,7 +74,7 @@ SAMPLE_ENTRY_TEXT = (
 VALID_ANALYSIS_JSON = json.dumps(
     {
         "sentiment": "positive",
-        "summary": "Reflected on FastAPI study and async concepts.",
+        "summary": "Reflected on FastAPI study and async concepts. Plans to practice SQL next.",
         "topics": ["FastAPI", "async"],
     }
 )
@@ -110,4 +110,4 @@ async def test_analyze_entry_returns_valid_analysis_response():
     assert validated.sentiment in {"positive", "negative", "neutral"}
     assert validated.summary
     assert isinstance(validated.topics, list)
-    assert len(validated.topics) >= 1
+    assert 2 <= len(validated.topics) <= 4

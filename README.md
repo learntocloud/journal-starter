@@ -525,6 +525,23 @@ For **Task 4: AI-Powered Entry Analysis**, your endpoint should return this form
 }
 ```
 
+The pre-built `AnalysisResponse` model enforces this contract for both the API
+and the live verification helper:
+
+| Field | Required content |
+|-------|------------------|
+| `sentiment` | Exactly `positive`, `negative`, or `neutral` |
+| `summary` | A nonempty string after stripping surrounding whitespace |
+| `topics` | 2-4 strings, each nonempty after stripping surrounding whitespace |
+
+Aim for **two sentences** in the summary. This is writing guidance, not a strict
+sentence-counting rule; abbreviations and punctuation should not make otherwise
+valid summaries fail validation.
+
+Invalid analysis content must not be reported as success. The API returns 502
+when analysis fails model validation, and the live helper exits unsuccessfully
+when a returned result violates the model.
+
 ### Task 4 setup
 
 This project mandates the [OpenAI Python SDK](https://github.com/openai/openai-python),

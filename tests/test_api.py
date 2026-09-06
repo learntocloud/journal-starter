@@ -309,8 +309,36 @@ class TestAnalyzeEntry:
         assert result["sentiment"] in ["positive", "negative", "neutral"]
         assert "summary" in result
         assert isinstance(result["topics"], list)
-        assert len(result["topics"]) >= 2
+        assert 2 <= len(result["topics"]) <= 4
         assert "created_at" in result
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("sentiment", "mixed"),
+            ("summary", " \t\n "),
+            ("topics", []),
+            ("topics", ["one", "two", "three", "four", "five"]),
+            ("topics", ["valid", ""]),
+        ],
+    )
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_rejects_invalid_provider_content(
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict, field, value
+    ):
+        result = {
+            "entry_id": created_entry["id"],
+            "sentiment": "positive",
+            "summary": "The learner made progress.",
+            "topics": ["APIs", "learning"],
+        }
+        result[field] = value
+        mock_analyze.return_value = result
+
+        response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+
+        assert response.status_code == 502
+        assert response.json() == {"detail": "Analysis provider returned an invalid response"}
 
     @patch("api.routers.journal_router.analyze_journal_entry")
     async def test_analyze_entry_handles_llm_error(

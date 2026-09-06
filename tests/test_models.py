@@ -230,11 +230,12 @@ class TestEntryModel:
 class TestAnalysisResponseModel:
     """Tests for the AnalysisResponse model used for AI analysis results."""
 
-    def test_analysis_response_valid(self):
+    @pytest.mark.parametrize("sentiment", ["positive", "negative", "neutral"])
+    def test_analysis_response_valid(self, sentiment):
         """Test creating a valid AnalysisResponse model."""
         data = {
             "entry_id": "123e4567-e89b-12d3-a456-426614174000",
-            "sentiment": "positive",
+            "sentiment": sentiment,
             "summary": "The learner made progress. They're excited to continue.",
             "topics": ["FastAPI", "PostgreSQL", "API development"],
         }
@@ -245,6 +246,57 @@ class TestAnalysisResponseModel:
         assert response.summary == data["summary"]
         assert response.topics == data["topics"]
         assert isinstance(response.created_at, datetime)
+
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("sentiment", "mixed"),
+            ("sentiment", "Positive"),
+            ("sentiment", ""),
+            ("sentiment", None),
+            ("summary", ""),
+            ("summary", " \t\n "),
+            ("summary", None),
+            ("summary", 123),
+            ("topics", []),
+            ("topics", ["one"]),
+            ("topics", ["one", "two", "three", "four", "five"]),
+            ("topics", ["valid", ""]),
+            ("topics", ["valid", " \t\n "]),
+            ("topics", ["valid", None]),
+            ("topics", ["valid", 123]),
+        ],
+    )
+    def test_analysis_response_rejects_invalid_content(self, field, value):
+        data = {
+            "entry_id": "entry-1",
+            "sentiment": "positive",
+            "summary": "The learner made progress.",
+            "topics": ["APIs", "learning"],
+        }
+        data[field] = value
+        with pytest.raises(ValidationError):
+            AnalysisResponse.model_validate(data)
+
+    @pytest.mark.parametrize("count", [2, 3, 4])
+    def test_analysis_response_accepts_topic_count_boundaries(self, count):
+        response = AnalysisResponse(
+            entry_id="entry-1",
+            sentiment="neutral",
+            summary="A brief summary.",
+            topics=[f"Topic {i}" for i in range(count)],
+        )
+        assert len(response.topics) == count
+
+    def test_analysis_response_strips_summary_and_topics(self):
+        response = AnalysisResponse(
+            entry_id="entry-1",
+            sentiment="positive",
+            summary="  Practiced APIs, e.g. request validation.  ",
+            topics=["  APIs  ", " validation "],
+        )
+        assert response.summary == "Practiced APIs, e.g. request validation."
+        assert response.topics == ["APIs", "validation"]
 
     def test_analysis_response_auto_generates_timestamp(self):
         """Test that AnalysisResponse auto-generates created_at."""

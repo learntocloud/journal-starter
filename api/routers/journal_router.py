@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import ValidationError
 
 from api.config import Settings, get_settings
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
@@ -135,11 +136,16 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
     entry_text = f"{entry['work']} {entry['struggle']} {entry['intention']}"
 
     try:
-        return await analyze_journal_entry(entry_id, entry_text)
+        analysis = await analyze_journal_entry(entry_id, entry_text)
+        return AnalysisResponse.model_validate(analysis)
     except NotImplementedError as e:
         raise HTTPException(
             status_code=501,
             detail="LLM analysis not yet implemented - see api/services/llm_service.py",
+        ) from e
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=502, detail="Analysis provider returned an invalid response"
         ) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
