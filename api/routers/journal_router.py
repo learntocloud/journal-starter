@@ -76,10 +76,13 @@ async def update_entry(
     """Update a journal entry.
 
     TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
-    (import it from ``api.models.entry``) so PATCH requests are validated the
-    same way POST requests are. Without this, PATCH happily accepts
-    empty strings and 300-character bodies — see ``TestUpdateEntry`` in
-    tests/test_api.py.
+    (import it from ``api.models.entry``). Validate supplied fields as non-empty,
+    whitespace-stripped strings of at most 256 characters; reject explicit null.
+    Then pass ``entry_update.model_dump(exclude_unset=True)`` to the service,
+    which expects a dict. Passing the model itself fails; dumping every field
+    would overwrite omitted fields with their defaults.
+    An empty object is allowed and leaves the text fields unchanged.
+    See ``TestUpdateEntry`` in tests/test_api.py.
     """
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:

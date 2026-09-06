@@ -259,8 +259,9 @@ Then run the tests to see the starting state:
 uv run pytest
 ```
 
-You should see output with **18 failing** tests — one group per task you
-still have to complete:
+You should see failures for the tasks you still have to complete. Examples
+include the following (the list is not exhaustive; some tests run once per
+field or input value):
 
 ```
 FAILED tests/test_logging.py::test_root_logger_is_configured_at_info
@@ -281,13 +282,12 @@ FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string
 FAILED tests/test_llm_service.py::test_analyze_entry_actually_calls_llm
 FAILED tests/test_llm_service.py::test_analyze_entry_sends_entry_text_in_prompt
 FAILED tests/test_llm_service.py::test_analyze_entry_returns_valid_analysis_response
-===================== 18 failed, 50 passed =====================
 ```
 
 The passing tests cover features that are **already built** for you
 (creating entries, listing entries, updating, deleting all entries), including
 the test-database configuration safeguards.
-The 18 failing tests correspond to Tasks 1–4 below — your job is to
+The expected failing tests correspond to Tasks 1–4 below — your job is to
 turn all of them green.
 
 ### For Each Task
@@ -434,16 +434,29 @@ does not exist.
 - Acceptance:
   - `uv run pytest tests/test_models.py::TestEntryCreateValidation` passes
   - `uv run pytest tests/test_models.py::TestEntryUpdateModel` passes
-  - `uv run pytest tests/test_api.py::TestUpdateEntry::test_update_rejects_oversize_field` passes
-  - `uv run pytest tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string` passes
+  - `uv run pytest tests/test_api.py::TestUpdateEntry` passes
 
 Add validation to `EntryCreate` so empty, whitespace-only, and
 oversize (>256 char) fields are rejected and surrounding whitespace is
 stripped. Hint: `Annotated[str, StringConstraints(...)]` from Pydantic.
 
-Then create an `EntryUpdate` model in the same file with all three
-fields optional and the same validation rules, and wire it into the
-PATCH endpoint in `api/routers/journal_router.py`.
+Then create an `EntryUpdate` model in the same file and wire it into the
+PATCH endpoint in `api/routers/journal_router.py`. "Optional" here means a field
+may be **omitted**, not that a supplied value may be JSON `null`.
+
+| PATCH input | Required behavior |
+|-------------|-------------------|
+| A field is omitted | Keep its stored value unchanged |
+| A field contains a string | Strip surrounding whitespace, then require 1-256 characters |
+| A field is `null`, empty, whitespace-only, or not a string | Return 422; do not modify the stored entry |
+| The body is `{}` | Accept it and leave the three text fields unchanged |
+
+Omitted fields should default to `None` inside the model. A field validator can
+reject an explicitly supplied `None` without rejecting an omitted field.
+Before calling the service, convert the model to a dictionary using
+`model_dump(exclude_unset=True)`. The service expects a dictionary, not a Pydantic
+model; dumping all fields would overwrite omitted values with defaults.
+See FastAPI's [partial-update guide](https://fastapi.tiangolo.com/tutorial/body-updates/#using-pydantics-exclude_unset-parameter).
 
 ### Task 4 — AI-Powered Entry Analysis
 

@@ -12,6 +12,7 @@ These tests verify that the API endpoints work correctly, including:
 
 from unittest.mock import patch
 
+import pytest
 from httpx import AsyncClient
 
 
@@ -133,19 +134,24 @@ class TestGetSingleEntry:
 class TestUpdateEntry:
     """Tests for PATCH /entries/{entry_id} endpoint."""
 
-    async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict):
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict, field):
         """Test successfully updating an entry."""
         entry_id = created_entry["id"]
-        update_data = {"work": "Updated work description"}
+        update_data = {field: "Updated description"}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 200
         updated_entry = response.json()
-        assert updated_entry["work"] == "Updated work description"
-        # Other fields should remain unchanged
-        assert updated_entry["struggle"] == created_entry["struggle"]
-        assert updated_entry["intention"] == created_entry["intention"]
+        for name in ("work", "struggle", "intention"):
+            assert updated_entry[name] == (
+                "Updated description" if name == field else created_entry[name]
+            )
+        assert updated_entry["id"] == created_entry["id"]
+        assert updated_entry["created_at"] == created_entry["created_at"]
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [updated_entry]
 
     async def test_update_entry_not_found(self, test_client: AsyncClient):
         """Test that updating a non-existent entry returns 404."""
@@ -156,25 +162,71 @@ class TestUpdateEntry:
 
         assert response.status_code == 404
 
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     async def test_update_rejects_oversize_field(
-        self, test_client: AsyncClient, created_entry: dict
+        self, test_client: AsyncClient, created_entry: dict, field
     ):
         """Task 3: PATCH should reject fields longer than 256 characters."""
         entry_id = created_entry["id"]
-        update_data = {"work": "a" * 300}
+        update_data = {field: "a" * 257}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 422
 
-    async def test_update_rejects_empty_string(self, test_client: AsyncClient, created_entry: dict):
-        """Task 3: PATCH should reject whitespace-only strings."""
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", ["", " \t\n "])
+    async def test_update_rejects_empty_string(
+        self, test_client: AsyncClient, created_entry: dict, field, value
+    ):
+        """Task 3: PATCH should reject empty and whitespace-only strings."""
         entry_id = created_entry["id"]
-        update_data = {"work": "   "}
+        update_data = {field: value}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_rejects_null_without_changing_entry(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(f"/entries/{created_entry['id']}", json={field: None})
+        assert response.status_code == 422
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [created_entry]
+
+    async def test_empty_update_preserves_text_fields(
+        self, test_client: AsyncClient, created_entry: dict
+    ):
+        response = await test_client.patch(f"/entries/{created_entry['id']}", json={})
+        assert response.status_code == 200
+        for field in ("work", "struggle", "intention"):
+            assert response.json()[field] == created_entry[field]
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [response.json()]
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_strips_whitespace(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(
+            f"/entries/{created_entry['id']}", json={field: "  New text  "}
+        )
+        assert response.status_code == 200
+        assert response.json()[field] == "New text"
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [response.json()]
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_accepts_max_length_after_stripping(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(
+            f"/entries/{created_entry['id']}", json={field: f"  {'a' * 256}  "}
+        )
+        assert response.status_code == 200
+        assert response.json()[field] == "a" * 256
 
 
 class TestDeleteEntry:

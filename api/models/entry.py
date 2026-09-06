@@ -49,12 +49,16 @@ class EntryCreate(BaseModel):
 # TODO (Task 3): Define an ``EntryUpdate`` model for PATCH /entries/{entry_id}.
 #
 # Requirements:
-#   - All three fields (``work``, ``struggle``, ``intention``) must be optional.
+#   - All three fields (``work``, ``struggle``, ``intention``) may be omitted.
+#     Omitted fields default to None internally; explicit JSON null is invalid.
 #   - Each field, when provided, must follow the same validation rules as
 #     ``EntryCreate`` (non-empty, whitespace-stripped, max 256 chars).
+#   - An empty update is allowed and leaves the entry's text fields unchanged.
 #
 # Once defined, import ``EntryUpdate`` in ``api/routers/journal_router.py``
-# and use it as the type of the PATCH endpoint's request body.
+# and use it as the type of the PATCH endpoint's request body. Pass only
+# explicitly supplied fields to the service with model_dump(exclude_unset=True).
+# Hint: a field_validator can reject explicit None without rejecting omitted fields.
 
 
 class Entry(BaseModel):

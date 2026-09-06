@@ -101,6 +101,7 @@ class TestEntryUpdateModel:
         assert update.work is None
         assert update.struggle is None
         assert update.intention is None
+        assert update.model_dump(exclude_unset=True) == {}
 
     def test_partial_update(self):
         """EntryUpdate should allow a single-field update."""
@@ -110,13 +111,37 @@ class TestEntryUpdateModel:
         assert update.work == "New work only"
         assert update.struggle is None
         assert update.intention is None
+        assert update.model_dump(exclude_unset=True) == {"work": "New work only"}
 
-    def test_oversize_field_rejected(self):
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_oversize_field_rejected(self, field):
         """EntryUpdate should reject fields longer than 256 characters."""
         from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
 
         with pytest.raises(ValidationError):
-            EntryUpdate(work="a" * 300)
+            EntryUpdate(**{field: "a" * 257})
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", [None, "", " \t\n ", 123, True])
+    def test_invalid_supplied_field_rejected(self, field, value):
+        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
+
+        with pytest.raises(ValidationError):
+            EntryUpdate(**{field: value})
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_supplied_field_is_stripped(self, field):
+        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
+
+        update = EntryUpdate(**{field: "  New text  "})
+        assert update.model_dump(exclude_unset=True) == {field: "New text"}
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_max_length_after_stripping_is_allowed(self, field):
+        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
+
+        update = EntryUpdate(**{field: f"  {'a' * 256}  "})
+        assert update.model_dump(exclude_unset=True) == {field: "a" * 256}
 
 
 class TestEntryModel:
