@@ -11,9 +11,13 @@ from collections.abc import AsyncGenerator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from pydantic import ValidationError
 
-from api.config import get_settings
 from api.main import app
+from api.repositories.postgres_repository import PostgresDB
+from api.routers.journal_router import get_entry_service
+from api.services.entry_service import EntryService
+from tests.database_settings import DatabaseTestSettings
 
 
 def pytest_configure(config):
@@ -23,45 +27,60 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture(scope="session")
+def test_database_url() -> str:
+    try:
+        settings = DatabaseTestSettings()  # type: ignore[call-arg]
+    except ValidationError as exc:
+        raise pytest.UsageError(
+            "Unsafe or missing test database configuration. Set DATABASE_URL and "
+            "TEST_DATABASE_URL to different database names; the test database name "
+            f"must end in '_test'. See README.md for setup instructions.\n{exc}"
+        ) from exc
+    return str(settings.test_database_url)
+
+
 @pytest.fixture(autouse=True)
 async def cleanup_database(request):
     """
-    Automatically clean up the database before each test.
+    Automatically clean up only the dedicated test database before and after each test.
     Tests marked with ``no_db`` skip this fixture entirely so they can run
     without a live Postgres instance.
     """
     if "no_db" in request.keywords:
         yield
         return
-    from api.repositories.postgres_repository import PostgresDB
-
-    database_url = get_settings().database_url
+    database_url = request.getfixturevalue("test_database_url")
     async with PostgresDB(database_url) as db:
         await db.delete_all_entries()
-    yield
-    # Clean up after test as well
-    async with PostgresDB(database_url) as db:
-        await db.delete_all_entries()
+    try:
+        yield
+    finally:
+        async with PostgresDB(database_url) as db:
+            await db.delete_all_entries()
 
 
 @pytest.fixture
-async def test_db() -> AsyncGenerator:
+async def test_db(test_database_url: str) -> AsyncGenerator[PostgresDB]:
     """
     Provides a test database connection.
     The cleanup is handled by the cleanup_database fixture.
     """
-    from api.repositories.postgres_repository import PostgresDB
-
-    async with PostgresDB(get_settings().database_url) as db:
+    async with PostgresDB(test_database_url) as db:
         yield db
 
 
 @pytest.fixture
-async def test_client() -> AsyncGenerator[AsyncClient]:
+async def test_client(test_db: PostgresDB, monkeypatch) -> AsyncGenerator[AsyncClient]:
     """
     Provides an async HTTP client for testing the FastAPI application.
     This client can make requests to the API without starting a server.
     """
+
+    def override_entry_service() -> EntryService:
+        return EntryService(test_db)
+
+    monkeypatch.setitem(app.dependency_overrides, get_entry_service, override_entry_service)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

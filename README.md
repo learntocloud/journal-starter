@@ -86,7 +86,8 @@ cp .env-sample .env
 ```
 
 The sample already contains `DATABASE_URL` (pointing at the devcontainer's
-Postgres service) and placeholders for the three `OPENAI_*` settings. Leave
+Postgres service), `TEST_DATABASE_URL` (pointing at a separate test database),
+and placeholders for the three `OPENAI_*` settings. Leave
 the placeholders in place for Tasks 1–3; you'll replace them with values from
 your chosen LLM provider when you reach
 [Task 4](#task-4--ai-powered-entry-analysis).
@@ -148,6 +149,36 @@ We have provided tests so you can verify your implementations are correct withou
 
 ### First-Time Setup
 
+**Tests reset the test database; your journal entries are preserved.**
+The running API uses `DATABASE_URL` (`career_journal`), while database-backed
+tests use only `TEST_DATABASE_URL` (`career_journal_test`). Test requests are
+configured to use that separate database too. Never store personal entries in
+the test database: its entries are deleted before and after every database-backed
+test.
+
+A fresh devcontainer provisions both databases automatically. Tests refuse to
+run database operations if `TEST_DATABASE_URL` is missing or invalid, does not
+name a database ending in `_test`, or names the same database as `DATABASE_URL`.
+Database names must be in the URL path, not a `database` or `dbname` query
+parameter. There is no fallback to the application database.
+
+**Already have a devcontainer from before this change?**
+Add `TEST_DATABASE_URL` from `.env-sample` to your `.env`, then run
+**Dev Containers: Rebuild Container** to load the updated configuration.
+Existing PostgreSQL volumes are preserved, so initialization scripts do not
+automatically run again. On your **host machine**, find the PostgreSQL container
+name with `docker ps`, then run:
+
+```bash
+docker exec YOUR_POSTGRES_CONTAINER psql -U postgres -d career_journal \
+  -v ON_ERROR_STOP=1 -f /docker-entrypoint-initdb.d/database_setup_test.sql
+```
+
+Replace `YOUR_POSTGRES_CONTAINER` with its actual name; adjust the username and
+application database if you changed the sample defaults. This command creates
+the test database and applies the same schema without deleting your application
+data. Do not delete the existing database volume.
+
 From the **project root** in the VS Code terminal, install dev dependencies:
 
 ```bash
@@ -188,11 +219,12 @@ FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string
 FAILED tests/test_llm_service.py::test_analyze_entry_actually_calls_llm
 FAILED tests/test_llm_service.py::test_analyze_entry_sends_entry_text_in_prompt
 FAILED tests/test_llm_service.py::test_analyze_entry_returns_valid_analysis_response
-===================== 18 failed, 32 passed =====================
+===================== 18 failed, 48 passed =====================
 ```
 
 The passing tests cover features that are **already built** for you
-(creating entries, listing entries, updating, deleting all entries).
+(creating entries, listing entries, updating, deleting all entries), including
+the test-database configuration safeguards.
 The 18 failing tests correspond to Tasks 1–4 below — your job is to
 turn all of them green.
 
@@ -289,7 +321,7 @@ Every push and pull request runs the GitHub Actions workflow in
 | Job  | What it checks | How to reproduce locally |
 |------|----------------|--------------------------|
 | `lint` | `ruff check`, `ruff format --check`, `pyright` | `uv run ruff check . && uv run ruff format --check . && uv run pyright` |
-| `test` | `pytest -v` against a real Postgres 16 service container, with `database_setup.sql` applied | `uv run pytest -v` |
+| `test` | `pytest -v` against a dedicated test database in a real Postgres 16 service container, provisioned by `database_setup_test.sql` using the shared schema | `uv run pytest -v` |
 
 Both jobs run on every push to `main` and every PR. Your fork will
 show two green checks on a PR once **all** your implementations are complete
@@ -479,6 +511,14 @@ model or deployment supports the OpenAI Responses API.
 **Can't connect to database?**
 - Verify `.env` file exists with correct `DATABASE_URL`
 - Restart dev container: `Dev Containers: Rebuild Container`
+
+**Database-backed tests fail during setup?**
+- Check `TEST_DATABASE_URL` in `.env` points to the dedicated test database,
+  not your application database.
+- If `career_journal_test` does not exist, follow the existing-devcontainer
+  instructions under [First-Time Setup](#first-time-setup).
+- Tests marked `no_db` do not need a database connection and can be run with
+  `uv run pytest -m no_db`.
 
 **Dev container won't open?**
 - Ensure Docker Desktop is running
