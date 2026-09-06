@@ -104,9 +104,8 @@ your chosen LLM provider when you reach
 2. **Reopen in container**: When VS Code detects the `.devcontainer` folder, click "Reopen in Container"
    - Or use Command Palette (`Cmd/Ctrl + Shift + P`): `Dev Containers: Reopen in Container`
 3. **Wait for setup**: The development container provides Python and uv.
-   A separate PostgreSQL container is also created. Starting the API in step 5
-   installs the application's Python dependencies; development tools are
-   installed under [First-Time Setup](#first-time-setup).
+   A separate PostgreSQL container is also created. Install the application's
+   Python dependencies and development tools with `uv sync` in step 5.
 
 #### Where things run
 
@@ -164,11 +163,30 @@ pwd
 # Should output: /workspaces
 ```
 
+Install the project dependencies, including the default `dev` group of testing
+and code-quality tools:
+
+```bash
+uv sync
+```
+
 Then start the API from the **project root**:
 
 ```bash
-./start.sh
+uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+| Part of the command | Meaning |
+|---------------------|---------|
+| `uv run uvicorn` | Run the Uvicorn web server in the project's Python environment; uv also keeps required dependencies synchronized |
+| `api.main:app` | Import the `app` object from `api/main.py` |
+| `--reload` | Restart the server automatically when Python code changes; use this for development, not production |
+| `--host 0.0.0.0` | Listen on all container network interfaces so the API can be reached through the forwarded port |
+| `--port 8000` | Listen on port 8000, which the devcontainer forwards to your host |
+
+Leave this terminal running while using the API. Use another VS Code terminal
+for tests and other commands. Stop the server with `Ctrl+C`; run the same
+`uv run uvicorn ...` command again to restart it.
 
 ### 6. Test Everything Works! 🎉
 
@@ -218,11 +236,16 @@ application database if you changed the sample defaults. This command creates
 the test database and applies the same schema without deleting your application
 data. Do not delete the existing database volume.
 
-From the **project root** in the VS Code terminal, install dev dependencies:
+From the **project root** in the VS Code terminal, synchronize dependencies
+if you have not already done so in [Run the API](#5-run-the-api):
 
 ```bash
-uv sync --all-extras
+uv sync
 ```
+
+The `dev` dependency group in `pyproject.toml` is included by default by both
+`uv sync` and `uv run`, so pytest, Ruff, Pyright, and pre-commit remain available
+after synchronizing dependencies or restarting the API.
 
 Install the pre-commit hooks so ruff runs automatically on every commit:
 
@@ -542,7 +565,8 @@ model or deployment supports the OpenAI Responses API.
 ## 🔧 Troubleshooting
 
 **API won't start?**
-- Make sure you're running `./start.sh` from the **project root** inside the dev container
+- Run `uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000`
+  from the **project root** inside the devcontainer.
 - Check PostgreSQL is running: `docker ps` (on your **host machine**)
 - Restart the database: `docker restart your-postgres-container-name` (on your **host machine**)
 
