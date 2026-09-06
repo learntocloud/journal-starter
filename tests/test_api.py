@@ -10,9 +10,21 @@ These tests verify that the API endpoints work correctly, including:
 - Error handling (404, validation errors, etc.)
 """
 
+import json
+import logging
 from unittest.mock import patch
 
-from httpx import AsyncClient
+import pytest
+from httpx import AsyncClient, Request, Response
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    InternalServerError,
+    RateLimitError,
+)
+
+PROVIDER_REQUEST = Request("POST", "https://example.invalid/v1/responses")
 
 
 class TestCreateEntry:
@@ -133,19 +145,24 @@ class TestGetSingleEntry:
 class TestUpdateEntry:
     """Tests for PATCH /entries/{entry_id} endpoint."""
 
-    async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict):
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict, field):
         """Test successfully updating an entry."""
         entry_id = created_entry["id"]
-        update_data = {"work": "Updated work description"}
+        update_data = {field: "Updated description"}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 200
         updated_entry = response.json()
-        assert updated_entry["work"] == "Updated work description"
-        # Other fields should remain unchanged
-        assert updated_entry["struggle"] == created_entry["struggle"]
-        assert updated_entry["intention"] == created_entry["intention"]
+        for name in ("work", "struggle", "intention"):
+            assert updated_entry[name] == (
+                "Updated description" if name == field else created_entry[name]
+            )
+        assert updated_entry["id"] == created_entry["id"]
+        assert updated_entry["created_at"] == created_entry["created_at"]
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [updated_entry]
 
     async def test_update_entry_not_found(self, test_client: AsyncClient):
         """Test that updating a non-existent entry returns 404."""
@@ -156,25 +173,71 @@ class TestUpdateEntry:
 
         assert response.status_code == 404
 
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     async def test_update_rejects_oversize_field(
-        self, test_client: AsyncClient, created_entry: dict
+        self, test_client: AsyncClient, created_entry: dict, field
     ):
         """Task 3: PATCH should reject fields longer than 256 characters."""
         entry_id = created_entry["id"]
-        update_data = {"work": "a" * 300}
+        update_data = {field: "a" * 257}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 422
 
-    async def test_update_rejects_empty_string(self, test_client: AsyncClient, created_entry: dict):
-        """Task 3: PATCH should reject whitespace-only strings."""
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", ["", " \t\n "])
+    async def test_update_rejects_empty_string(
+        self, test_client: AsyncClient, created_entry: dict, field, value
+    ):
+        """Task 3: PATCH should reject empty and whitespace-only strings."""
         entry_id = created_entry["id"]
-        update_data = {"work": "   "}
+        update_data = {field: value}
 
         response = await test_client.patch(f"/entries/{entry_id}", json=update_data)
 
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_rejects_null_without_changing_entry(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(f"/entries/{created_entry['id']}", json={field: None})
+        assert response.status_code == 422
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [created_entry]
+
+    async def test_empty_update_preserves_text_fields(
+        self, test_client: AsyncClient, created_entry: dict
+    ):
+        response = await test_client.patch(f"/entries/{created_entry['id']}", json={})
+        assert response.status_code == 200
+        for field in ("work", "struggle", "intention"):
+            assert response.json()[field] == created_entry[field]
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [response.json()]
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_strips_whitespace(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(
+            f"/entries/{created_entry['id']}", json={field: "  New text  "}
+        )
+        assert response.status_code == 200
+        assert response.json()[field] == "New text"
+        stored = await test_client.get("/entries")
+        assert stored.json()["entries"] == [response.json()]
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    async def test_update_accepts_max_length_after_stripping(
+        self, test_client: AsyncClient, created_entry: dict, field
+    ):
+        response = await test_client.patch(
+            f"/entries/{created_entry['id']}", json={field: f"  {'a' * 256}  "}
+        )
+        assert response.status_code == 200
+        assert response.json()[field] == "a" * 256
 
 
 class TestDeleteEntry:
@@ -257,18 +320,138 @@ class TestAnalyzeEntry:
         assert result["sentiment"] in ["positive", "negative", "neutral"]
         assert "summary" in result
         assert isinstance(result["topics"], list)
-        assert len(result["topics"]) >= 2
+        assert 2 <= len(result["topics"]) <= 4
         assert "created_at" in result
 
+    @pytest.mark.parametrize(
+        ("field", "value"),
+        [
+            ("sentiment", "mixed"),
+            ("summary", " \t\n "),
+            ("topics", []),
+            ("topics", ["one", "two", "three", "four", "five"]),
+            ("topics", ["valid", ""]),
+        ],
+    )
     @patch("api.routers.journal_router.analyze_journal_entry")
-    async def test_analyze_entry_handles_llm_error(
-        self, mock_analyze, test_client: AsyncClient, created_entry: dict
+    async def test_analyze_entry_rejects_invalid_provider_content(
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict, field, value
     ):
-        """Test that LLM errors are handled gracefully, not as raw 500s."""
-        mock_analyze.side_effect = Exception("LLM API key is invalid")
+        result = {
+            "entry_id": created_entry["id"],
+            "sentiment": "positive",
+            "summary": "The learner made progress.",
+            "topics": ["APIs", "learning"],
+        }
+        result[field] = value
+        mock_analyze.return_value = result
 
         response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
 
-        # Should return a handled error with a JSON detail message
+        assert response.status_code == 502
+        assert response.json() == {"detail": "Analysis provider returned an invalid response"}
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            RuntimeError("internal-only diagnostic marker"),
+            json.JSONDecodeError("internal parsing diagnostic", "not JSON", 0),
+        ],
+    )
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_handles_llm_error(
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict, caplog, error
+    ):
+        """Unexpected errors are logged but their details are not returned to clients."""
+        mock_analyze.side_effect = error
+
+        with caplog.at_level(logging.ERROR, logger="journal"):
+            response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+
         assert response.status_code == 500
-        assert "detail" in response.json()
+        assert response.json() == {"detail": "Analysis failed"}
+        assert str(error) not in response.text
+        assert str(error) in caplog.text
+        assert any(
+            record.name == "journal"
+            and record.exc_info
+            and record.exc_info[1] is error
+            and created_entry["id"] in record.getMessage()
+            for record in caplog.records
+        )
+
+    @pytest.mark.parametrize(
+        ("error", "expected_status", "expected_detail"),
+        [
+            pytest.param(
+                APITimeoutError(request=PROVIDER_REQUEST),
+                504,
+                "Analysis provider timed out",
+                id="timeout",
+            ),
+            pytest.param(
+                RateLimitError(
+                    "internal quota diagnostic",
+                    response=Response(429, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                503,
+                "Analysis provider is temporarily unavailable",
+                id="rate-limit",
+            ),
+            pytest.param(
+                APIConnectionError(
+                    message="internal connection diagnostic", request=PROVIDER_REQUEST
+                ),
+                502,
+                "Analysis provider request failed",
+                id="connection",
+            ),
+            pytest.param(
+                AuthenticationError(
+                    "internal credential diagnostic",
+                    response=Response(401, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                502,
+                "Analysis provider request failed",
+                id="authentication",
+            ),
+            pytest.param(
+                InternalServerError(
+                    "internal provider diagnostic",
+                    response=Response(500, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                502,
+                "Analysis provider request failed",
+                id="provider-server-error",
+            ),
+        ],
+    )
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_maps_provider_errors(
+        self,
+        mock_analyze,
+        test_client: AsyncClient,
+        created_entry: dict,
+        caplog,
+        error,
+        expected_status,
+        expected_detail,
+    ):
+        mock_analyze.side_effect = error
+
+        with caplog.at_level(logging.ERROR, logger="journal"):
+            response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+
+        assert response.status_code == expected_status
+        assert response.json() == {"detail": expected_detail}
+        assert str(error) not in response.text
+        assert any(
+            record.name == "journal"
+            and record.exc_info
+            and record.exc_info[1] is error
+            and created_entry["id"] in record.getMessage()
+            for record in caplog.records
+        )

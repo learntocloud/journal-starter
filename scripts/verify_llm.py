@@ -54,7 +54,7 @@ async def main() -> int:
 
     try:
         validated = AnalysisResponse.model_validate(result)
-    except Exception as exc:
+    except ValidationError as exc:
         print(f"ERROR: result does not validate against AnalysisResponse: {exc}", file=sys.stderr)
         return 2
 

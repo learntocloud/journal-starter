@@ -1,21 +1,24 @@
-from collections.abc import AsyncGenerator
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
+from openai import APITimeoutError, OpenAIError, RateLimitError
+from pydantic import ValidationError
 
-from api.config import Settings, get_settings
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
 from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
+logger = logging.getLogger("journal")
 
 
-async def get_entry_service(
-    settings: Settings = Depends(get_settings),
-) -> AsyncGenerator[EntryService]:
-    async with PostgresDB(settings.database_url) as db:
-        yield EntryService(db)
+async def get_database(request: Request) -> PostgresDB:
+    return request.app.state.database
+
+
+async def get_entry_service(database: PostgresDB = Depends(get_database)) -> EntryService:
+    return EntryService(database)
 
 
 @router.post("/entries", status_code=201)
@@ -76,10 +79,13 @@ async def update_entry(
     """Update a journal entry.
 
     TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
-    (import it from ``api.models.entry``) so PATCH requests are validated the
-    same way POST requests are. Without this, PATCH happily accepts
-    empty strings and 300-character bodies — see ``TestUpdateEntry`` in
-    tests/test_api.py.
+    (import it from ``api.models.entry``). Validate supplied fields as non-empty,
+    whitespace-stripped strings of at most 256 characters; reject explicit null.
+    Then pass ``entry_update.model_dump(exclude_unset=True)`` to the service,
+    which expects a dict. Passing the model itself fails; dumping every field
+    would overwrite omitted fields with their defaults.
+    An empty object is allowed and leaves the text fields unchanged.
+    See ``TestUpdateEntry`` in tests/test_api.py.
     """
     result = await entry_service.update_entry(entry_id, entry_update)
     if not result:
@@ -132,11 +138,29 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
     entry_text = f"{entry['work']} {entry['struggle']} {entry['intention']}"
 
     try:
-        return await analyze_journal_entry(entry_id, entry_text)
+        analysis = await analyze_journal_entry(entry_id, entry_text)
+        return AnalysisResponse.model_validate(analysis)
     except NotImplementedError as e:
         raise HTTPException(
             status_code=501,
             detail="LLM analysis not yet implemented - see api/services/llm_service.py",
         ) from e
+    except ValidationError as e:
+        logger.exception("Invalid analysis response for entry %s", entry_id)
+        raise HTTPException(
+            status_code=502, detail="Analysis provider returned an invalid response"
+        ) from e
+    except APITimeoutError as e:
+        logger.exception("Analysis provider timed out for entry %s", entry_id)
+        raise HTTPException(status_code=504, detail="Analysis provider timed out") from e
+    except RateLimitError as e:
+        logger.exception("Analysis provider rate limit reached for entry %s", entry_id)
+        raise HTTPException(
+            status_code=503, detail="Analysis provider is temporarily unavailable"
+        ) from e
+    except OpenAIError as e:
+        logger.exception("Analysis provider request failed for entry %s", entry_id)
+        raise HTTPException(status_code=502, detail="Analysis provider request failed") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
+        logger.exception("Analysis failed for entry %s", entry_id)
+        raise HTTPException(status_code=500, detail="Analysis failed") from e

@@ -21,8 +21,10 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
-        """Update an existing journal entry."""
+    async def update_entry(
+        self, entry_id: str, updated_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """Apply a partial update and return the stored entry, or None if not found."""
         pass
 
     @abstractmethod

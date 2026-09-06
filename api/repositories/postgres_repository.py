@@ -26,6 +26,18 @@ class PostgresDB(DatabaseInterface):
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.pool.close()
 
+    @staticmethod
+    def _entry_from_row(row: asyncpg.Record) -> dict[str, Any]:
+        data = json.loads(row["data"])
+        return {
+            "id": row["id"],
+            "work": data["work"],
+            "struggle": data["struggle"],
+            "intention": data["intention"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
     async def create_entry(self, entry_data: dict[str, Any]) -> dict[str, Any]:
         async with self.pool.acquire() as conn:
             query = """
@@ -42,35 +54,14 @@ class PostgresDB(DatabaseInterface):
 
             # Return a clean entry format without duplication
             if row:
-                data = json.loads(row["data"])
-                return {
-                    "id": row["id"],
-                    "work": data["work"],
-                    "struggle": data["struggle"],
-                    "intention": data["intention"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
+                return self._entry_from_row(row)
             return {}
 
     async def get_all_entries(self) -> list[dict[str, Any]]:
         async with self.pool.acquire() as conn:
             query = "SELECT * FROM entries"
             rows = await conn.fetch(query)
-            entries = []
-            for row in rows:
-                data = json.loads(row["data"])
-                entries.append(
-                    {
-                        "id": row["id"],
-                        "work": data["work"],
-                        "struggle": data["struggle"],
-                        "intention": data["intention"],
-                        "created_at": row["created_at"],
-                        "updated_at": row["updated_at"],
-                    }
-                )
-            return entries
+            return [self._entry_from_row(row) for row in rows]
 
     async def get_entry(self, entry_id: str) -> dict[str, Any] | None:
         async with self.pool.acquire() as conn:
@@ -78,29 +69,24 @@ class PostgresDB(DatabaseInterface):
             row = await conn.fetchrow(query, entry_id)
 
             if row:
-                data = json.loads(row["data"])
-                return {
-                    "id": row["id"],
-                    "work": data["work"],
-                    "struggle": data["struggle"],
-                    "intention": data["intention"],
-                    "created_at": row["created_at"],
-                    "updated_at": row["updated_at"],
-                }
+                return self._entry_from_row(row)
             return None
 
-    async def update_entry(self, entry_id: str, updated_data: dict[str, Any]) -> None:
-        updated_data["id"] = entry_id
-
+    async def update_entry(
+        self, entry_id: str, updated_data: dict[str, Any]
+    ) -> dict[str, Any] | None:
         data_json = json.dumps(updated_data, default=PostgresDB.datetime_serialize)
 
         async with self.pool.acquire() as conn:
+            # Merge into the current row under PostgreSQL's update lock, not an earlier snapshot.
             query = """
             UPDATE entries
-            SET data = $2, updated_at = $3
+            SET data = data || $2::jsonb, updated_at = $3
             WHERE id = $1
+            RETURNING *
             """
-            await conn.execute(query, entry_id, data_json, updated_data["updated_at"])
+            row = await conn.fetchrow(query, entry_id, data_json, updated_data["updated_at"])
+            return self._entry_from_row(row) if row else None
 
     async def delete_entry(self, entry_id: str) -> None:
         async with self.pool.acquire() as conn:

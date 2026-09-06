@@ -29,7 +29,7 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --locked --all-extras
+        run: uv sync --locked
 
       - name: Ruff check
         run: uv run ruff check .
@@ -46,7 +46,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -64,6 +64,7 @@ jobs:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: career_journal
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal_test
       # Required by api.config.Settings so the app boots. Tests never call a
       # real LLM — Task 4 uses an injected MockAsyncOpenAI client — so these
       # values are never used for network requests.
@@ -83,13 +84,14 @@ jobs:
         run: uv python install 3.14
 
       - name: Install dependencies
-        run: uv sync --locked --all-extras
+        run: uv sync --locked
 
-      - name: Initialize database schema
+      - name: Initialize application and test databases
         run: |
           PGPASSWORD=postgres psql \
             -h localhost -U postgres -d career_journal \
-            -f database_setup.sql
+            -v ON_ERROR_STOP=1 \
+            -f database_setup.sql -f database_setup_test.sql
 
       - name: Run tests
         run: uv run pytest -v

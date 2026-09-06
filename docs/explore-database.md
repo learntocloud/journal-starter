@@ -1,5 +1,7 @@
 # Explore Your Database
 
+[README](../README.md) > [Tasks](tasks.md) > Database exploration
+
 Want to see your data directly in the database? You can connect to PostgreSQL using VS Code's PostgreSQL extension.
 
 ## 1. Install PostgreSQL Extension
