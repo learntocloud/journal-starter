@@ -1,4 +1,7 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
+from openai import APITimeoutError, OpenAIError, RateLimitError
 from pydantic import ValidationError
 
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
@@ -7,6 +10,7 @@ from api.services.entry_service import EntryService
 from api.services.llm_service import analyze_journal_entry
 
 router = APIRouter()
+logger = logging.getLogger("journal")
 
 
 async def get_database(request: Request) -> PostgresDB:
@@ -142,8 +146,21 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
             detail="LLM analysis not yet implemented - see api/services/llm_service.py",
         ) from e
     except ValidationError as e:
+        logger.exception("Invalid analysis response for entry %s", entry_id)
         raise HTTPException(
             status_code=502, detail="Analysis provider returned an invalid response"
         ) from e
+    except APITimeoutError as e:
+        logger.exception("Analysis provider timed out for entry %s", entry_id)
+        raise HTTPException(status_code=504, detail="Analysis provider timed out") from e
+    except RateLimitError as e:
+        logger.exception("Analysis provider rate limit reached for entry %s", entry_id)
+        raise HTTPException(
+            status_code=503, detail="Analysis provider is temporarily unavailable"
+        ) from e
+    except OpenAIError as e:
+        logger.exception("Analysis provider request failed for entry %s", entry_id)
+        raise HTTPException(status_code=502, detail="Analysis provider request failed") from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {e!s}") from e
+        logger.exception("Analysis failed for entry %s", entry_id)
+        raise HTTPException(status_code=500, detail="Analysis failed") from e

@@ -605,9 +605,22 @@ Before returning an analysis:
    and return the validated model's dictionary representation.
 
 Let provider, parsing, and validation errors surface rather than catching them
-and returning success. The existing router returns 501 for the unfinished TODO,
-502 for a Pydantic validation failure, and 500 for other analysis exceptions.
-The live verification command must fail when analysis fails.
+and returning success. The existing router maps failures to stable public
+responses without returning raw exception text:
+
+| Failure | HTTP status | Public `detail` |
+|---------|-------------|-----------------|
+| Unfinished analysis TODO | 501 | Guidance to implement `llm_service.py` |
+| Analysis fails Pydantic validation | 502 | `Analysis provider returned an invalid response` |
+| Provider timeout | 504 | `Analysis provider timed out` |
+| Provider rate limit | 503 | `Analysis provider is temporarily unavailable` |
+| Other OpenAI SDK error, including provider authentication or connection failure | 502 | `Analysis provider request failed` |
+| Unexpected error, including malformed JSON | 500 | `Analysis failed` |
+
+Provider, validation, and unexpected exceptions are logged server-side with the
+entry ID and traceback using the `journal` logger. Inspect the API terminal to
+diagnose failures; do not expose these diagnostics in client responses.
+The live verification command must also fail when analysis fails.
 
 The mocked tests exercise the SDK call and result shape, but cannot prove that a
 provider accepts your chosen model, schema, or credentials. The live verification

@@ -10,10 +10,21 @@ These tests verify that the API endpoints work correctly, including:
 - Error handling (404, validation errors, etc.)
 """
 
+import json
+import logging
 from unittest.mock import patch
 
 import pytest
-from httpx import AsyncClient
+from httpx import AsyncClient, Request, Response
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    InternalServerError,
+    RateLimitError,
+)
+
+PROVIDER_REQUEST = Request("POST", "https://example.invalid/v1/responses")
 
 
 class TestCreateEntry:
@@ -340,15 +351,107 @@ class TestAnalyzeEntry:
         assert response.status_code == 502
         assert response.json() == {"detail": "Analysis provider returned an invalid response"}
 
+    @pytest.mark.parametrize(
+        "error",
+        [
+            RuntimeError("internal-only diagnostic marker"),
+            json.JSONDecodeError("internal parsing diagnostic", "not JSON", 0),
+        ],
+    )
     @patch("api.routers.journal_router.analyze_journal_entry")
     async def test_analyze_entry_handles_llm_error(
-        self, mock_analyze, test_client: AsyncClient, created_entry: dict
+        self, mock_analyze, test_client: AsyncClient, created_entry: dict, caplog, error
     ):
-        """Test that LLM errors are handled gracefully, not as raw 500s."""
-        mock_analyze.side_effect = Exception("LLM API key is invalid")
+        """Unexpected errors are logged but their details are not returned to clients."""
+        mock_analyze.side_effect = error
 
-        response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+        with caplog.at_level(logging.ERROR, logger="journal"):
+            response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
 
-        # Should return a handled error with a JSON detail message
         assert response.status_code == 500
-        assert "detail" in response.json()
+        assert response.json() == {"detail": "Analysis failed"}
+        assert str(error) not in response.text
+        assert str(error) in caplog.text
+        assert any(
+            record.name == "journal"
+            and record.exc_info
+            and record.exc_info[1] is error
+            and created_entry["id"] in record.getMessage()
+            for record in caplog.records
+        )
+
+    @pytest.mark.parametrize(
+        ("error", "expected_status", "expected_detail"),
+        [
+            pytest.param(
+                APITimeoutError(request=PROVIDER_REQUEST),
+                504,
+                "Analysis provider timed out",
+                id="timeout",
+            ),
+            pytest.param(
+                RateLimitError(
+                    "internal quota diagnostic",
+                    response=Response(429, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                503,
+                "Analysis provider is temporarily unavailable",
+                id="rate-limit",
+            ),
+            pytest.param(
+                APIConnectionError(
+                    message="internal connection diagnostic", request=PROVIDER_REQUEST
+                ),
+                502,
+                "Analysis provider request failed",
+                id="connection",
+            ),
+            pytest.param(
+                AuthenticationError(
+                    "internal credential diagnostic",
+                    response=Response(401, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                502,
+                "Analysis provider request failed",
+                id="authentication",
+            ),
+            pytest.param(
+                InternalServerError(
+                    "internal provider diagnostic",
+                    response=Response(500, request=PROVIDER_REQUEST),
+                    body=None,
+                ),
+                502,
+                "Analysis provider request failed",
+                id="provider-server-error",
+            ),
+        ],
+    )
+    @patch("api.routers.journal_router.analyze_journal_entry")
+    async def test_analyze_entry_maps_provider_errors(
+        self,
+        mock_analyze,
+        test_client: AsyncClient,
+        created_entry: dict,
+        caplog,
+        error,
+        expected_status,
+        expected_detail,
+    ):
+        mock_analyze.side_effect = error
+
+        with caplog.at_level(logging.ERROR, logger="journal"):
+            response = await test_client.post(f"/entries/{created_entry['id']}/analyze")
+
+        assert response.status_code == expected_status
+        assert response.json() == {"detail": expected_detail}
+        assert str(error) not in response.text
+        assert any(
+            record.name == "journal"
+            and record.exc_info
+            and record.exc_info[1] is error
+            and created_entry["id"] in record.getMessage()
+            for record in caplog.records
+        )
