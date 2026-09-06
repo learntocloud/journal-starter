@@ -42,20 +42,19 @@ class EntryService:
     ) -> dict[str, Any] | None:
         """Updates an existing entry."""
         logger.info("Updating entry %s", entry_id)
-        existing_entry = await self.db.get_entry(entry_id)
-        if not existing_entry:
+        changes = {
+            field: value
+            for field, value in updated_data.items()
+            if field in ("work", "struggle", "intention")
+        }
+        changes["updated_at"] = datetime.now(UTC)
+        result = await self.db.update_entry(entry_id, changes)
+        if result is None:
             logger.warning("Entry %s not found. Update aborted.", entry_id)
             return None
 
-        updated_data = {
-            **existing_entry,
-            **updated_data,
-            "id": entry_id,
-            "updated_at": datetime.now(UTC),
-        }
-        await self.db.update_entry(entry_id, updated_data)
         logger.debug("Entry %s updated", entry_id)
-        return updated_data
+        return result
 
     async def delete_entry(self, entry_id: str) -> None:
         """Deletes a specific entry."""

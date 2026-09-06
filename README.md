@@ -200,6 +200,12 @@ for tests and other commands. Stop the server with `Ctrl+C`; run the same
 
 This project comes with several features **already built** for you — creating entries, listing entries, updating, and deleting all entries. The remaining features are left for you to implement.
 
+The pre-built update path sends only changed text fields to PostgreSQL. A single
+`UPDATE` merges those fields into the current JSONB document and returns the
+stored entry, so concurrent updates to different fields do not overwrite each
+other. If two requests change the same field, the last database update wins.
+Entry IDs and timestamps remain application-managed.
+
 We have provided tests so you can verify your implementations are correct without manual testing. **When you first run the tests, some will pass (for the pre-built features) and some will fail (for the features you need to build).** Your goal is to make all tests pass.
 
 > 📍 **Where to run commands:** All commands in this section should be run from the **project root** in the **VS Code terminal** (inside the dev container). Do **not** `cd` into subdirectories like `api/` or `tests/` — run everything from the top-level project folder.

@@ -5,6 +5,11 @@ These tests verify that the service layer correctly interacts with the database
 and handles business logic properly.
 """
 
+import asyncio
+from datetime import UTC, datetime
+
+import pytest
+
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
 
@@ -100,6 +105,64 @@ class TestEntryService:
         assert result["work"] == "Updated work"
         assert result["struggle"] == entry_data["struggle"]  # Unchanged
         assert result["intention"] == entry_data["intention"]  # Unchanged
+        assert await test_db.get_entry("test-update") == result
+
+    @pytest.mark.parametrize(
+        ("first_field", "second_field"),
+        [("work", "struggle"), ("work", "intention"), ("struggle", "intention")],
+    )
+    async def test_concurrent_updates_preserve_different_fields(
+        self, test_db: PostgresDB, sample_entry_data: dict, monkeypatch, first_field, second_field
+    ):
+        service = EntryService(test_db)
+        entry = await service.create_entry({"id": "concurrent-entry", **sample_entry_data})
+        ready_to_write = asyncio.Barrier(2)
+        original_update = test_db.update_entry
+
+        async def synchronized_update(entry_id, changes):
+            await ready_to_write.wait()
+            return await original_update(entry_id, changes)
+
+        monkeypatch.setattr(test_db, "update_entry", synchronized_update)
+        async with asyncio.timeout(20):
+            results = await asyncio.gather(
+                service.update_entry(entry["id"], {first_field: "First update"}),
+                service.update_entry(entry["id"], {second_field: "Second update"}),
+            )
+
+        assert all(result is not None for result in results)
+        stored = await test_db.get_entry(entry["id"])
+        assert stored is not None
+        assert stored[first_field] == "First update"
+        assert stored[second_field] == "Second update"
+        for field in ("work", "struggle", "intention"):
+            if field not in (first_field, second_field):
+                assert stored[field] == sample_entry_data[field]
+        assert stored["created_at"] == entry["created_at"]
+
+    async def test_update_preserves_server_owned_fields(
+        self, test_db: PostgresDB, sample_entry_data: dict
+    ):
+        service = EntryService(test_db)
+        entry = await service.create_entry({"id": "immutable-fields", **sample_entry_data})
+        supplied_timestamp = datetime(2000, 1, 1, tzinfo=UTC)
+
+        result = await service.update_entry(
+            entry["id"],
+            {
+                "id": "replacement-id",
+                "created_at": supplied_timestamp,
+                "updated_at": supplied_timestamp,
+                "work": "Updated work",
+            },
+        )
+
+        assert result is not None
+        assert result["id"] == entry["id"]
+        assert result["created_at"] == entry["created_at"]
+        assert result["updated_at"] != supplied_timestamp
+        assert result["work"] == "Updated work"
+        assert await test_db.get_entry(entry["id"]) == result
 
     async def test_update_nonexistent_entry(self, test_db: PostgresDB):
         """Test updating an entry that doesn't exist."""
