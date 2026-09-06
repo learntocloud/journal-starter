@@ -1,6 +1,7 @@
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.2
+    # Keep this version aligned with Ruff in uv.lock.
+    rev: v0.15.0
     hooks:
       - id: ruff-check
         args: [--fix]

@@ -4,7 +4,13 @@
 
 Welcome to your Python capstone project! You'll be working with a **FastAPI + PostgreSQL** application that helps people track their daily learning journey. This will prepare you for deploying to the cloud in the next phase.
 
-By the end of this capstone, your API should be working locally and ready for cloud deployment.
+By the end of this capstone, your API should be working locally and ready for
+the next phase's cloud deployment exercises.
+
+This is a learning application, not a production-ready service. It has no
+authentication or per-user data isolation: anyone with access to the API can
+operate on the shared journal entries. Keep it in a controlled learning
+environment; add appropriate access controls before exposing it publicly.
 
 ## ⚠️ Important: This Is a Template Repository
 
@@ -55,16 +61,16 @@ Run these commands on your **host machine** (your local terminal, not inside a c
    git clone https://github.com/YOUR_USERNAME/journal-starter.git
    ```
 
-   **Verify your remote** points to your fork (not `learntocloud`):
-   ```bash
-   git remote -v
-   # Should show: origin  https://github.com/YOUR_USERNAME/journal-starter.git
-   ```
-
 1. **Navigate into the project folder**:
 
    ```bash
    cd journal-starter
+   ```
+
+   **Verify your remote** points to your fork (not `learntocloud`):
+   ```bash
+   git remote -v
+   # Should show: origin  https://github.com/YOUR_USERNAME/journal-starter.git
    ```
 
 1. **Open in VS Code**:
@@ -214,7 +220,11 @@ stored entry, so concurrent updates to different fields do not overwrite each
 other. If two requests change the same field, the last database update wins.
 Entry IDs and timestamps remain application-managed.
 
-We have provided tests so you can verify your implementations are correct without manual testing. **When you first run the tests, some will pass (for the pre-built features) and some will fail (for the features you need to build).** Your goal is to make all tests pass.
+The automated tests cover selected behaviors; they do not prove the absence of
+bugs or replace the manual acceptance steps required by Tasks 4 and 5.
+**When you first run the tests, some will pass (for the pre-built features) and
+some will fail (for the features you need to build).** Your goal is to satisfy
+every task's automated and manual acceptance criteria.
 
 > 📍 **Where to run commands:** All commands in this section should be run from the **project root** in the **VS Code terminal** (inside the dev container). Do **not** `cd` into subdirectories like `api/` or `tests/` — run everything from the top-level project folder.
 
@@ -310,25 +320,46 @@ turn all of them green.
 
 1. **Create a branch**
 
-   [Branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches) let you work on features in isolation without affecting the main codebase. From the **project root**, create one for each task:
+   [Branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)
+   let you work on features in isolation. Before starting the next task, review
+   and merge the previous task's PR into **your fork's `main`** as described in
+   step 5. Commit any work you intend to keep on its current branch, then check
+   that your working tree is clean:
+
    ```bash
+   git status
+   ```
+
+   From the **project root**, update local `main` and create the new task branch:
+
+   ```bash
+   git checkout main &&
+   git pull --ff-only origin main &&
    git checkout -b feature/your-feature-name
    ```
 
+   Replace the feature branch name with the one listed for your task. The `&&`
+   operators stop the sequence if a command fails. If the fast-forward fails,
+   reconcile your local and remote commits before continuing; do not reset or
+   force-push to discard them.
+
 2. **Implement the feature**
 
-   Write your code in the `api/` directory. Check the TODO comments in the files for guidance on what to implement.
+   Edit the files listed for your task. Check their TODO comments for guidance
+   on what to implement.
 
 3. **Run the tests**
 
-   After implementing a feature, run the tests from the **project root** to check if your implementation is correct:
+   First run the acceptance commands listed for your task. You can also run the
+   full suite from the **project root** to look for regressions; tests for other
+   unfinished tasks are still expected to fail:
    ```bash
    uv run pytest
    ```
    [pytest](https://docs.pytest.org/) is a testing framework that runs automated tests to verify your code works as expected.
 
-   - **Tests failing?** Read the error messages — they tell you exactly what's wrong (e.g., `assert 501 == 200` means your endpoint is still returning "Not Implemented").
-   - **Tests passing?** Great, your implementation is correct! Move on to the next step.
+   - **Tests failing?** Inspect the traceback to distinguish an assertion failure from a setup problem, such as a missing setting or unavailable database. For example, `assert 501 == 200` means the endpoint is still returning "Not Implemented".
+   - **Tests passing?** The covered checks passed. Confirm the task's complete acceptance criteria, including any manual steps, before moving on; passing tests do not guarantee every edge case is correct.
 
    **Example: Before implementing GET /entries/{entry_id}:**
    ```
@@ -363,9 +394,11 @@ turn all of them green.
    ```
    A type checker verifies that your code uses [type hints](https://docs.python.org/3/library/typing.html) correctly. Type hints (like `def get_entry(entry_id: str) -> dict:`) help catch bugs early by ensuring you're passing the right types of data to functions. [Pyright](https://github.com/microsoft/pyright) is Microsoft's fast Python type checker.
 
-4. **Commit and push** (only after tests pass!)
+4. **Commit and push** (after the current task's acceptance checks pass)
 
-   Once the tests for your feature are passing, [commit](https://docs.github.com/en/get-started/using-git/about-commits) your changes and push to GitHub. Run from the **project root**:
+   Once the automated and applicable manual checks for your task pass,
+   [commit](https://docs.github.com/en/get-started/using-git/about-commits)
+   your changes and push to GitHub. Run from the **project root**:
 
    ```bash
    git add .
@@ -379,7 +412,7 @@ turn all of them green.
    git push -u origin feature/your-feature-name
    ```
 
-5. **Create a Pull Request (on your fork)**
+5. **Create and merge a Pull Request (on your fork)**
 
    Go to **your fork** on GitHub (`github.com/YOUR_USERNAME/journal-starter`) and open a [Pull Request (PR)](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests) to merge your feature branch into **your own** `main` branch.
 
@@ -389,21 +422,30 @@ turn all of them green.
 
    ![Core Base Repository Selection](docs/pr_example.png)
 
-> ⚠️ Do not modify the test files. Make the tests pass by implementing features in the `api/` directory. If a test is failing, it means there's something left to implement — read the error message for clues!
+   Review the changes and merge the PR into your fork's `main` before starting
+   the next task. Intermediate PRs can still have CI failures for other
+   unfinished tasks, as explained below; do not disable tests to get a green
+   check. The current task's acceptance criteria must be satisfied.
+
+> ⚠️ Do not modify the supplied test files for the capstone. Implement each task
+> in its listed files. A failure may indicate an implementation issue or an
+> environment/setup problem; use the error output to diagnose it rather than
+> assuming every failure is an unfinished feature.
 
 ## 🤖 Continuous Integration
 
-Every push and pull request runs the GitHub Actions workflow in
-`.github/workflows/ci.yml`, which has two jobs:
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs on **pushes to
+`main`** and **pull requests targeting `main`**. Pushing a feature branch without
+an open PR does not trigger this workflow. It has two jobs:
 
 | Job  | What it checks | How to reproduce locally |
 |------|----------------|--------------------------|
 | `lint` | `ruff check`, `ruff format --check`, `pyright` | `uv run ruff check . && uv run ruff format --check . && uv run pyright` |
-| `test` | `pytest -v` against a dedicated test database in a real Postgres 16 service container, provisioned by `database_setup_test.sql` using the shared schema | `uv run pytest -v` |
+| `test` | `pytest -v` against a dedicated test database in a real PostgreSQL 15 service container, provisioned by `database_setup_test.sql` using the shared schema | `uv run pytest -v` |
 
-Both jobs run on every push to `main` and every PR. Your fork will
-show two green checks on a PR once **all** your implementations are complete
-(i.e., Tasks 1–4 are finished). Intermediate PRs that cover only some
+CI and the devcontainer both use PostgreSQL 15. With workflows enabled, your
+fork can show two green checks on a PR when **all** Tasks 1–4 are complete and
+the code-quality checks pass. Intermediate PRs that cover only some
 tasks will still have failing tests in CI — that's expected.
 CI intentionally receives no learner or provider credentials. The `test`
 job uses a disposable Postgres service container, and Task 4 is exercised
