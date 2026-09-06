@@ -95,7 +95,8 @@ your chosen LLM provider when you reach
 > **Why are the placeholders needed?** The app uses
 > [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
 > to validate configuration when settings are first loaded. If a required setting
-> is missing, `Settings()` raises a `ValidationError`. Tests never
+> is missing, `Settings()` raises a `ValidationError`. The API loads settings
+> during startup, before opening its database pool. Tests never
 > contact the placeholder endpoint because Task 4 uses an injected mock client.
 
 ### 3. Set Up Your Development Environment
@@ -122,6 +123,13 @@ from the project root. PostgreSQL receives its initialization settings through
 Docker Compose's `env_file`; the development container deliberately does not.
 Explicitly exported environment variables still override `.env`, as they do in
 cloud deployments.
+
+The API's lifespan creates one database connection pool per server process at
+startup and closes it at shutdown. Requests share that pool, acquiring a
+connection only while performing a database operation. Invalid settings or an
+unreachable database prevent startup rather than failing on the first request.
+Compose waits for PostgreSQL to be healthy before starting the development
+container.
 
 #### Restarting versus rebuilding
 
@@ -215,7 +223,9 @@ We have provided tests so you can verify your implementations are correct withou
 **Tests reset the test database; your journal entries are preserved.**
 The running API uses `DATABASE_URL` (`career_journal`), while database-backed
 tests use only `TEST_DATABASE_URL` (`career_journal_test`). Test requests are
-configured to use that separate database too. Never store personal entries in
+configured to use that separate database through a database dependency override;
+their HTTP client does not start the production lifespan. Dedicated lifespan
+tests explicitly supply the test database to startup as well. Never store personal entries in
 the test database: its entries are deleted before and after every database-backed
 test.
 
@@ -672,6 +682,8 @@ model or deployment supports the OpenAI Responses API.
 - Verify `.env` file exists with correct `DATABASE_URL`
 - Check the PostgreSQL container is running and restart the API after editing
   its connection settings. Rebuilding does not reset existing database credentials.
+- The API opens its shared connection pool during startup. If PostgreSQL is
+  unavailable, start it first, then restart the API.
 
 **Edited `.env`, but the API still uses old values?**
 - Stop and restart the API; automatic Python reload does not watch `.env` by default.

@@ -15,8 +15,7 @@ from pydantic import ValidationError
 
 from api.main import app
 from api.repositories.postgres_repository import PostgresDB
-from api.routers.journal_router import get_entry_service
-from api.services.entry_service import EntryService
+from api.routers.journal_router import get_database
 from tests.database_settings import DatabaseTestSettings
 
 
@@ -77,10 +76,11 @@ async def test_client(test_db: PostgresDB, monkeypatch) -> AsyncGenerator[AsyncC
     This client can make requests to the API without starting a server.
     """
 
-    def override_entry_service() -> EntryService:
-        return EntryService(test_db)
+    def override_database() -> PostgresDB:
+        return test_db
 
-    monkeypatch.setitem(app.dependency_overrides, get_entry_service, override_entry_service)
+    # ASGITransport does not start the app lifespan, so the application database is never opened.
+    monkeypatch.setitem(app.dependency_overrides, get_database, override_database)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

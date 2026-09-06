@@ -1,9 +1,6 @@
-from collections.abc import AsyncGenerator
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import ValidationError
 
-from api.config import Settings, get_settings
 from api.models.entry import AnalysisResponse, Entry, EntryCreate
 from api.repositories.postgres_repository import PostgresDB
 from api.services.entry_service import EntryService
@@ -12,11 +9,12 @@ from api.services.llm_service import analyze_journal_entry
 router = APIRouter()
 
 
-async def get_entry_service(
-    settings: Settings = Depends(get_settings),
-) -> AsyncGenerator[EntryService]:
-    async with PostgresDB(settings.database_url) as db:
-        yield EntryService(db)
+async def get_database(request: Request) -> PostgresDB:
+    return request.app.state.database
+
+
+async def get_entry_service(database: PostgresDB = Depends(get_database)) -> EntryService:
+    return EntryService(database)
 
 
 @router.post("/entries", status_code=201)

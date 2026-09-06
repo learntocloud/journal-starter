@@ -42,15 +42,11 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """FastAPI dependency that returns a cached ``Settings`` instance.
+    """Return cached settings for application startup and LLM client construction.
 
-    Tests can override this with::
-
-        app.dependency_overrides[get_settings] = lambda: Settings(
-            database_url="...",
-            openai_api_key="...",
-            openai_base_url="https://example.invalid/v1",
-            openai_model="...",
-        )
+    The lifespan loads settings before opening the shared database pool.
+    Database-backed tests override the router's ``get_database`` dependency
+    instead; overriding this function as a FastAPI dependency does not change
+    startup settings. Restart the API after editing configuration.
     """
     return Settings()  # type: ignore[call-arg]
