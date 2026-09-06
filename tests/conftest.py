@@ -34,7 +34,7 @@ def test_database_url() -> str:
         raise pytest.UsageError(
             "Unsafe or missing test database configuration. Set DATABASE_URL and "
             "TEST_DATABASE_URL to different database names; the test database name "
-            f"must end in '_test'. See README.md for setup instructions.\n{exc}"
+            f"must end in '_test'. See docs/workflow.md for setup instructions.\n{exc}"
         ) from exc
     return str(settings.test_database_url)
 

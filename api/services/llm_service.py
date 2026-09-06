@@ -60,7 +60,8 @@ async def analyze_journal_entry(
       3. Call ``client.responses.create(...)`` with ``get_settings().openai_model``.
          Prefer structured output via ``text={"format": {"type": "json_schema",
          ...}}`` on a supported model. JSON mode is an alternative, but it does
-         not enforce your schema. See README.md's "Requesting structured output".
+         not enforce your schema. See "Requesting structured output" in
+         docs/ai-analysis.md.
       4. Reject incomplete responses, refusals, or empty output rather than
          inventing a successful analysis. ``output_text`` is a string, not a
          guarantee of JSON; parsing malformed output with ``json.loads()`` must
