@@ -25,6 +25,7 @@ def _make_response(output_text: str) -> Response:
             "created_at": 0,
             "model": "test-model",
             "object": "response",
+            "status": "completed",
             "output": [
                 {
                     "id": "msg_test",
@@ -97,7 +98,7 @@ async def test_analyze_entry_sends_entry_text_in_prompt():
 
     call = client.create_calls[0]
     assert "input" in call
-    assert "FastAPI" in json.dumps(call["input"])
+    assert SAMPLE_ENTRY_TEXT in json.dumps(call["input"])
 
 
 async def test_analyze_entry_returns_valid_analysis_response():

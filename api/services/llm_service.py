@@ -51,13 +51,23 @@ async def analyze_journal_entry(
             }
 
     TODO (Task 4):
-      1. If ``client is None``, call ``_default_client()`` to construct one.
-      2. Build an input that includes ``entry_text`` somewhere
-         (the unit tests check that the entry text reaches the LLM).
-      3. Call ``client.responses.create(...)`` with a model name
-         (use ``get_settings().openai_model``).
-      4. Parse ``response.output_text`` with ``json.loads()``.
-      5. Return a dict with ``entry_id``, ``sentiment``, ``summary``, ``topics``.
+      1. If ``client is None``, call ``_default_client()``. Close clients you
+         create when finished; do not close a client supplied by the caller.
+      2. Include the full ``entry_text`` in the input and instruct the model to
+         return JSON containing sentiment, summary, and topics. Request the
+         allowed sentiments, a brief summary (aim for two sentences), and 2-4
+         nonempty topics.
+      3. Call ``client.responses.create(...)`` with ``get_settings().openai_model``.
+         Prefer structured output via ``text={"format": {"type": "json_schema",
+         ...}}`` on a supported model. JSON mode is an alternative, but it does
+         not enforce your schema. See README.md's "Requesting structured output".
+      4. Reject incomplete responses, refusals, or empty output rather than
+         inventing a successful analysis. ``output_text`` is a string, not a
+         guarantee of JSON; parsing malformed output with ``json.loads()`` must
+         fail explicitly. Do not swallow provider or parsing errors.
+      5. Add ``entry_id`` from the function argument, not from model output.
+         Validate the result with ``AnalysisResponse`` and return its dictionary
+         representation. The response model supplies ``created_at``.
     """
     raise NotImplementedError(
         "Task 4: implement analyze_journal_entry using the openai SDK. "
