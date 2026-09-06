@@ -1,10 +1,10 @@
 services:
   devcontainer:
     image: mcr.microsoft.com/devcontainers/python:3-3.14-bookworm
+    # The app reads the mounted .env directly instead of a container-environment snapshot.
     volumes:
       - ..:/workspaces:cached
     command: sleep infinity
-    env_file: ["../.env"]
   postgres:
     image: postgres:15
     ports:

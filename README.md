@@ -94,8 +94,8 @@ your chosen LLM provider when you reach
 
 > **Why are the placeholders needed?** The app uses
 > [`pydantic-settings`](https://docs.pydantic.dev/latest/concepts/pydantic_settings/)
-> to validate configuration at startup. If a required setting is missing,
-> `Settings()` raises a `ValidationError` before FastAPI boots. Tests never
+> to validate configuration when settings are first loaded. If a required setting
+> is missing, `Settings()` raises a `ValidationError`. Tests never
 > contact the placeholder endpoint because Task 4 uses an injected mock client.
 
 ### 3. Set Up Your Development Environment
@@ -103,8 +103,47 @@ your chosen LLM provider when you reach
 1. **Install the Dev Containers extension** in VS Code (if not already installed)
 2. **Reopen in container**: When VS Code detects the `.devcontainer` folder, click "Reopen in Container"
    - Or use Command Palette (`Cmd/Ctrl + Shift + P`): `Dev Containers: Reopen in Container`
-3. **Wait for setup**: The API container will automatically install Python, dependencies, and configure your environment.
-   The PostgreSQL Database container will also automatically be created.
+3. **Wait for setup**: The development container provides Python and uv.
+   A separate PostgreSQL container is also created. Starting the API in step 5
+   installs the application's Python dependencies; development tools are
+   installed under [First-Time Setup](#first-time-setup).
+
+#### Where things run
+
+| Location | What it provides |
+|----------|------------------|
+| Your host machine | VS Code, Git, and Docker Desktop; run Docker commands here |
+| Development container | Python, uv, the API, tests, and your chosen cloud CLI; use the VS Code terminal here |
+| PostgreSQL container | The `career_journal` application database and separate `career_journal_test` database |
+| Named Docker volume (`postgres_data`) | Database files that survive container restarts and rebuilds |
+
+The repository, including `.env`, is mounted at `/workspaces` in the development
+container. The application and test settings read that file directly when run
+from the project root. PostgreSQL receives its initialization settings through
+Docker Compose's `env_file`; the development container deliberately does not.
+Explicitly exported environment variables still override `.env`, as they do in
+cloud deployments.
+
+#### Restarting versus rebuilding
+
+| What changed? | What to do |
+|---------------|------------|
+| Python application code | The API's `--reload` mode normally reloads it automatically |
+| Application settings in `.env`, such as `OPENAI_*` | Stop the API with `Ctrl+C` and start it again; `.env` is not watched by default, and settings are cached |
+| Devcontainer image, features, or Compose configuration | Run **Dev Containers: Rebuild Container** from the VS Code Command Palette |
+
+**Upgrading an existing devcontainer:** Rebuild it once after pulling this
+configuration change. Restarting the API or the old container alone does not
+remove previously injected environment variables. After rebuilding, application
+settings changes only need an API restart; scripts and test commands load the
+file when started again.
+
+Rebuilding does not delete the PostgreSQL volume or re-run database initialization
+scripts against an existing volume. Changing `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+or `POSTGRES_DB` in `.env` also does not change an already initialized database.
+Keep the sample database settings unless you intentionally update the database
+itself. Do not delete the volume to troubleshoot configuration: it contains your
+journal entries.
 
 ### 4. Verify the PostgreSQL Database Is Running
 
@@ -122,7 +161,7 @@ In the **VS Code terminal** (inside the dev container), verify you're in the **p
 
 ```bash
 pwd
-# Should output: /workspaces/journal-starter (or similar)
+# Should output: /workspaces
 ```
 
 Then start the API from the **project root**:
@@ -219,7 +258,7 @@ FAILED tests/test_api.py::TestUpdateEntry::test_update_rejects_empty_string
 FAILED tests/test_llm_service.py::test_analyze_entry_actually_calls_llm
 FAILED tests/test_llm_service.py::test_analyze_entry_sends_entry_text_in_prompt
 FAILED tests/test_llm_service.py::test_analyze_entry_returns_valid_analysis_response
-===================== 18 failed, 48 passed =====================
+===================== 18 failed, 50 passed =====================
 ```
 
 The passing tests cover features that are **already built** for you
@@ -474,7 +513,12 @@ OPENAI_MODEL=<your provider model ID or deployment name>
 These variables are loaded by [`api/config.py`](api/config.py)'s `Settings`
 class. All three are required because endpoints and model names differ between
 providers. If you mistype a variable name, `Settings()` will raise a
-`ValidationError` at app startup naming the missing field.
+`ValidationError` when settings are loaded, naming the missing field.
+
+After replacing the placeholders, restart any running API so it reads the new
+values. You do not need to rebuild the devcontainer for these edits once you
+have applied the one-time configuration upgrade described under
+[Restarting versus rebuilding](#restarting-versus-rebuilding).
 
 For Microsoft Foundry, create a model deployment and copy its endpoint, key,
 and deployment name from the portal. See the
@@ -502,7 +546,7 @@ model or deployment supports the OpenAI Responses API.
 - Check PostgreSQL is running: `docker ps` (on your **host machine**)
 - Restart the database: `docker restart your-postgres-container-name` (on your **host machine**)
 
-**`pydantic_core._pydantic_core.ValidationError` on startup?**
+**`pydantic_core._pydantic_core.ValidationError` when settings load?**
 - One of the required env vars in your `.env` file is missing or mistyped.
   The error message names the field (e.g. `database_url` or `openai_api_key`).
   Add it to `.env` — the defaults in [`.env-sample`](.env-sample) are a good
@@ -510,7 +554,15 @@ model or deployment supports the OpenAI Responses API.
 
 **Can't connect to database?**
 - Verify `.env` file exists with correct `DATABASE_URL`
-- Restart dev container: `Dev Containers: Rebuild Container`
+- Check the PostgreSQL container is running and restart the API after editing
+  its connection settings. Rebuilding does not reset existing database credentials.
+
+**Edited `.env`, but the API still uses old values?**
+- Stop and restart the API; automatic Python reload does not watch `.env` by default.
+- If this devcontainer predates the configuration change, rebuild it once to
+  remove the old container-injected settings.
+- Remove any conflicting variables you explicitly exported in your terminal;
+  process environment variables take precedence over `.env`.
 
 **Database-backed tests fail during setup?**
 - Check `TEST_DATABASE_URL` in `.env` points to the dedicated test database,
