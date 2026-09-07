@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled, edited]
 
 permissions:
   contents: read
@@ -15,7 +16,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Lint
+    name: Code quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,8 +41,8 @@ jobs:
       - name: Pyright type check
         run: uv run pyright
 
-  test:
-    name: Test
+  safeguards:
+    name: Starter safeguards
     runs-on: ubuntu-latest
 
     services:
@@ -66,7 +67,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal_test
       # Required by api.config.Settings so the app boots. Tests never call a
-      # real LLM — Task 4 uses an injected MockAsyncOpenAI client — so these
+      # real LLM — Task 4 uses an SDK client with a mocked HTTP transport — so these
       # values are never used for network requests.
       OPENAI_API_KEY: ci-placeholder-not-used-by-mock
       OPENAI_BASE_URL: https://example.invalid/v1
@@ -93,5 +94,59 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f database_setup.sql -f database_setup_test.sql
 
-      - name: Run tests
-        run: uv run pytest -v
+      - name: Run starter safeguards
+        run: uv run pytest -m "not exercise" -v
+
+  task:
+    name: Task acceptance
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: career_journal
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: career_journal
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal_test
+      OPENAI_API_KEY: ci-placeholder-not-used-by-mock
+      OPENAI_BASE_URL: https://example.invalid/v1
+      OPENAI_MODEL: ci-placeholder-not-used-by-mock
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.14
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Initialize application and test databases
+        run: |
+          PGPASSWORD=postgres psql \
+            -h localhost -U postgres -d career_journal \
+            -v ON_ERROR_STOP=1 \
+            -f database_setup.sql -f database_setup_test.sql
+
+      - name: Run selected task and preceding exercises
+        run: uv run python -m scripts.ci_tests --event "$GITHUB_EVENT_PATH"

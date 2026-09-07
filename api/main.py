@@ -1,28 +1,28 @@
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
 from api.config import get_settings
+from api.logging_config import configure_logging
 from api.repositories.postgres_repository import PostgresDB
 from api.routers.journal_router import router as journal_router
 
-# TODO (Task 1): Configure logging here.
-# Reference: https://docs.python.org/3/howto/logging.html
-# Steps:
-#   1. ``import logging`` at the top of this file.
-#   2. Call ``logging.basicConfig(level=logging.INFO, format="...")``.
-#   3. Log an INFO message on startup (e.g. "Journal API starting up").
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    configure_logging()
     settings = get_settings()
     async with PostgresDB(settings.database_url) as database:
         app.state.database = database
         try:
+            # TODO (Task 3): Log API readiness at INFO after the database is ready.
             yield
         finally:
+            # TODO (Task 3): Log API shutdown at INFO during cleanup.
             del app.state.database
 
 

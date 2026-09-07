@@ -15,14 +15,15 @@ Task 4.
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
+from json import JSONDecodeError
 
+from openai import OpenAIError
 from pydantic import ValidationError
 
 from api.config import get_settings
 from api.models.entry import AnalysisResponse
-from api.services.llm_service import analyze_journal_entry
+from api.services.llm_service import InvalidAnalysisResponseError, analyze_journal_entry
 
 SAMPLE_ENTRY_ID = "verify-llm-sample"
 SAMPLE_ENTRY_TEXT = (
@@ -47,15 +48,26 @@ async def main() -> int:
         return 1
 
     print(f"Calling analyze_journal_entry for entry_id={SAMPLE_ENTRY_ID!r}...")
-    result = await analyze_journal_entry(SAMPLE_ENTRY_ID, SAMPLE_ENTRY_TEXT)
-
-    print("Raw result:")
-    print(json.dumps(result, indent=2, default=str))
+    try:
+        result = await analyze_journal_entry(SAMPLE_ENTRY_ID, SAMPLE_ENTRY_TEXT)
+    except NotImplementedError:
+        print("ERROR: complete Task 4 in api/services/llm_service.py first.", file=sys.stderr)
+        return 3
+    except OpenAIError as exc:
+        print(f"ERROR: provider request failed ({type(exc).__name__}).", file=sys.stderr)
+        return 3
+    except (JSONDecodeError, InvalidAnalysisResponseError, ValidationError) as exc:
+        print(f"ERROR: provider returned invalid analysis ({type(exc).__name__}).", file=sys.stderr)
+        return 2
 
     try:
         validated = AnalysisResponse.model_validate(result)
     except ValidationError as exc:
         print(f"ERROR: result does not validate against AnalysisResponse: {exc}", file=sys.stderr)
+        return 2
+
+    if validated.entry_id != SAMPLE_ENTRY_ID:
+        print("ERROR: analysis returned an unexpected entry_id.", file=sys.stderr)
         return 2
 
     print("\nValidated AnalysisResponse:")
