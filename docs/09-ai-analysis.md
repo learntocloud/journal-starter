@@ -2,134 +2,226 @@
 
 [Home](../README.md) · **Chapter 9 of 10**
 
-Implement the service behind **POST `/entries/{entry_id}/analyze`**.
+In this chapter, you will implement the service behind
+**POST `/entries/{entry_id}/analyze`**. The service will request an analysis,
+validate the response, and return the result to the router.
 
 ## Before You Begin
 
-- Continue on: `feature/ai-analysis`
-- PR label: `task:analysis`
-- Edit: `api/services/llm_service.py`
+1. Confirm that you are on the AI integration branch:
 
-The router already fetches the entry, combines its fields, calls
-`analyze_journal_entry()`, and maps service failures to safe HTTP responses.
+   ```bash
+   git branch --show-current
+   ```
 
-## Response Contract
+   It should print `feature/ai-analysis`. Continue on this branch rather than
+   creating a new one.
 
-Return an `AnalysisResponse` containing:
+2. Open `api/services/llm_service.py` and find `analyze_journal_entry()`.
+   Read its arguments and TODO instructions.
 
-```json
-{
-  "entry_id": "123e4567-e89b-12d3-a456-426614174000",
-  "sentiment": "positive",
-  "summary": "The learner made progress with FastAPI. They are ready to continue.",
-  "topics": ["FastAPI", "PostgreSQL"],
-  "created_at": "2025-12-25T10:30:00Z"
-}
-```
+   The router already fetches the entry, combines its text fields, calls this
+   function, and turns service failures into safe HTTP responses. You do not
+   need to implement that route.
 
-The model enforces:
+3. Open `api/models/entry.py` and inspect `AnalysisResponse`. Your service must
+   return a dictionary matching this model:
 
-- `sentiment`: exactly `positive`, `negative`, or `neutral`
-- `summary`: a nonempty trimmed string
-- `topics`: 2-4 nonempty trimmed strings
+   ```json
+   {
+     "entry_id": "123e4567-e89b-12d3-a456-426614174000",
+     "sentiment": "positive",
+     "summary": "The learner made progress with FastAPI. They are ready to continue.",
+     "topics": ["FastAPI", "PostgreSQL"],
+     "created_at": "2025-12-25T10:30:00Z"
+   }
+   ```
 
-Aim for two summary sentences, but do not implement strict sentence counting.
+   | Field | Required value |
+   |-------|----------------|
+   | `entry_id` | The ID passed to your function |
+   | `sentiment` | Exactly `positive`, `negative`, or `neutral` |
+   | `summary` | A nonempty, trimmed string |
+   | `topics` | 2-4 nonempty, trimmed strings |
+   | `created_at` | The timestamp supplied by `AnalysisResponse` |
+
+   Ask for a two-sentence summary, but do not implement strict sentence counting.
 
 ## 1. Make the Request
 
-Use `client.responses.create()` with:
+1. In `analyze_journal_entry()`, prepare a request using the full `entry_text`
+   argument. Instruct the model to return `sentiment`, `summary`, and `topics`
+   with the values described above.
 
-- The model from `Settings`
-- The full journal text
-- Separate instructions and user content where possible
-- A request for `sentiment`, `summary`, and `topics`
-- Structured JSON output
+   Keep the instructions separate from the journal content where possible.
+   The journal text is data to analyze, not instructions for the application
+   to follow.
 
-Prefer strict JSON Schema output:
+2. Define a JSON Schema for the three generated fields. A schema describes the
+   expected object, including its field names, types, and allowed values.
+   Require all three fields and set `additionalProperties` to `False`.
 
-```python
-text={
-    "format": {
-        "type": "json_schema",
-        "name": "journal_analysis",
-        "strict": True,
-        "schema": analysis_schema,
-    }
-}
-```
+3. Use `client.responses.create()` with the model from
+   `get_settings().openai_model` and request structured JSON output.
 
-Require all three generated fields and set `additionalProperties` to `False`.
-If your model supports JSON mode but not strict structured output,
-`text={"format": {"type": "json_object"}}` is an alternative. Do not use the
-Chat Completions `response_format` parameter with the Responses API.
+   Structured output asks the provider to follow your schema instead of returning
+   free-form text. On a supported model, pass your schema through the `text`
+   argument using this shape:
 
-## 2. Parse and Validate
+   ```python
+   text={
+       "format": {
+           "type": "json_schema",
+           "name": "journal_analysis",
+           "strict": True,
+           "schema": analysis_schema,
+       }
+   }
+   ```
 
-Before returning:
+   Here, `analysis_schema` is the schema you defined.
 
-1. Reject incomplete responses, refusals, and empty `output_text` with
+4. If your model supports JSON mode but not strict structured output, use
+   `text={"format": {"type": "json_object"}}` instead.
+
+   JSON mode requests valid JSON but does not enforce your field rules. Either
+   way, your service must validate the response. Do not use the Chat Completions
+   `response_format` parameter with the Responses API.
+
+## 2. Parse and Validate the Response
+
+1. Check for incomplete responses, refusals, and empty `output_text`. Raise
+   `InvalidAnalysisResponseError` for each of these cases.
+
+   A provider may stop before finishing or refuse to answer. Neither should
+   become a successful analysis with invented defaults.
+
+2. Parse `output_text` as JSON. It is a string, so do not assume it already
+   contains a Python dictionary or valid JSON.
+
+3. Check that the parsed value is an object before accessing its fields.
+   Reject arrays, `null`, and single values such as strings or numbers with
    `InvalidAnalysisResponseError`.
-2. Parse `output_text` as JSON.
-3. Reject arrays, `null`, and scalar values before accessing object fields.
-4. Reconstruct the result from only `sentiment`, `summary`, and `topics`.
-5. Add the function's `entry_id`; never accept an ID or timestamp from the
-   provider.
-6. Validate with `AnalysisResponse` and return its dictionary representation.
 
-Do not invent defaults or return a success-shaped response when parsing or
-validation fails.
+4. Build the result from only `sentiment`, `summary`, and `topics`. Add
+   `entry_id` from the function argument. Do not accept an ID or timestamp
+   generated by the provider.
+
+5. Validate the result with `AnalysisResponse` and return its dictionary
+   representation. Let the model supply `created_at`.
+
+6. Let JSON parsing, Pydantic validation, and OpenAI SDK errors reach the
+   router's existing error handling. Do not catch them just to return defaults
+   or a result that looks successful. Do not expose raw provider errors or
+   journal content in client responses.
 
 ## 3. Manage the Client
 
-`analyze_journal_entry()` accepts an optional `AsyncOpenAI` client.
+1. Handle the optional `AsyncOpenAI` client argument. If no client was supplied,
+   create one with the existing `_default_client()` helper.
 
-- Close a client created by the service on success and failure.
-- Leave a caller-supplied client open because the caller owns it.
-- Use the supplied timeout and retry configuration.
+   The client manages the HTTP connections used to contact the provider.
+   The helper already sets the provider settings, timeout, and retry limit.
+   Keep that configuration.
 
-Let JSON, Pydantic, and OpenAI SDK errors reach the router's existing error
-mapping. Do not include raw provider messages, journal content, settings, or
-credentials in logs or client responses.
+2. Close a client created by your service when the function finishes, whether
+   the request succeeds or fails.
+
+3. Leave a caller-supplied client open.
+
+   The code that creates a client owns its cleanup. A caller may reuse its client
+   after your function returns; closing it inside the service would prevent that.
+   Make sure cleanup does not hide an error raised during the request or validation.
+
+4. Save your implementation.
 
 ## 4. Run the Checks
 
-Run the mocked service tests:
+1. Run the mocked service tests:
 
-```bash
-uv run pytest tests/test_llm_service.py
-```
+   ```bash
+   uv run pytest tests/test_llm_service.py
+   ```
 
-Then verify your real provider with the bundled synthetic sample:
+   All tests in this file should pass, including the failure and client-cleanup
+   cases.
 
-```bash
-uv run python -m scripts.verify_llm
-```
+2. Run the required live verification:
 
-The live check is required. Passing mocked tests does not confirm that your
-credentials, endpoint, model, or structured-output format work together.
+   ```bash
+   uv run python -m scripts.verify_llm
+   ```
 
-Finally, run code quality:
+   This sends the bundled made-up sample to your configured provider. A successful
+   run prints `Validated AnalysisResponse:` followed by the entry ID, sentiment,
+   summary, and topics.
 
-```bash
-uv run ruff check .
-uv run ruff format .
-uv run pyright
-```
+   Passing mocked tests does not confirm that your credentials, endpoint, model,
+   and output format work together. The live check is required. If it fails,
+   resolve the reported problem and run it again before continuing.
 
-## Finish the Chapter
+3. Run Ruff:
 
-```bash
-git add .
-git commit -m "Implement AI entry analysis"
-git push -u origin feature/ai-analysis
-```
+   ```bash
+   uv run ruff check .
+   ```
 
-Then:
+4. Format the code:
 
-1. Open a pull request to your fork's `main`.
-2. Add exactly one task label: `task:analysis`.
-3. Include the successful live verification in the pull request description.
-4. Wait for CI, review the diff, and merge the pull request.
+   ```bash
+   uv run ruff format .
+   ```
+
+5. Run Pyright:
+
+   ```bash
+   uv run pyright
+   ```
+
+## 5. Review and Submit Your Work
+
+1. Review your changes:
+
+   ```bash
+   git diff
+   ```
+
+2. Confirm which files changed:
+
+   ```bash
+   git status
+   ```
+
+3. Stage the service:
+
+   ```bash
+   git add api/services/llm_service.py
+   ```
+
+4. Commit your changes:
+
+   ```bash
+   git commit -m "Implement AI entry analysis"
+   ```
+
+5. Push your branch:
+
+   ```bash
+   git push -u origin feature/ai-analysis
+   ```
+
+6. Open a pull request to your fork's `main` branch. Describe your implementation
+   and include the successful live verification using only the bundled sample's
+   result, not credentials or settings.
+
+7. Add exactly one task label: `task:analysis`. Create it if it does not exist.
+
+8. Wait for CI to pass, review the pull request's changes, and merge it.
+
+## Before You Continue
+
+Your service should pass its tests and the live verification, and your pull
+request should be merged into your fork.
 
 ---
 

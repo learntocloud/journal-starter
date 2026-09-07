@@ -2,93 +2,213 @@
 
 [Home](../README.md) · **Chapter 7 of 10**
 
-Configure logging, trace entry operations, and compare normal operational
-events with diagnostic detail.
+In this chapter, you will configure logging and observe messages from entry
+operations. You'll compare messages about normal activity with the extra detail
+used to investigate problems.
 
-## Before You Begin
+## 1. Prepare Your Branch
 
-- Branch: `feature/logging-setup`
-- PR label: `task:logging`
-- Edit: `api/logging_config.py` and `api/main.py`
+1. Make sure your validation pull request is merged, then check your working tree:
 
-Merge the previous exercise's pull request and confirm your working tree is
-clean before creating the branch:
+   ```bash
+   git status
+   ```
 
-```bash
-git status
-git checkout main &&
-git pull --ff-only origin main &&
-git checkout -b feature/logging-setup
-```
+   It should be clean before you continue.
 
-## Configure Logging
+2. Switch to `main`:
 
-Complete `configure_logging(level: int = logging.INFO)`:
+   ```bash
+   git checkout main
+   ```
 
-- Use the requested level and default to INFO.
-- Set the root logger's level.
-- Add a formatted `StreamHandler` only when no handlers exist.
-- Include the level, logger name, and message.
-- Preserve handlers installed by a server or test runner.
-- Do not use `force=True`.
+3. Pull the latest changes:
 
-Use module loggers such as `logging.getLogger(__name__)` and leave propagation
-enabled.
+   ```bash
+   git pull origin main
+   ```
 
-## Log the Application Lifecycle
+4. Create the branch for this task:
 
-In the application lifespan:
+   ```bash
+   git checkout -b feature/logging-setup
+   ```
 
-- Log an INFO readiness message after the database is ready.
-- Log an INFO shutdown message while the application closes.
+## 2. Configure Logging
 
-Keep logging configuration in the lifespan. Importing a module is not the same
-as starting the application.
+1. Open `api/logging_config.py` and find `configure_logging`.
 
-## Observe the Logs
+   Logs record events while an application runs. A logger creates a log message,
+   and a handler sends it somewhere, such as the terminal. The root logger is
+   the shared logger that module loggers can pass their messages to.
 
-Start the API, then use its docs to create and delete a made-up entry. Stop the
-API and identify the readiness, operation, and shutdown messages.
+2. Complete `configure_logging(level: int = logging.INFO)` so it uses the
+   requested level and defaults to INFO.
 
-Compare INFO and DEBUG:
+   INFO includes messages about normal operation. DEBUG includes more detail
+   for investigating behavior. Setting a level determines which messages are
+   allowed through.
 
-```bash
-uv run pytest 'tests/test_logging.py::test_entry_operations[INFO]' --log-cli-level=INFO
-uv run pytest 'tests/test_logging.py::test_entry_operations[DEBUG]' --log-cli-level=DEBUG
-```
+3. Configure a `StreamHandler` only when the root logger has no handlers.
+   Format messages to include the level, logger name, and message text.
 
-In your pull request description, include a short log sample and explain:
+   A `StreamHandler` writes to a stream such as the terminal. You can use
+   `logging.basicConfig()` to set it up. Preserve handlers that a server or
+   test runner has already installed, and do not use `force=True`.
 
-- What appears at INFO versus DEBUG
-- How the entry ID connects operations
-- Which messages describe an attempt versus a confirmed result
-- Why readiness is logged after the database opens
-- Which data must stay out of logs
+4. Set the root logger's level explicitly, even when handlers already exist.
 
-Never log journal text, provider messages, settings objects, or credentials.
+   `logging.basicConfig()` does nothing if the root logger already has handlers.
+   Setting the level separately ensures the requested level still takes effect.
 
-## Run the Checks
+5. Open `api/services/entry_service.py` and inspect the existing calls to
+   `logger.info()` and `logger.debug()`.
 
-```bash
-uv run pytest tests/test_logging.py
-uv run ruff check .
-uv run ruff format .
-uv run pyright
-```
+   Use module loggers such as `logging.getLogger(__name__)` for application
+   messages. `__name__` identifies the module the message came from. Leave
+   propagation enabled so messages reach the shared handlers. The entry-operation
+   messages are already supplied; you do not need to add them again.
 
-## Finish the Chapter
+## 3. Log Startup and Shutdown
 
-```bash
-git add .
-git commit -m "Configure application logging"
-git push -u origin feature/logging-setup
-```
+1. Open `api/main.py` and find the `lifespan` function.
 
-Then:
+   The application lifespan runs setup when the API starts and cleanup when it
+   stops. Code before `yield` prepares the application to receive requests;
+   cleanup after `yield` runs when the application closes.
 
-1. Open a pull request to your fork's `main`.
-2. Add exactly one task label, `task:logging`, and include your observations.
-3. Wait for CI, review the diff, and merge the pull request.
+2. Add an INFO readiness message after the database is ready and before `yield`.
+   A readiness message should mean the application is actually ready, not just
+   that startup has begun.
+
+3. Add an INFO shutdown message in the cleanup block.
+
+4. Keep the call to `configure_logging()` inside the lifespan. Importing a module
+   is not the same as starting the application. Save your changes.
+
+   Never log journal text, provider messages, settings objects, or credentials.
+   Keep log samples in your pull request free of that data too.
+
+## 4. Observe the Logs
+
+1. If the API is still running, stop it with `Ctrl+C` in its terminal.
+
+2. Start the API:
+
+   ```bash
+   uv run uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+   Find your readiness message in the terminal.
+
+3. Open <http://localhost:8000/docs>. Use **POST `/entries`** to create a made-up
+   entry, then copy its `id` from the response. Find the creation message in the
+   server terminal.
+
+4. Use **DELETE `/entries/{entry_id}`** with the ID you copied. Find the deletion
+   message in the server terminal.
+
+5. Stop the API with `Ctrl+C`. Find your shutdown message.
+
+6. Run the entry-operation test at INFO:
+
+   ```bash
+   uv run pytest 'tests/test_logging.py::test_entry_operations[INFO]' --log-cli-level=INFO
+   ```
+
+   Observe which operation messages appear.
+
+7. Run the same test at DEBUG:
+
+   ```bash
+   uv run pytest 'tests/test_logging.py::test_entry_operations[DEBUG]' --log-cli-level=DEBUG
+   ```
+
+   Look for additional messages about results, such as whether an entry was
+   found or deleted.
+
+8. Prepare a short log sample and your observations for the pull request description:
+
+   | Question | What to record |
+   |----------|----------------|
+   | What changes between INFO and DEBUG? | Examples of messages that appear at each level |
+   | How can you follow one entry? | How its ID connects messages from different operations |
+   | Did an operation start or finish? | Which messages describe an attempt and which confirm a result |
+   | When is the API ready? | Why the readiness message comes after the database opens |
+   | What should stay out of logs? | The kinds of data you must not include |
+
+## 5. Run the Checks
+
+1. Run the logging tests:
+
+   ```bash
+   uv run pytest tests/test_logging.py
+   ```
+
+   All tests in this file should pass.
+
+2. Run Ruff:
+
+   ```bash
+   uv run ruff check .
+   ```
+
+3. Format the code:
+
+   ```bash
+   uv run ruff format .
+   ```
+
+4. Run Pyright:
+
+   ```bash
+   uv run pyright
+   ```
+
+## 6. Review and Submit Your Work
+
+1. Review your changes:
+
+   ```bash
+   git diff
+   ```
+
+2. Confirm which files changed:
+
+   ```bash
+   git status
+   ```
+
+3. Stage the logging configuration and application:
+
+   ```bash
+   git add api/logging_config.py api/main.py
+   ```
+
+4. Commit your changes:
+
+   ```bash
+   git commit -m "Configure application logging"
+   ```
+
+5. Push your branch:
+
+   ```bash
+   git push -u origin feature/logging-setup
+   ```
+
+6. Open a pull request to your fork's `main` branch. Describe your changes and
+   include your log sample and observations.
+
+7. Add exactly one task label: `task:logging`. Create it if it does not exist.
+
+8. Wait for CI to pass, review the pull request's changes, and merge it.
+
+## Before You Continue
+
+Your application should log startup, entry operations, and shutdown, and your
+pull request should be merged. You should be able to describe what DEBUG adds
+to the INFO output.
 
 ---
 

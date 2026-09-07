@@ -120,7 +120,7 @@ handler before evaluating its model methods.
 
 A request rejected with 422 may never reach the handler: FastAPI validates
 its body first. Use the valid `[work]` case from
-[Chapter 6](../06-input-validation.md#trace-a-partial-update-in-the-debugger)
+[Chapter 6](../06-input-validation.md#4-trace-a-partial-update-in-the-debugger)
 for the walkthrough.
 Ordinary API tests also bypass application startup and shutdown, so they do
 not hit lifespan breakpoints.

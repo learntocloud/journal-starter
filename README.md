@@ -2,13 +2,11 @@
 
 [![CI](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml)
 
-Build a journal API with **FastAPI**, **PostgreSQL**, structured logging, input
-validation, and AI-powered entry analysis.
-
-This guide is designed to be followed in order. Each chapter ends with a link
-to the next one.
+Welcome to [Learn to Cloud's](https://learntocloud.com) Phase 3 capstone. You will be guided to building a journal API with **FastAPI**, **PostgreSQL**, structured logging, input validation, and AI-powered entry analysis.
 
 ## Capstone
+
+These chapters will guide you and are meant to be completed in order. Each chapter builds on the previous one, so do not skip ahead. 
 
 1. [Check the prerequisites](docs/01-prerequisites.md)
 2. [Set up the project](docs/02-project-setup.md)
@@ -24,6 +22,8 @@ to the next one.
 **[Start the capstone →](docs/01-prerequisites.md)**
 
 ## Reference
+
+This is additional reference material for the capstone in case you want to explore further or need help:
 
 - [Testing and CI](docs/reference/testing-and-ci.md)
 - [Troubleshooting](docs/reference/troubleshooting.md)
