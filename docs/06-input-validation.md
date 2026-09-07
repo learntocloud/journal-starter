@@ -108,23 +108,18 @@ and connect that model to the PATCH handler.
 ## 4. Trace a Partial Update in the Debugger
 
 The debugger pauses running code so you can inspect its values and follow what
-happens next. Complete the string rules and PATCH handler before starting this section.
+happens next.
 
 1. In `api/routers/journal_router.py`, click the gutter (the left margin) beside the PATCH
-   handler's call to `entry_service.update_entry` to set a breakpoint.
+   handler's call to `entry_service.update_entry` we just worked with, to set a breakpoint.
    A breakpoint marks the line where execution should pause.
 
 2. Open VS Code's **Testing** view and refresh test discovery. Find
    `TestUpdateEntry.test_update_entry_success[work]` in `tests/test_api.py`.
-   Select only that case and choose **Debug Test**.
+   Select only that case and click on **Debug Test** icon.
 
-   Use **Debug Test**, not **Run Test** or the FastAPI launch profile. This test
-   calls the API directly in the test process, so no running API server is
-   needed. It uses made-up entries in the dedicated test database and does not
-   call an AI provider. Do not run other database-backed tests while it is paused.
-
-3. When execution pauses, inspect `entry_update` in **Variables**. In the
-   **Debug Console**, evaluate:
+3. When execution pauses, inspect `entry_update` in **Variables**.
+4. In the **Debug Console** (You can find this in the terminal area), type in:
 
    ```python
    entry_update.model_fields_set
@@ -132,7 +127,7 @@ happens next. Complete the string rules and PATCH handler before starting this s
 
    You should see `{'work'}`, the field supplied by the request.
 
-4. Evaluate:
+6. In the same **Debug Console** type in:
 
    ```python
    entry_update.model_dump()
@@ -140,32 +135,23 @@ happens next. Complete the string rules and PATCH handler before starting this s
 
    You should see all three fields, including defaults for the omitted fields.
 
-5. Evaluate:
+7. Finally:
 
    ```python
    entry_update.model_dump(exclude_unset=True)
    ```
 
-   You should see `{'work': 'Updated description'}`. Compare this with the
-   previous result and decide which dictionary the service should receive.
+   You should see `{'work': 'Updated description'}`. Compare this with the previous result: the omitted fields are no longer included. This is why the handler uses exclude_unset=True: it sends only the fields the client supplied, leaving the other stored values unchanged.
 
-6. Use **Step Into (F11)** to follow the call into `EntryService.update_entry`.
-
-   The router evaluates `model_dump()` before calling the service, so Step Into
-   may enter Pydantic first, depending on your debugger settings. If it does,
-   set a breakpoint on the first executable line inside `EntryService.update_entry`
-   in `api/services/entry_service.py`, then use **Continue (F5)** to reach it.
-
-   Once inside the service, inspect `updated_data`. Use **Step Over (F10)**
-   until `changes` has been assigned, then confirm that it contains only `work`.
+8. Use **Step Into (F11)** to follow the call into `EntryService.update_entry`.
+9. Once inside the service, inspect `updated_data`. Use **Step Over (F10)** until `changes` has been assigned, then confirm that it contains only `work`.
 
    Step Into follows a function call into its implementation. Step Over executes
    the next line without following calls into other functions.
 
-7. Use **Continue (F5)** to let the test finish and clean up its test data.
-   Confirm that it passes.
+10. Use **Continue (F5)** until the test finishes. In the **Testing** you should see all green checkmarks for passing.
 
-8. Write down the values you observed and why updating `work` preserves
+11. Write down the values you observed and why updating `work` preserves
    `struggle`, `intention`, the entry ID, and its creation timestamp. Include
    these observations in your pull request description. Use only the made-up
    test values, not settings or credentials.
