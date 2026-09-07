@@ -95,6 +95,55 @@ Run only the step for the CLI you installed:
 Your selected command should print version information. No cloud login or
 deployment is required.
 
+## 6. Update Your CI Badge
+
+The CI badge in `README.md` currently reports the upstream starter's status.
+Point it to your fork so visitors see the status of your own `main` branch.
+
+1. Create a branch from your updated `main`:
+
+   ```bash
+   git checkout -b docs/ci-badge
+   ```
+
+2. Open `README.md` and replace the CI badge line with:
+
+   ```markdown
+   [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+   ```
+
+   Replace `OWNER/REPO` in **both URLs** with your GitHub username or organization
+   and repository name, such as `Your_Username/journal-starter`. The
+   `?branch=main` parameter keeps the badge focused on your main branch.
+   No workflow changes are needed.
+
+3. Review, commit, and push the README change:
+
+   ```bash
+   git diff -- README.md
+   git add README.md
+   git commit -m "Point CI badge to my fork"
+   git push -u origin docs/ci-badge
+   ```
+
+4. Open a pull request within your fork: select your fork for both the base and
+   head repositories, `main` as the base branch, and `docs/ci-badge` as the compare
+   branch. Add exactly one task label, `task:setup`, for this documentation change.
+
+5. Open your fork's **Actions** tab and enable workflows if GitHub prompts you.
+   Wait for CI to pass, review the pull request, and merge it.
+
+6. After the CI run on `main` finishes, check your fork's README on GitHub.
+   Confirm the badge shows your CI status and clicking it opens your fork's
+   CI workflow page, not upstream's.
+
+7. Return to `main` and pull the merged change:
+
+   ```bash
+   git checkout main
+   git pull origin main
+   ```
+
 ## Completion Checklist
 
 - All exercise pull requests are merged into your fork's `main`.
@@ -105,6 +154,7 @@ deployment is required.
 - Ruff and Pyright pass.
 - Live AI verification succeeds on the merged code.
 - One cloud CLI runs inside the development container.
+- The README CI badge shows your fork's `main` status and links to your workflow.
 - `.env` and provider credentials were not committed.
 
 Once all items are complete, you have finished the Phase 3 Journal API capstone
