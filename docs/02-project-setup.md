@@ -173,22 +173,21 @@ Time for your first task! You will add a cloud CLI to the development container 
 8. Now that you have verified that the cloud CLI is installed, it's time to review
    your changes. In VS Code, open the Source Control view by clicking the
    **Source Control** icon in the left sidebar or by pressing `Ctrl + Shift + G`.
-   You should see that the `.devcontainer/devcontainer.json` file is listed as a
-   changed file.
+   You should see that the `.devcontainer.json` file is listed as a
+   changed file. You may also see `devcontainer-lock.json`
 
 9. Lines that are added or modified will be highlighted in green, and lines that
    are removed will be highlighted in red. Review the changes to make sure they
    are correct.
 
 10. Now it's time to prepare your changes for a commit. Run the following command
-    to add the changes from the `.devcontainer/devcontainer.json` file to the staging area:
+    to add the changes to the staging area:
 
     ```bash
-    git add .devcontainer/devcontainer.json
+    git add .
     ```
 
-11. Now that you have added the file to the staging area, it's time to commit your
-    changes. Run the following command to commit your changes with a descriptive message:
+11. Now it's time to commit your changes. Run the following command to commit your changes with a descriptive message:
 
     ```bash
     git commit -m "Add a cloud CLI to the devcontainer"
