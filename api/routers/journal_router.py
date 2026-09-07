@@ -14,6 +14,7 @@ from api.models.entry import (
     EntryCreate,
     EntryCreatedResponse,
     EntryListResponse,
+    EntryUpdate,
 )
 from api.repositories.interface_repository import DatabaseInterface
 from api.services.entry_service import EntryService
@@ -99,7 +100,7 @@ async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Ent
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(
-    entry_id: str, entry_update: dict[str, str], entry_service: EntryServiceDependency
+    entry_id: str, entry_update: EntryUpdate, entry_service: EntryServiceDependency
 ) -> Entry:
     """Update a journal entry."""
     # TODO (Task 2): Replace ``entry_update: dict[str, str]`` with ``entry_update: EntryUpdate``
@@ -110,7 +111,10 @@ async def update_entry(
     # would overwrite omitted fields with their defaults.
     # An empty object is allowed and leaves the text fields unchanged.
     # See ``TestUpdateEntry`` in tests/test_api.py and docs/06-input-validation.md.
-    result = await entry_service.update_entry(entry_id, entry_update)
+    result = await entry_service.update_entry(
+        entry_id,
+        entry_update.model_dump(exclude_unset=True),
+    )
     if result is None:
         raise HTTPException(status_code=404, detail="Entry not found")
 
