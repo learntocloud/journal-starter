@@ -55,7 +55,7 @@ The separate manual **Verify capstone** workflow
 commit with the entire suite, Ruff, and Pyright, without task-label filtering.
 An unfinished starter is expected to fail this workflow.
 
-Follow [Finish the Capstone](../10-finish.md#6-verify-the-capstone-on-github) to run
+Follow [Finish the Capstone](../10-finish.md#7-verify-the-capstone-on-github) to run
 it before submitting verification in the Learn to Cloud app. Rerun it if `main`
 changes before submission. This offline check does not replace live AI or local
 cloud CLI verification.
