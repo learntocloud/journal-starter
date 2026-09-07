@@ -144,6 +144,16 @@ Point it to your fork so visitors see the status of your own `main` branch.
    git pull origin main
    ```
 
+## 7. Verify the Capstone on GitHub
+
+1. After merging all work into your fork's `main`, open your repository on GitHub.
+2. Go to **Actions → Verify capstone → Run workflow**.
+3. Select **main** and click **Run workflow**.
+4. Wait for **Full capstone verification** to pass.
+5. Submit verification in the Learn to Cloud app only after the workflow succeeds
+   for your current `main` commit. If another commit is pushed before submission,
+   rerun verification for that commit.
+
 ## Completion Checklist
 
 - All exercise pull requests are merged into your fork's `main`.
@@ -152,6 +162,8 @@ Point it to your fork so visitors see the status of your own `main` branch.
 - The AI analysis pull request includes successful live verification.
 - The full test suite passes.
 - Ruff and Pyright pass.
+- **Verify capstone** succeeds for the current `main` commit before submitting
+  verification in the Learn to Cloud app.
 - Live AI verification succeeds on the merged code.
 - One cloud CLI runs inside the development container.
 - The README CI badge shows your fork's `main` status and links to your workflow.

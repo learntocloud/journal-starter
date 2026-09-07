@@ -46,6 +46,20 @@ Use `uv run ruff format .` to apply formatting changes. Do not change supplied
 tests to make them pass. Wait for CI, review the diff, and merge each exercise's
 pull request before starting the next one.
 
+## Full Capstone Verification
+
+Pushes to `main` run only code quality and starter safeguards in ordinary **CI**.
+They do not run exercise acceptance, so a green run does not prove completion.
+The separate manual **Verify capstone** workflow
+(`.github/workflows/verify-capstone.yml`) requires `main` and tests the triggering
+commit with the entire suite, Ruff, and Pyright, without task-label filtering.
+An unfinished starter is expected to fail this workflow.
+
+Follow [Finish the Capstone](../10-finish.md#6-verify-the-capstone-on-github) to run
+it before submitting verification in the Learn to Cloud app. Rerun it if `main`
+changes before submission. This offline check does not replace live AI or local
+cloud CLI verification.
+
 ## Test Database Safety
 
 Database-backed tests use only `TEST_DATABASE_URL`. They refuse to run if the
