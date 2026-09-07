@@ -50,7 +50,7 @@ def test_database_url() -> str:
             "Unsafe or missing test database configuration. Set DATABASE_URL and "
             "TEST_DATABASE_URL to different database names; the test database name "
             "must end in '_test'. See "
-            f"docs/04-development-workflow.md#test-database-safety.\n{exc}"
+            f"docs/reference/testing-and-ci.md#test-database-safety.\n{exc}"
         ) from exc
     return str(settings.test_database_url)
 

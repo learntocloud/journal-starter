@@ -1,8 +1,8 @@
 # Chapter 1: Check the Prerequisites
 
-[Home](../README.md) · **Chapter 1 of 11**
+[Home](../README.md) · **Chapter 1 of 10**
 
-Before you begin, install:
+Before you begin, make sure you install:
 
 - [Git](https://git-scm.com/)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) and start it

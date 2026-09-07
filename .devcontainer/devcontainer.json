@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/python
 {
-  "name": "Journal API",
+  "name": "Journal Starter",
   "dockerComposeFile": ["./docker-compose.yml"],
   "features": {
 		"ghcr.io/va-h/devcontainers-features/uv": {},

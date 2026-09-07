@@ -25,7 +25,7 @@ LABEL_HELP = (
     + ", ".join(f"task:{task}" for task in TASKS)
     + ". Use task:setup for non-exercise work; "
     "use the matching exercise label for Python tasks. "
-    "See docs/04-development-workflow.md#task-labels."
+    "See docs/reference/testing-and-ci.md#task-labels-and-cumulative-checks."
 )
 
 
