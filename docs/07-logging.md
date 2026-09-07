@@ -64,18 +64,11 @@ attempts and routine reads. An attempt is not proof that an operation succeeded.
    filters, so they may still exclude some messages. Do not overwrite those
    settings to make every output look the same.
 
-5. Open `api/services/entry_service.py` and inspect the existing calls to
-   `logger.info()` and `logger.debug()`.
+5. Open `entry_service.py` and read the existing logging code. No changes are needed in this step.
 
-   Use module loggers such as `logging.getLogger(__name__)` for application
-   messages. `__name__` identifies the module the message came from. Leave
-   propagation enabled so messages reach the shared handlers. The entry-operation
-   messages are already supplied; you do not need to add them again.
+Notice how `logging.getLogger(__name__)` identifies the module producing each message. Messages propagate to the shared handlers by default.
 
-   In this service, INFO records write outcomes after the database call returns.
-   DEBUG adds write attempts and routine read results. A missing entry is reported
-   as missing, not as a successful update or deletion. If the database raises an
-   exception, the service does not emit a success message.
+Compare where `logger.debug()` and `logger.info()` are called: `DEBUG` records write attempts and routine read results; `INFO` records write outcomes after the database call returns. Notice that missing entries are reported as missing, and failed database calls do not produce success messages.
 
 ## 3. Log Startup and Shutdown
 
@@ -89,12 +82,9 @@ attempts and routine reads. An attempt is not proof that an operation succeeded.
    A readiness message should mean the application is actually ready, not just
    that startup has begun.
 
-3. Add an INFO shutdown message in the cleanup block.
-
-4. Keep the call to `configure_logging()` inside the lifespan. Importing a module
-   is not the same as starting the application. Save your changes.
-
-   Never log journal text, provider messages, settings objects, or credentials.
+3. Add an INFO shutdown message in the finally block.
+  
+4. Never log journal text, provider messages, settings objects, or credentials.
    Keep log samples in your pull request free of that data too.
 
 ## 4. Observe the Logs
@@ -139,14 +129,11 @@ attempts and routine reads. An attempt is not proof that an operation succeeded.
    uv run pytest 'tests/test_logging.py::test_entry_operations[DEBUG]' --log-cli-level=DEBUG
    ```
 
-   This test creates and deletes an entry; it does not fetch one. The same INFO
-   outcome messages still appear. DEBUG adds `Creating entry <id>` and
-   `Deleting entry <id>` before the database calls. Compare each attempt with
-   its completion message: an attempt alone does not confirm success.
+   Compare this output with the `INFO` run. You should still see the `INFO` messages confirming that an entry was created and deleted. At `DEBUG`, you should also see `Creating entry <id>` and `Deleting entry <id>`.
 
-   Focus on messages from the `api.services.entry_service` logger. DEBUG may
-   also show messages from other loggers, such as an asyncio selector message;
-   those are not entry-operation messages.
+These `DEBUG` messages are logged before the database calls: they tell you an operation is about to be attempted. The `INFO` success messages appear after those calls succeed. Seeing an attempt message alone does not mean the operation succeeded.
+
+Focus on lines labeled `api.services.entry_service`. Other libraries may also produce DEBUG messages; you can ignore those for this exercise.
 
 8. Prepare a short log sample and your observations for the pull request description:
 
