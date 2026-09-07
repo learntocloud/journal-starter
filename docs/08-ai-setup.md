@@ -1,21 +1,24 @@
-# Chapter 9: Set Up an AI Provider
+# Chapter 8: Set Up an AI Provider
 
-[Home](../README.md) · **Chapter 9 of 11**
+[Home](../README.md) · **Chapter 8 of 10**
 
 Configure a provider that supports the OpenAI Responses API. You will implement
 the integration in the next chapter.
 
 ## Before You Begin
 
-Create the Task 4 branch:
+Merge the logging pull request and confirm your working tree is clean, then
+create the Task 4 branch:
 
 ```bash
+git status
 git checkout main &&
 git pull --ff-only origin main &&
 git checkout -b feature/ai-analysis
 ```
 
-Keep this branch for Chapters 9 and 10.
+Keep this branch for Chapters 8 and 9. Open the `task:analysis` pull request
+after implementing the integration in the next chapter.
 
 ## Choose a Provider
 
@@ -49,9 +52,9 @@ application starts.
 Use only synthetic, non-sensitive journal entries with the provider. Do not
 send personal journal content, credentials, or other secrets.
 
-You will confirm the credentials after implementing the service in Chapter 10.
+You will confirm the credentials after implementing the service in Chapter 9.
 
 ---
 
-[← Previous: Logging](08-logging.md) ·
-[Next: Build AI-powered analysis →](10-ai-analysis.md)
+[← Previous: Logging](07-logging.md) ·
+[Next: Build AI-powered analysis →](09-ai-analysis.md)

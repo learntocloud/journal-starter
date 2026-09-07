@@ -1,6 +1,6 @@
-# Chapter 7: Add Input Validation
+# Chapter 6: Add Input Validation
 
-[Home](../README.md) · **Chapter 7 of 11**
+[Home](../README.md) · **Chapter 6 of 10**
 
 Validate new entries and partial updates before they reach the service layer.
 Use the debugger to follow a partial update and explain why omitted fields
@@ -12,7 +12,11 @@ stay unchanged.
 - PR label: `task:validation`
 - Edit: `api/models/entry.py` and `api/routers/journal_router.py`
 
+Merge the previous exercise's pull request and confirm your working tree is
+clean before creating the branch:
+
 ```bash
+git status
 git checkout main &&
 git pull --ff-only origin main &&
 git checkout -b feature/input-validation
@@ -114,7 +118,7 @@ git push -u origin feature/input-validation
 Then:
 
 1. Open a pull request to your fork's `main`.
-2. Add the `task:validation` label.
+2. Add exactly one task label: `task:validation`.
 3. In the PR description, record the values you inspected in the debugger and
    explain why updating `work` preserves the omitted fields. Use only the
    synthetic test values, not settings or credentials.
@@ -122,5 +126,5 @@ Then:
 
 ---
 
-[← Previous: DELETE one entry](06-delete-entry.md) ·
-[Next: Use logs to understand the API →](08-logging.md)
+[← Previous: DELETE one entry](05-delete-entry.md) ·
+[Next: Use logs to understand the API →](07-logging.md)

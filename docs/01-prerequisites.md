@@ -1,6 +1,6 @@
 # Chapter 1: Check the Prerequisites
 
-[Home](../README.md) · **Chapter 1 of 11**
+[Home](../README.md) · **Chapter 1 of 10**
 
 Before you begin, install:
 

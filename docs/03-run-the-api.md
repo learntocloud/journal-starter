@@ -1,6 +1,6 @@
 # Chapter 3: Run the API
 
-[Home](../README.md) · **Chapter 3 of 11**
+[Home](../README.md) · **Chapter 3 of 10**
 
 Run every command in this chapter from the **project root inside the
 devcontainer**.
@@ -34,6 +34,9 @@ exercise tests and will fail until you complete the capstone.
 Tests use `TEST_DATABASE_URL` and erase data in the dedicated test database.
 The running API uses `DATABASE_URL`, so its entries are preserved. Never put
 personal data in either database.
+Run database-backed tests serially; concurrent runs need separate dedicated
+test databases. See [test database safety](reference/testing-and-ci.md#test-database-safety)
+for the safeguards and cleanup behavior.
 
 ## 3. Start the API
 
@@ -66,4 +69,4 @@ You should now have:
 ---
 
 [← Previous: Project setup](02-project-setup.md) ·
-[Next: Development workflow →](04-development-workflow.md)
+[Next: Build GET for one entry →](04-get-entry.md)

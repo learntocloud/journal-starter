@@ -1,6 +1,6 @@
-# Chapter 8: Use Logs to Understand the API
+# Chapter 7: Use Logs to Understand the API
 
-[Home](../README.md) · **Chapter 8 of 11**
+[Home](../README.md) · **Chapter 7 of 10**
 
 Configure logging, trace entry operations, and compare normal operational
 events with diagnostic detail.
@@ -11,7 +11,11 @@ events with diagnostic detail.
 - PR label: `task:logging`
 - Edit: `api/logging_config.py` and `api/main.py`
 
+Merge the previous exercise's pull request and confirm your working tree is
+clean before creating the branch:
+
 ```bash
+git status
 git checkout main &&
 git pull --ff-only origin main &&
 git checkout -b feature/logging-setup
@@ -83,10 +87,10 @@ git push -u origin feature/logging-setup
 Then:
 
 1. Open a pull request to your fork's `main`.
-2. Add the `task:logging` label and include your observations.
+2. Add exactly one task label, `task:logging`, and include your observations.
 3. Wait for CI, review the diff, and merge the pull request.
 
 ---
 
-[← Previous: Input validation](07-input-validation.md) ·
-[Next: Set up an AI provider →](09-ai-setup.md)
+[← Previous: Input validation](06-input-validation.md) ·
+[Next: Set up an AI provider →](08-ai-setup.md)

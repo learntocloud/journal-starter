@@ -13,19 +13,19 @@ to the next one.
 1. [Check the prerequisites](docs/01-prerequisites.md)
 2. [Set up the project](docs/02-project-setup.md)
 3. [Run the API](docs/03-run-the-api.md)
-4. [Learn the development workflow](docs/04-development-workflow.md)
-5. [Build GET for one entry](docs/05-get-entry.md)
-6. [Build DELETE for one entry](docs/06-delete-entry.md)
-7. [Add input validation and debug a partial update](docs/07-input-validation.md)
-8. [Use logs to understand the API](docs/08-logging.md)
-9. [Set up an AI provider](docs/09-ai-setup.md)
-10. [Build AI-powered analysis](docs/10-ai-analysis.md)
-11. [Finish the capstone](docs/11-finish.md)
+4. [Build GET for one entry](docs/04-get-entry.md)
+5. [Build DELETE for one entry](docs/05-delete-entry.md)
+6. [Add input validation and debug a partial update](docs/06-input-validation.md)
+7. [Use logs to understand the API](docs/07-logging.md)
+8. [Set up an AI provider](docs/08-ai-setup.md)
+9. [Build AI-powered analysis](docs/09-ai-analysis.md)
+10. [Finish the capstone](docs/10-finish.md)
 
 **[Start the capstone →](docs/01-prerequisites.md)**
 
 ## Reference
 
+- [Testing and CI](docs/reference/testing-and-ci.md)
 - [Troubleshooting](docs/reference/troubleshooting.md)
 - [Sync your fork with upstream](docs/reference/upstream-sync.md)
 - [Explore your database](docs/reference/explore-database.md)

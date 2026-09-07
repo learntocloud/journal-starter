@@ -1,6 +1,6 @@
-# Chapter 11: Finish the Capstone
+# Chapter 10: Finish the Capstone
 
-[Home](../README.md) · **Chapter 11 of 11**
+[Home](../README.md) · **Chapter 10 of 10**
 
 Confirm the complete project and required environment checks.
 
@@ -36,7 +36,7 @@ This sends only the bundled synthetic sample.
 
 ## 4. Confirm the Cloud CLI
 
-Run the command for the CLI you added in Chapter 4:
+Run the command for the CLI you added in [Chapter 2](02-project-setup.md):
 
 ```bash
 az --version
@@ -61,5 +61,5 @@ the next phase's cloud deployment work.
 
 ---
 
-[← Previous: AI-powered analysis](10-ai-analysis.md) ·
+[← Previous: AI-powered analysis](09-ai-analysis.md) ·
 [Return home](../README.md)

@@ -1,6 +1,6 @@
-# Chapter 10: Build AI-Powered Analysis
+# Chapter 9: Build AI-Powered Analysis
 
-[Home](../README.md) · **Chapter 10 of 11**
+[Home](../README.md) · **Chapter 9 of 10**
 
 Implement the service behind **POST `/entries/{entry_id}/analyze`**.
 
@@ -127,11 +127,11 @@ git push -u origin feature/ai-analysis
 Then:
 
 1. Open a pull request to your fork's `main`.
-2. Add the `task:analysis` label.
+2. Add exactly one task label: `task:analysis`.
 3. Include the successful live verification in the pull request description.
 4. Wait for CI, review the diff, and merge the pull request.
 
 ---
 
-[← Previous: AI provider setup](09-ai-setup.md) ·
-[Next: Finish the capstone →](11-finish.md)
+[← Previous: AI provider setup](08-ai-setup.md) ·
+[Next: Finish the capstone →](10-finish.md)

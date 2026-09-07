@@ -67,8 +67,8 @@ async def analyze_journal_entry(
       3. Call ``client.responses.create(...)`` with ``get_settings().openai_model``.
          Prefer structured output via ``text={"format": {"type": "json_schema",
          ...}}`` on a supported model. JSON mode is an alternative, but it does
-         not enforce your schema. See "Requesting structured output" in
-         docs/10-ai-analysis.md.
+         not enforce your schema. See "1. Make the Request" in
+         docs/09-ai-analysis.md.
       4. Raise InvalidAnalysisResponseError for incomplete responses, refusals, or
          empty output rather than inventing a successful analysis.
          ``output_text`` is a string, not a
