@@ -232,19 +232,47 @@ Time for your first task! You will add a cloud CLI to the development container 
 
 18. Click **Create pull request** to create your pull request.
 
-19. The repository includes a GitHub Actions workflow in `ci.yaml` that runs tests
-    on pull requests. The workflow will run automatically when you create your pull
-    request. You can view its progress by clicking the **Actions** tab in your fork.
-    You should see a workflow called **CI** running. Click the workflow to view the
-    details. You can also view the logs of each job by clicking the job name.
-    See [Testing and CI](reference/testing-and-ci.md) for how labels select tests.
+19. The repository includes one GitHub Actions workflow, **CI**, defined in
+    [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). It runs automatically
+    when you create your pull request and contains **three jobs**, shown as
+    separate checks on the pull request:
 
-20. Once the workflow is complete, you should see a green checkmark next to your pull
-    request indicating that the tests passed. If the tests failed, click **Details**
-    to view the logs and fix any issues. After fixing the issues, push your changes
-    to the `setup/cloud-cli` branch, and the workflow will run again.
+    | Job | What it checks | What to review in the job logs |
+    |-----|----------------|--------------------------------|
+    | **Code quality** | Python linting, formatting, and types. | Open **Ruff check**, **Ruff format check**, and **Pyright type check** to see their results. |
+    | **Starter safeguards** | Tests for the starter's existing behavior, excluding unfinished exercises. Runs regardless of the task label. | Open **Run starter safeguards** and review the test names and final pytest summary. |
+    | **Task acceptance** | Reads your PR's task label to select the tests for your current task and any preceding exercises. | Open **Run selected task and preceding exercises** to see the selected label, pytest command, and test results. |
 
-21. Once the workflow passes, you can merge your pull request. Click **Merge pull request**,
+    In your fork's **Actions** tab, open the latest **CI** run for your pull
+    request, then click each job to expand the steps above. For **Task acceptance**,
+    confirm that the log contains:
+
+    ```text
+    Task acceptance: task:setup
+    ```
+
+    The next line should contain `-m pytest -v -m 'not exercise'`. This shows that
+    your `task:setup` **PR label** selected the non-exercise tests; it is not a Git
+    tag. For setup, **Task acceptance** intentionally runs the same tests as
+    **Starter safeguards**, because you have not implemented any exercises yet.
+    Review the individual test results and the final summary: the selected tests
+    should pass, and unfinished exercise tests should be reported as **deselected**,
+    not failed. Test counts may change as the starter evolves.
+
+    These checks do not rebuild your devcontainer or verify your chosen cloud CLI
+    installation; that is why you checked its version in step 7. In later chapters,
+    the matching task label selects that exercise's tests plus preceding exercises.
+    See [Testing and CI](reference/testing-and-ci.md) for the label mapping.
+
+20. Wait for all three jobs in the latest **CI** run to pass. Adding or changing a
+    label also starts a new run, so you may see an older run marked **Cancelled**
+    when a newer run replaces it; review the latest run for your current commit and
+    label. If a check fails, click **Details** next to it on the pull request and
+    expand the failed step to read the error. If **Task acceptance** reports a label
+    error, make sure the PR has exactly one task label: `task:setup`. For code fixes,
+    push your changes to the `setup/cloud-cli` branch to run CI again.
+
+21. Once all three jobs pass, you can merge your pull request. Click **Merge pull request**,
     then click **Confirm merge**. After merging, you can delete the `setup/cloud-cli`
     branch by clicking **Delete branch**.
 
