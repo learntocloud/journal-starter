@@ -1,6 +1,6 @@
 # Learn to Cloud Phase 3 Capstone: Journal API
 
-[![CI](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/learntocloud/journal-starter/actions/workflows/ci.yml)
+[![CI](https://github.com/madebygps/journal-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/madebygps/journal-starter/actions/workflows/ci.yml)
 
 Welcome to [Learn to Cloud's](https://learntocloud.com) Phase 3 capstone. You will be guided to building a journal API with **FastAPI**, **PostgreSQL**, structured logging, input validation, and AI-powered entry analysis.
 
