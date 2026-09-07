@@ -11,13 +11,13 @@ dependencies = [
     "pydantic>=2.13.4",
     "pydantic-settings",
     "openai>=2.53.0",
+    "httpx>=0.28.1",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
     "pytest-asyncio",
-    "httpx",
     "ruff",
     "pyright",
     "pre-commit",

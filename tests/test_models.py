@@ -34,44 +34,53 @@ class TestEntryCreateModel:
         assert entry.struggle == data["struggle"]
         assert entry.intention == data["intention"]
 
-    def test_entry_create_missing_field(self):
-        """Test that missing required fields raise validation error."""
-        incomplete_data = {
-            "work": "Studied FastAPI"
-            # Missing struggle and intention
-        }
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_entry_create_missing_field(self, sample_entry_data, field):
+        del sample_entry_data[field]
+        with pytest.raises(ValidationError) as error:
+            EntryCreate.model_validate(sample_entry_data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            ((field,), "missing"),
+        ]
 
-        with pytest.raises(ValidationError):
-            EntryCreate(**incomplete_data)
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_entry_create_accepts_max_length(self, sample_entry_data, field):
+        sample_entry_data[field] = "a" * 256
+        entry = EntryCreate.model_validate(sample_entry_data)
+        assert getattr(entry, field) == "a" * 256
 
-    def test_entry_create_max_length_validation(self):
-        """Test that fields exceeding max length are rejected."""
-        invalid_data = {
-            "work": "a" * 300,  # Exceeds 256 character limit
-            "struggle": "Understanding async",
-            "intention": "Practice more",
-        }
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_entry_create_rejects_over_max_length(self, sample_entry_data, field):
+        sample_entry_data[field] = "a" * 257
+        with pytest.raises(ValidationError) as error:
+            EntryCreate.model_validate(sample_entry_data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            ((field,), "string_too_long"),
+        ]
 
-        with pytest.raises(ValidationError):
-            EntryCreate(**invalid_data)
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", [None, 123, True, [], {}])
+    def test_entry_create_rejects_nonstring_values(self, sample_entry_data, field, value):
+        sample_entry_data[field] = value
+        with pytest.raises(ValidationError) as error:
+            EntryCreate.model_validate(sample_entry_data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            ((field,), "string_type"),
+        ]
 
 
+@pytest.mark.exercise
 class TestEntryCreateValidation:
-    """Task 3 validation tests for EntryCreate."""
+    """Task 2 validation tests for EntryCreate."""
 
-    def test_empty_string_rejected(self):
-        """Empty strings for any field should be rejected."""
-        with pytest.raises(ValidationError):
-            EntryCreate(work="", struggle="Some struggle", intention="Some intention")
-
-    def test_whitespace_only_rejected(self):
-        """Whitespace-only strings should be rejected after stripping."""
-        with pytest.raises(ValidationError):
-            EntryCreate(
-                work="   ",
-                struggle="Some struggle",
-                intention="Some intention",
-            )
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", ["", " \t\n "])
+    def test_empty_and_whitespace_strings_rejected(self, field, value):
+        data = {"work": "Some work", "struggle": "Some struggle", "intention": "Some intention"}
+        data[field] = value
+        with pytest.raises(ValidationError) as error:
+            EntryCreate(**data)
+        assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
     def test_whitespace_stripped_from_valid_input(self):
         """Leading/trailing whitespace should be stripped from valid input."""
@@ -84,11 +93,18 @@ class TestEntryCreateValidation:
         assert entry.struggle == "Understanding async"
         assert entry.intention == "Practice more"
 
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_max_length_is_applied_after_stripping(self, field):
+        data = {"work": "Some work", "struggle": "Some struggle", "intention": "Some intention"}
+        data[field] = f"  {'a' * 256}  "
+        assert getattr(EntryCreate(**data), field) == "a" * 256
 
+
+@pytest.mark.exercise
 class TestEntryUpdateModel:
-    """Task 3 tests for the EntryUpdate model.
+    """Task 2 tests for the EntryUpdate model.
 
-    ``EntryUpdate`` is created by the learner as part of Task 3, so the
+    ``EntryUpdate`` is created by the learner as part of Task 2, so the
     import is intentionally inside each test to avoid failing test
     collection on a fresh fork.
     """
@@ -118,16 +134,18 @@ class TestEntryUpdateModel:
         """EntryUpdate should reject fields longer than 256 characters."""
         from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as error:
             EntryUpdate(**{field: "a" * 257})
+        assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
-    @pytest.mark.parametrize("value", [None, "", " \t\n ", 123, True])
+    @pytest.mark.parametrize("value", [None, "", " \t\n ", 123, True, [], {}])
     def test_invalid_supplied_field_rejected(self, field, value):
         from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
 
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as error:
             EntryUpdate(**{field: value})
+        assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     def test_supplied_field_is_stripped(self, field):
@@ -137,10 +155,11 @@ class TestEntryUpdateModel:
         assert update.model_dump(exclude_unset=True) == {field: "New text"}
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
-    def test_max_length_after_stripping_is_allowed(self, field):
+    @pytest.mark.parametrize("value", ["a" * 256, f"  {'a' * 256}  "], ids=["plain", "padded"])
+    def test_max_length_after_stripping_is_allowed(self, field, value):
         from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
 
-        update = EntryUpdate(**{field: f"  {'a' * 256}  "})
+        update = EntryUpdate(**{field: value})
         assert update.model_dump(exclude_unset=True) == {field: "a" * 256}
 
 
@@ -166,65 +185,37 @@ class TestEntryModel:
         assert entry.created_at == data["created_at"]
         assert entry.updated_at == data["updated_at"]
 
-    def test_entry_auto_generates_id(self):
-        """Test that Entry auto-generates a UUID if not provided."""
+    @pytest.mark.parametrize("field", ["id", "created_at", "updated_at"])
+    def test_entry_requires_persisted_metadata(self, field):
         data = {
+            "id": "stored-entry",
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
             "work": "Studied FastAPI",
             "struggle": "Understanding async",
             "intention": "Practice more",
         }
-        entry = Entry.model_validate(data)
+        del data[field]
+        with pytest.raises(ValidationError) as error:
+            Entry.model_validate(data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            ((field,), "missing"),
+        ]
 
-        # ID should be auto-generated
-        assert entry.id is not None
-        assert len(entry.id) > 0
-        # Should be a valid UUID format (basic check)
-        assert "-" in entry.id
-
-    def test_entry_auto_generates_timestamps(self):
-        """Test that Entry auto-generates created_at and updated_at if not provided."""
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_entry_reads_historical_long_text(self, field):
+        """Read models must preserve entries stored before input validation existed."""
         data = {
+            "id": "stored-entry",
+            "created_at": datetime.now(UTC),
+            "updated_at": datetime.now(UTC),
             "work": "Studied FastAPI",
             "struggle": "Understanding async",
             "intention": "Practice more",
         }
+        data[field] = "a" * 300
         entry = Entry.model_validate(data)
-
-        # Timestamps should be auto-generated
-        assert entry.created_at is not None
-        assert entry.updated_at is not None
-        assert isinstance(entry.created_at, datetime)
-        assert isinstance(entry.updated_at, datetime)
-
-    def test_entry_max_length_validation(self):
-        """Test that fields exceeding max length are rejected."""
-        invalid_data = {
-            "work": "a" * 300,
-            "struggle": "Understanding async",
-            "intention": "Practice more",
-        }
-
-        with pytest.raises(ValidationError):
-            Entry.model_validate(invalid_data)
-
-    def test_entry_model_dump(self):
-        """Test that Entry can be serialized to dict."""
-        data = {
-            "work": "Studied FastAPI",
-            "struggle": "Understanding async",
-            "intention": "Practice more",
-        }
-        entry = Entry.model_validate(data)
-
-        entry_dict = entry.model_dump()
-
-        assert isinstance(entry_dict, dict)
-        assert entry_dict["work"] == data["work"]
-        assert entry_dict["struggle"] == data["struggle"]
-        assert entry_dict["intention"] == data["intention"]
-        assert "id" in entry_dict
-        assert "created_at" in entry_dict
-        assert "updated_at" in entry_dict
+        assert getattr(entry, field) == "a" * 300
 
 
 class TestAnalysisResponseModel:
@@ -239,35 +230,38 @@ class TestAnalysisResponseModel:
             "summary": "The learner made progress. They're excited to continue.",
             "topics": ["FastAPI", "PostgreSQL", "API development"],
         }
+        before = datetime.now(UTC)
         response = AnalysisResponse.model_validate(data)
 
         assert response.entry_id == data["entry_id"]
         assert response.sentiment == data["sentiment"]
         assert response.summary == data["summary"]
         assert response.topics == data["topics"]
-        assert isinstance(response.created_at, datetime)
+        assert before <= response.created_at <= datetime.now(UTC)
+        assert response.created_at.tzinfo == UTC
 
     @pytest.mark.parametrize(
-        ("field", "value"),
+        ("field", "value", "location", "error_type"),
         [
-            ("sentiment", "mixed"),
-            ("sentiment", "Positive"),
-            ("sentiment", ""),
-            ("sentiment", None),
-            ("summary", ""),
-            ("summary", " \t\n "),
-            ("summary", None),
-            ("summary", 123),
-            ("topics", []),
-            ("topics", ["one"]),
-            ("topics", ["one", "two", "three", "four", "five"]),
-            ("topics", ["valid", ""]),
-            ("topics", ["valid", " \t\n "]),
-            ("topics", ["valid", None]),
-            ("topics", ["valid", 123]),
+            ("sentiment", "mixed", ("sentiment",), "literal_error"),
+            ("sentiment", "Positive", ("sentiment",), "literal_error"),
+            ("sentiment", "", ("sentiment",), "literal_error"),
+            ("sentiment", None, ("sentiment",), "literal_error"),
+            ("summary", "", ("summary",), "string_too_short"),
+            ("summary", " \t\n ", ("summary",), "string_too_short"),
+            ("summary", None, ("summary",), "string_type"),
+            ("summary", 123, ("summary",), "string_type"),
+            ("topics", [], ("topics",), "too_short"),
+            ("topics", ["one"], ("topics",), "too_short"),
+            ("topics", ["one", "two", "three", "four", "five"], ("topics",), "too_long"),
+            ("topics", ["valid", ""], ("topics", 1), "string_too_short"),
+            ("topics", ["valid", " \t\n "], ("topics", 1), "string_too_short"),
+            ("topics", ["valid", None], ("topics", 1), "string_type"),
+            ("topics", ["valid", 123], ("topics", 1), "string_type"),
+            ("topics", "not a list", ("topics",), "list_type"),
         ],
     )
-    def test_analysis_response_rejects_invalid_content(self, field, value):
+    def test_analysis_response_rejects_invalid_content(self, field, value, location, error_type):
         data = {
             "entry_id": "entry-1",
             "sentiment": "positive",
@@ -275,8 +269,11 @@ class TestAnalysisResponseModel:
             "topics": ["APIs", "learning"],
         }
         data[field] = value
-        with pytest.raises(ValidationError):
+        with pytest.raises(ValidationError) as error:
             AnalysisResponse.model_validate(data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            (location, error_type),
+        ]
 
     @pytest.mark.parametrize("count", [2, 3, 4])
     def test_analysis_response_accepts_topic_count_boundaries(self, count):
@@ -298,38 +295,17 @@ class TestAnalysisResponseModel:
         assert response.summary == "Practiced APIs, e.g. request validation."
         assert response.topics == ["APIs", "validation"]
 
-    def test_analysis_response_auto_generates_timestamp(self):
-        """Test that AnalysisResponse auto-generates created_at."""
+    @pytest.mark.parametrize("field", ["entry_id", "sentiment", "summary", "topics"])
+    def test_analysis_response_missing_required_field(self, field):
         data = {
             "entry_id": "123e4567-e89b-12d3-a456-426614174000",
-            "sentiment": "neutral",
-            "summary": "The learner is making steady progress with their studies.",
-            "topics": ["learning", "progress"],
-        }
-        response = AnalysisResponse.model_validate(data)
-
-        assert response.created_at is not None
-        assert isinstance(response.created_at, datetime)
-
-    def test_analysis_response_missing_required_field(self):
-        """Test that missing required fields raise validation error."""
-        incomplete_data = {
-            "entry_id": "123e4567-e89b-12d3-a456-426614174000",
             "sentiment": "positive",
-            # Missing summary and topics
+            "summary": "The learner made progress.",
+            "topics": ["APIs", "learning"],
         }
-
-        with pytest.raises(ValidationError):
-            AnalysisResponse.model_validate(incomplete_data)
-
-    def test_analysis_response_invalid_topics_type(self):
-        """Test that topics must be a list."""
-        invalid_data = {
-            "entry_id": "123e4567-e89b-12d3-a456-426614174000",
-            "sentiment": "positive",
-            "summary": "Summary text",
-            "topics": "not a list",  # Should be a list
-        }
-
-        with pytest.raises(ValidationError):
-            AnalysisResponse.model_validate(invalid_data)
+        del data[field]
+        with pytest.raises(ValidationError) as error:
+            AnalysisResponse.model_validate(data)
+        assert [(item["loc"], item["type"]) for item in error.value.errors()] == [
+            ((field,), "missing"),
+        ]

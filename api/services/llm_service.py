@@ -9,21 +9,28 @@ Set OPENAI_API_KEY, OPENAI_BASE_URL, and OPENAI_MODEL in your .env file.
 Settings are loaded by ``api.config.Settings``.
 """
 
+import httpx
 from openai import AsyncOpenAI
 
 from api.config import get_settings
+
+
+class InvalidAnalysisResponseError(ValueError):
+    """The provider did not return a complete, usable analysis."""
 
 
 def _default_client() -> AsyncOpenAI:
     """Construct the real OpenAI client from application settings.
 
     Called lazily from ``analyze_journal_entry`` so tests can inject a
-    ``MockAsyncOpenAI`` without ever triggering this code path.
+    client with a mocked HTTP transport without triggering this code path.
     """
     settings = get_settings()
     return AsyncOpenAI(
-        api_key=settings.openai_api_key,
+        api_key=settings.openai_api_key.get_secret_value(),
         base_url=settings.openai_base_url,
+        timeout=httpx.Timeout(60.0, connect=5.0),
+        max_retries=1,
     )
 
 
@@ -31,14 +38,14 @@ async def analyze_journal_entry(
     entry_id: str,
     entry_text: str,
     client: AsyncOpenAI | None = None,
-) -> dict:
+) -> dict[str, object]:
     """Analyze a journal entry using the OpenAI Responses API.
 
     Args:
         entry_id: ID of the entry being analyzed (pass through to the result).
         entry_text: Combined work + struggle + intention text.
         client: OpenAI client. If None, a default one is constructed from
-            application settings. Tests pass in a MockAsyncOpenAI here; production code
+            application settings. Tests inject a client with a mocked transport; the
             in the router calls this with no ``client`` argument.
 
     Returns:
@@ -61,12 +68,14 @@ async def analyze_journal_entry(
          Prefer structured output via ``text={"format": {"type": "json_schema",
          ...}}`` on a supported model. JSON mode is an alternative, but it does
          not enforce your schema. See "Requesting structured output" in
-         docs/ai-analysis.md.
-      4. Reject incomplete responses, refusals, or empty output rather than
-         inventing a successful analysis. ``output_text`` is a string, not a
+         docs/10-ai-analysis.md.
+      4. Raise InvalidAnalysisResponseError for incomplete responses, refusals, or
+         empty output rather than inventing a successful analysis.
+         ``output_text`` is a string, not a
          guarantee of JSON; parsing malformed output with ``json.loads()`` must
          fail explicitly. Do not swallow provider or parsing errors.
-      5. Add ``entry_id`` from the function argument, not from model output.
+      5. Build a result from the three generated fields and ``entry_id`` from
+         the function argument. Do not accept model-generated IDs or timestamps.
          Validate the result with ``AnalysisResponse`` and return its dictionary
          representation. The response model supplies ``created_at``.
     """

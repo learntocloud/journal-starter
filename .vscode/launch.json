@@ -10,10 +10,21 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "api.main:app",
-                "--reload"
+                "api.main:app"
             ],
-            "jinja": true
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python Debugger: Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "purpose": ["debug-test"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }

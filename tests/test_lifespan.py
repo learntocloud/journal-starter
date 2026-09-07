@@ -4,6 +4,7 @@ import asyncpg
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from pydantic import SecretStr
 
 from api import main
 from api.config import Settings
@@ -11,10 +12,10 @@ from api.repositories.postgres_repository import PostgresDB
 
 
 @pytest.fixture
-def application(test_database_url: str, monkeypatch) -> FastAPI:
+def application(test_database_url: str, cleanup_database: None, monkeypatch) -> FastAPI:
     settings = Settings(
         database_url=test_database_url,
-        openai_api_key="placeholder",
+        openai_api_key=SecretStr("placeholder"),
         openai_base_url="https://example.invalid/v1",
         openai_model="placeholder",
     )

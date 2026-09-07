@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, HttpUrl, PostgresDsn, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,9 +17,10 @@ class Settings(BaseSettings):
     """
 
     database_url: str = Field(
+        repr=False,
         description="PostgreSQL connection URL (e.g. postgresql://user:pass@host:5432/db).",
     )
-    openai_api_key: str = Field(
+    openai_api_key: SecretStr = Field(
         description=(
             "API key for a provider that supports the OpenAI Responses API. Task 4 uses it to "
             "construct an AsyncOpenAI client; during Tasks 1-3 any non-empty "
@@ -37,7 +38,36 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
+        hide_input_in_errors=True,
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, value: str) -> str:
+        url = PostgresDsn(value)
+        if url.path in (None, "", "/"):
+            raise ValueError("Database URL must include a database name")
+        return str(url)
+
+    @field_validator("openai_base_url")
+    @classmethod
+    def validate_provider_url(cls, value: str) -> str:
+        return str(HttpUrl(value))
+
+    @field_validator("openai_api_key")
+    @classmethod
+    def require_api_key(cls, value: SecretStr) -> SecretStr:
+        if not value.get_secret_value().strip():
+            raise ValueError("API key must not be blank")
+        return value
+
+    @field_validator("openai_model")
+    @classmethod
+    def require_model(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Model name must not be blank")
+        return value
 
 
 @lru_cache

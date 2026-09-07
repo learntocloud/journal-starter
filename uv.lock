@@ -243,6 +243,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "asyncpg" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "openai" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -251,7 +252,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pre-commit" },
     { name = "pyright" },
     { name = "pytest" },
@@ -263,6 +263,7 @@ dev = [
 requires-dist = [
     { name = "asyncpg" },
     { name = "fastapi" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "openai", specifier = ">=2.53.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings" },
@@ -271,7 +272,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx" },
     { name = "pre-commit" },
     { name = "pyright" },
     { name = "pytest", specifier = ">=9.0.2" },

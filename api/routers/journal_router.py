@@ -1,61 +1,82 @@
 import logging
+import traceback
+from json import JSONDecodeError
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from openai import APITimeoutError, OpenAIError, RateLimitError
+from openai import APIStatusError, APITimeoutError, OpenAIError, RateLimitError
 from pydantic import ValidationError
 
-from api.models.entry import AnalysisResponse, Entry, EntryCreate
-from api.repositories.postgres_repository import PostgresDB
+from api.models.entry import (
+    AnalysisResponse,
+    DetailResponse,
+    Entry,
+    EntryCreate,
+    EntryCreatedResponse,
+    EntryListResponse,
+)
+from api.repositories.interface_repository import DatabaseInterface
 from api.services.entry_service import EntryService
-from api.services.llm_service import analyze_journal_entry
+from api.services.llm_service import InvalidAnalysisResponseError, analyze_journal_entry
 
 router = APIRouter()
-logger = logging.getLogger("journal")
+logger = logging.getLogger(__name__)
 
 
-async def get_database(request: Request) -> PostgresDB:
+async def get_database(request: Request) -> DatabaseInterface:
     return request.app.state.database
 
 
-async def get_entry_service(database: PostgresDB = Depends(get_database)) -> EntryService:
+async def get_entry_service(
+    database: Annotated[DatabaseInterface, Depends(get_database)],
+) -> EntryService:
     return EntryService(database)
+
+
+EntryServiceDependency = Annotated[EntryService, Depends(get_entry_service)]
+
+
+def _log_analysis_failure(entry_id: str, error: Exception) -> None:
+    # Keep diagnostic locations, but exclude exception text, source lines, and local values.
+    locations = " -> ".join(
+        f"{frame.filename}:{frame.lineno} in {frame.name}"
+        for frame in traceback.extract_tb(error.__traceback__)
+    )
+    request_id = error.request_id if isinstance(error, APIStatusError) else None
+    logger.error(
+        "Analysis failed for entry %s (error_type=%s, request_id=%s, locations=%s)",
+        entry_id,
+        type(error).__name__,
+        request_id,
+        locations,
+    )
 
 
 @router.post("/entries", status_code=201)
 async def create_entry(
-    entry_data: EntryCreate, entry_service: EntryService = Depends(get_entry_service)
-):
+    entry_data: EntryCreate, entry_service: EntryServiceDependency
+) -> EntryCreatedResponse:
     """Create a new journal entry."""
-    # Create the full entry with auto-generated fields
-    entry = Entry(
-        work=entry_data.work, struggle=entry_data.struggle, intention=entry_data.intention
-    )
-
-    # Store the entry in the database
-    created_entry = await entry_service.create_entry(entry.model_dump())
-
-    # Return success response (FastAPI handles datetime serialization automatically)
-    return {"detail": "Entry created successfully", "entry": created_entry}
+    created_entry = await entry_service.create_entry(entry_data)
+    return EntryCreatedResponse(detail="Entry created successfully", entry=created_entry)
 
 
-# Implements GET /entries endpoint to list all journal entries
-# Example response: [{"id": "123", "work": "...", "struggle": "...", "intention": "..."}]
 @router.get("/entries")
-async def get_all_entries(entry_service: EntryService = Depends(get_entry_service)):
+async def get_all_entries(entry_service: EntryServiceDependency) -> EntryListResponse:
     """Get all journal entries."""
     result = await entry_service.get_all_entries()
-    return {"entries": result, "count": len(result)}
+    return EntryListResponse(entries=result, count=len(result))
 
 
 @router.get("/entries/{entry_id}")
-async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Entry:
     """
     TODO: Implement this endpoint to return a single journal entry by ID
 
     Steps to implement:
     1. Use entry_service.get_entry(entry_id) to fetch the entry
     2. If entry is None, raise HTTPException with status_code=404
-    3. Return the entry directly (not wrapped in a dict)
+    3. Return the Entry model directly (not wrapped in a dict)
 
     Example response (status 200):
     {
@@ -74,11 +95,11 @@ async def get_entry(entry_id: str, entry_service: EntryService = Depends(get_ent
 
 @router.patch("/entries/{entry_id}")
 async def update_entry(
-    entry_id: str, entry_update: dict, entry_service: EntryService = Depends(get_entry_service)
-):
+    entry_id: str, entry_update: dict[str, str], entry_service: EntryServiceDependency
+) -> Entry:
     """Update a journal entry.
 
-    TODO (Task 3): Replace ``entry_update: dict`` with ``entry_update: EntryUpdate``
+    TODO (Task 2): Replace ``entry_update: dict[str, str]`` with ``entry_update: EntryUpdate``
     (import it from ``api.models.entry``). Validate supplied fields as non-empty,
     whitespace-stripped strings of at most 256 characters; reject explicit null.
     Then pass ``entry_update.model_dump(exclude_unset=True)`` to the service,
@@ -88,7 +109,7 @@ async def update_entry(
     See ``TestUpdateEntry`` in tests/test_api.py.
     """
     result = await entry_service.update_entry(entry_id, entry_update)
-    if not result:
+    if result is None:
         raise HTTPException(status_code=404, detail="Entry not found")
 
     return result
@@ -97,15 +118,17 @@ async def update_entry(
 # TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
 # Return 404 if entry not found
 @router.delete("/entries/{entry_id}")
-async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+async def delete_entry(entry_id: str, entry_service: EntryServiceDependency) -> DetailResponse:
     """
     TODO: Implement this endpoint to delete a specific journal entry
 
     Steps to implement:
-    1. Use entry_service.get_entry(entry_id) to check if entry exists
-    2. If entry is None, raise HTTPException with status_code=404
-    3. Use entry_service.delete_entry(entry_id) to delete the entry
-    4. Return a success response (status 200)
+    1. Call entry_service.delete_entry(entry_id) once
+    2. If it returns False, raise HTTPException with status_code=404
+    3. Return DetailResponse(detail="Entry deleted successfully") (status 200)
+
+    The repository atomically deletes the row and reports whether it existed.
+    Do not fetch the entry first: another request could delete it between calls.
 
     Example response (status 200):
     {"detail": "Entry deleted successfully"}
@@ -116,14 +139,14 @@ async def delete_entry(entry_id: str, entry_service: EntryService = Depends(get_
 
 
 @router.delete("/entries")
-async def delete_all_entries(entry_service: EntryService = Depends(get_entry_service)):
+async def delete_all_entries(entry_service: EntryServiceDependency) -> DetailResponse:
     """Delete all journal entries"""
     await entry_service.delete_all_entries()
-    return {"detail": "All entries deleted"}
+    return DetailResponse(detail="All entries deleted")
 
 
 @router.post("/entries/{entry_id}/analyze", response_model=AnalysisResponse)
-async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get_entry_service)):
+async def analyze_entry(entry_id: str, entry_service: EntryServiceDependency) -> AnalysisResponse:
     """
     Analyze a journal entry using AI.
 
@@ -135,7 +158,7 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
     if entry is None:
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    entry_text = f"{entry['work']} {entry['struggle']} {entry['intention']}"
+    entry_text = f"{entry.work} {entry.struggle} {entry.intention}"
 
     try:
         analysis = await analyze_journal_entry(entry_id, entry_text)
@@ -145,22 +168,22 @@ async def analyze_entry(entry_id: str, entry_service: EntryService = Depends(get
             status_code=501,
             detail="LLM analysis not yet implemented - see api/services/llm_service.py",
         ) from e
-    except ValidationError as e:
-        logger.exception("Invalid analysis response for entry %s", entry_id)
+    except (ValidationError, JSONDecodeError, InvalidAnalysisResponseError) as e:
+        _log_analysis_failure(entry_id, e)
         raise HTTPException(
             status_code=502, detail="Analysis provider returned an invalid response"
         ) from e
     except APITimeoutError as e:
-        logger.exception("Analysis provider timed out for entry %s", entry_id)
+        _log_analysis_failure(entry_id, e)
         raise HTTPException(status_code=504, detail="Analysis provider timed out") from e
     except RateLimitError as e:
-        logger.exception("Analysis provider rate limit reached for entry %s", entry_id)
+        _log_analysis_failure(entry_id, e)
         raise HTTPException(
             status_code=503, detail="Analysis provider is temporarily unavailable"
         ) from e
     except OpenAIError as e:
-        logger.exception("Analysis provider request failed for entry %s", entry_id)
+        _log_analysis_failure(entry_id, e)
         raise HTTPException(status_code=502, detail="Analysis provider request failed") from e
     except Exception as e:
-        logger.exception("Analysis failed for entry %s", entry_id)
+        _log_analysis_failure(entry_id, e)
         raise HTTPException(status_code=500, detail="Analysis failed") from e
