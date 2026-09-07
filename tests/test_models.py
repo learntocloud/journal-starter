@@ -1,5 +1,5 @@
 """
-Tests for the data models (Entry, EntryCreate, AnalysisResponse).
+Tests for the data models (Entry, EntryCreate, EntryUpdate, AnalysisResponse).
 
 These tests verify that the Pydantic models work correctly, including:
 - Field validation
@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
-from api.models.entry import AnalysisResponse, Entry, EntryCreate
+from api.models.entry import AnalysisResponse, Entry, EntryCreate, EntryUpdate
 
 pytestmark = pytest.mark.no_db
 
@@ -100,67 +100,78 @@ class TestEntryCreateValidation:
         assert getattr(EntryCreate(**data), field) == "a" * 256
 
 
-@pytest.mark.exercise
 class TestEntryUpdateModel:
-    """Task 2 tests for the EntryUpdate model.
-
-    ``EntryUpdate`` is created by the learner as part of Task 2, so the
-    import is intentionally inside each test to avoid failing test
-    collection on a fresh fork.
-    """
+    """Supplied partial-update behavior and Task 2 string validation."""
 
     def test_all_fields_optional(self):
         """EntryUpdate should allow construction with no fields set."""
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
-
         update = EntryUpdate()
-        assert update.work is None
-        assert update.struggle is None
-        assert update.intention is None
         assert update.model_dump(exclude_unset=True) == {}
 
-    def test_partial_update(self):
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_partial_update(self, field):
         """EntryUpdate should allow a single-field update."""
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
+        update = EntryUpdate.model_validate({field: "New text only"})
+        assert update.model_fields_set == {field}
+        assert update.model_dump(exclude_unset=True) == {field: "New text only"}
 
-        update = EntryUpdate(work="New work only")
-        assert update.work == "New work only"
-        assert update.struggle is None
-        assert update.intention is None
-        assert update.model_dump(exclude_unset=True) == {"work": "New work only"}
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_input_schema_allows_omission_but_not_null(self, field):
+        schema = EntryUpdate.model_json_schema(mode="validation")
+        assert field not in schema.get("required", [])
+        field_schema = schema["properties"][field]
+        assert field_schema["type"] == "string"
+        assert field_schema["maxLength"] == 256
+        assert "default" not in field_schema
+
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", [None, 123, True, [], {}, b"text"])
+    def test_supplied_nonstring_rejected(self, field, value):
+        with pytest.raises(ValidationError) as error:
+            EntryUpdate.model_validate({field: value})
+        assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     def test_oversize_field_rejected(self, field):
         """EntryUpdate should reject fields longer than 256 characters."""
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
-
         with pytest.raises(ValidationError) as error:
             EntryUpdate(**{field: "a" * 257})
         assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
+    @pytest.mark.exercise
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
-    @pytest.mark.parametrize("value", [None, "", " \t\n ", 123, True, [], {}])
+    @pytest.mark.parametrize("value", ["", " \t\n "])
     def test_invalid_supplied_field_rejected(self, field, value):
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
-
         with pytest.raises(ValidationError) as error:
             EntryUpdate(**{field: value})
         assert [item["loc"] for item in error.value.errors()] == [(field,)]
 
+    @pytest.mark.exercise
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     def test_supplied_field_is_stripped(self, field):
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
-
         update = EntryUpdate(**{field: "  New text  "})
         assert update.model_dump(exclude_unset=True) == {field: "New text"}
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
-    @pytest.mark.parametrize("value", ["a" * 256, f"  {'a' * 256}  "], ids=["plain", "padded"])
+    @pytest.mark.parametrize(
+        "value",
+        [
+            pytest.param("a" * 256, id="plain"),
+            pytest.param(f"  {'a' * 256}  ", id="padded", marks=pytest.mark.exercise),
+        ],
+    )
     def test_max_length_after_stripping_is_allowed(self, field, value):
-        from api.models.entry import EntryUpdate  # type: ignore[attr-defined]
-
         update = EntryUpdate(**{field: value})
         assert update.model_dump(exclude_unset=True) == {field: "a" * 256}
+
+    @pytest.mark.exercise
+    @pytest.mark.parametrize("model", [EntryCreate, EntryUpdate])
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    def test_input_schema_describes_string_constraints(self, model, field):
+        schema = model.model_json_schema(mode="validation")["properties"][field]
+        assert schema["type"] == "string"
+        assert schema["minLength"] == 1
+        assert schema["maxLength"] == 256
 
 
 class TestEntryModel:

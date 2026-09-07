@@ -6,6 +6,10 @@ In this chapter, you will validate new entries and partial updates before they
 reach the service. Then you'll use the debugger to see why updating one field
 leaves the other fields unchanged.
 
+The starter supplies the partial-update model's omission and null handling,
+including its API schema. Your work is to complete the shared string rules
+and connect that model to the PATCH handler.
+
 ## 1. Prepare Your Branch
 
 1. Make sure your DELETE pull request is merged, then check your working tree:
@@ -36,36 +40,40 @@ leaves the other fields unchanged.
 
 ## 2. Validate New Entries
 
-1. Open `api/models/entry.py` and find `EntryCreate`.
+1. Open `api/models/entry.py` and find `EntryText` and `EntryCreate`.
 
    A request model describes the data an endpoint accepts. This project uses
    Pydantic models to check incoming values before the handler calls the service.
    When a request fails validation, FastAPI returns HTTP 422 instead of saving
    the invalid data.
 
-2. Add constraints to the `work`, `struggle`, and `intention` fields so each one
-   accepts only strings, removes surrounding whitespace, and contains 1-256
-   characters after trimming. Reject empty, whitespace-only, oversized, and
-   non-string values.
+2. Complete the `StringConstraints` in `EntryText` so values have surrounding
+   whitespace removed and contain 1-256 characters after trimming. Keep the
+   supplied `strict=True` and maximum length. Empty, whitespace-only,
+   oversized, and non-string values must be rejected.
 
-   `Annotated[str, StringConstraints(...)]` can express these rules.
-   `Annotated` lets you attach validation rules to the string type, and
-   `StringConstraints` defines rules such as trimming and length limits.
+   `EntryText` is a shared type used by `work`, `struggle`, and `intention` in
+   both request models. `Annotated` attaches validation rules to the string
+   type, and `StringConstraints` defines trimming and length limits. Changing
+   this one definition applies the same rules to creation and updates.
+   `strict=True` prevents conversion from values such as Python bytes.
 
 3. Leave the `Entry` read model unchanged. These constraints apply to incoming
    writes, not to the shape of entries returned by the API.
 
 ## 3. Validate Partial Updates
 
-1. In `api/models/entry.py`, create an `EntryUpdate` model for the PATCH request
-   body.
+1. In `api/models/entry.py`, read the supplied `EntryUpdate` model for the PATCH
+   request body. You do not need to create it or change its default factories
+   and validator.
 
    PATCH lets a client change selected fields without sending the entire entry.
    For example, sending only `work` should not replace `struggle` or `intention`.
-   Your model needs to distinguish a field that was left out from a field
-   explicitly set to `null`.
+   Unlike `EntryCreate`, which requires all three fields, `EntryUpdate` permits
+   omission but rejects explicit `null`. Missing and invalid are different:
+   invalid input must reject the request, not be silently ignored.
 
-2. Implement the following behavior for all three text fields:
+2. With your completed `EntryText` rules, the model must provide this behavior:
 
    | PATCH input | Required behavior |
    |-------------|-------------------|
@@ -74,10 +82,10 @@ leaves the other fields unchanged.
    | `null`, empty, whitespace-only, or non-string supplied | Return HTTP 422 without changing the entry |
    | `{}` supplied | Accept it and keep all three text fields |
 
-   Fields may default to `None` internally to represent omission. A field
-   validator must still reject an explicitly supplied `None`. A validator is
-   a function Pydantic calls to check a value; use it to handle the explicit
-   `null` case without rejecting omitted fields.
+   The supplied defaults and validator handle omission and explicit null.
+   The validator's input-type metadata also keeps the generated API schema
+   consistent with the allowed input. You are not expected to implement that
+   plumbing; focus on which fields were supplied and whether their text is valid.
 
 3. Open `api/routers/journal_router.py`, import `EntryUpdate`, and use it as the
    type of the `entry_update` argument in the PATCH handler.
@@ -93,12 +101,14 @@ leaves the other fields unchanged.
    leaves out fields the client did not send, instead of including their default
    values. Pass that dictionary to the service, not the model itself.
 
-5. Save your changes. Keep the existing API response shape.
+5. Save your changes. Keep the existing API response shape. Once the handler
+   uses `EntryUpdate`, FastAPI validates the request before calling it. Invalid
+   input should return HTTP 422 without calling the entry service.
 
 ## 4. Trace a Partial Update in the Debugger
 
 The debugger pauses running code so you can inspect its values and follow what
-happens next. Complete the model and PATCH handler before starting this section.
+happens next. Complete the string rules and PATCH handler before starting this section.
 
 1. In `api/routers/journal_router.py`, click the gutter (the left margin) beside the PATCH
    handler's call to `entry_service.update_entry` to set a breakpoint.
@@ -140,8 +150,14 @@ happens next. Complete the model and PATCH handler before starting this section.
    previous result and decide which dictionary the service should receive.
 
 6. Use **Step Into (F11)** to follow the call into `EntryService.update_entry`.
-   Inspect `updated_data`. Use **Step Over (F10)** until `changes` has been
-   assigned, then confirm that it contains only `work`.
+
+   The router evaluates `model_dump()` before calling the service, so Step Into
+   may enter Pydantic first, depending on your debugger settings. If it does,
+   set a breakpoint on the first executable line inside `EntryService.update_entry`
+   in `api/services/entry_service.py`, then use **Continue (F5)** to reach it.
+
+   Once inside the service, inspect `updated_data`. Use **Step Over (F10)**
+   until `changes` has been assigned, then confirm that it contains only `work`.
 
    Step Into follows a function call into its implementation. Step Over executes
    the next line without following calls into other functions.

@@ -70,26 +70,26 @@ async def get_all_entries(entry_service: EntryServiceDependency) -> EntryListRes
 
 @router.get("/entries/{entry_id}")
 async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Entry:
-    """
-    TODO: Implement this endpoint to return a single journal entry by ID
-
-    Steps to implement:
-    1. Use entry_service.get_entry(entry_id) to fetch the entry
-    2. If entry is None, raise HTTPException with status_code=404
-    3. Return the Entry model directly (not wrapped in a dict)
-
-    Example response (status 200):
-    {
-        "id": "uuid-string",
-        "work": "...",
-        "struggle": "...",
-        "intention": "...",
-        "created_at": "...",
-        "updated_at": "..."
-    }
-
-    Hint: Check the update_entry endpoint for similar patterns
-    """
+    """Get a journal entry by ID."""
+    # TODO: Implement this endpoint to return a single journal entry by ID.
+    #
+    # Steps to implement:
+    # 1. Use await entry_service.get_entry(entry_id) to fetch the entry.
+    # 2. If entry is None, raise HTTPException with status_code=404.
+    # 3. Return the Entry model directly (not wrapped in a dict).
+    #
+    # Example response (status 200):
+    # {
+    #     "id": "uuid-string",
+    #     "work": "...",
+    #     "struggle": "...",
+    #     "intention": "...",
+    #     "created_at": "...",
+    #     "updated_at": "..."
+    # }
+    #
+    # Hint: Check the update_entry endpoint for similar patterns.
+    # See docs/04-get-entry.md for the exercise walkthrough.
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
 
@@ -97,17 +97,15 @@ async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Ent
 async def update_entry(
     entry_id: str, entry_update: dict[str, str], entry_service: EntryServiceDependency
 ) -> Entry:
-    """Update a journal entry.
-
-    TODO (Task 2): Replace ``entry_update: dict[str, str]`` with ``entry_update: EntryUpdate``
-    (import it from ``api.models.entry``). Validate supplied fields as non-empty,
-    whitespace-stripped strings of at most 256 characters; reject explicit null.
-    Then pass ``entry_update.model_dump(exclude_unset=True)`` to the service,
-    which expects a dict. Passing the model itself fails; dumping every field
-    would overwrite omitted fields with their defaults.
-    An empty object is allowed and leaves the text fields unchanged.
-    See ``TestUpdateEntry`` in tests/test_api.py.
-    """
+    """Update a journal entry."""
+    # TODO (Task 2): Replace ``entry_update: dict[str, str]`` with ``entry_update: EntryUpdate``
+    # (import the supplied model from ``api.models.entry``). Complete the shared
+    # EntryText string rules there; omission and null handling are already supplied.
+    # Then pass ``entry_update.model_dump(exclude_unset=True)`` to the service,
+    # which expects a dict. Passing the model itself fails; dumping every field
+    # would overwrite omitted fields with their defaults.
+    # An empty object is allowed and leaves the text fields unchanged.
+    # See ``TestUpdateEntry`` in tests/test_api.py and docs/06-input-validation.md.
     result = await entry_service.update_entry(entry_id, entry_update)
     if result is None:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -115,26 +113,24 @@ async def update_entry(
     return result
 
 
-# TODO: Implement DELETE /entries/{entry_id} endpoint to remove a specific entry
-# Return 404 if entry not found
 @router.delete("/entries/{entry_id}")
 async def delete_entry(entry_id: str, entry_service: EntryServiceDependency) -> DetailResponse:
-    """
-    TODO: Implement this endpoint to delete a specific journal entry
-
-    Steps to implement:
-    1. Call entry_service.delete_entry(entry_id) once
-    2. If it returns False, raise HTTPException with status_code=404
-    3. Return DetailResponse(detail="Entry deleted successfully") (status 200)
-
-    The repository atomically deletes the row and reports whether it existed.
-    Do not fetch the entry first: another request could delete it between calls.
-
-    Example response (status 200):
-    {"detail": "Entry deleted successfully"}
-
-    Hint: Look at how the update_entry endpoint checks for existence
-    """
+    """Delete a journal entry by ID."""
+    # TODO: Implement this endpoint to delete a specific journal entry.
+    #
+    # Steps to implement:
+    # 1. Use await entry_service.delete_entry(entry_id) exactly once.
+    # 2. If it returns False, raise HTTPException with status_code=404.
+    # 3. Return DetailResponse(detail="Entry deleted successfully") (status 200).
+    #
+    # The repository atomically deletes the row and reports whether it existed.
+    # Do not fetch the entry first: another request could delete it between calls.
+    #
+    # Example response (status 200):
+    # {"detail": "Entry deleted successfully"}
+    #
+    # Hint: Look at how the update_entry endpoint checks for existence.
+    # See docs/05-delete-entry.md for the exercise walkthrough.
     raise HTTPException(status_code=501, detail="Not implemented - complete this endpoint!")
 
 

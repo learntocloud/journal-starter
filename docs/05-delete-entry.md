@@ -38,8 +38,13 @@ can remove one journal entry.
 1. Open `api/routers/journal_router.py` and find the `delete_entry` function
    below `@router.delete("/entries/{entry_id}")`.
 
-2. Read the TODO instructions. Use `entry_service.delete_entry(entry_id)`
+2. Read the TODO instructions. Use `await entry_service.delete_entry(entry_id)`
    exactly once to delete the entry.
+
+   Like the GET service method, this method is asynchronous. Without `await`,
+   the call returns a coroutine, not the deletion result. A coroutine is truthy,
+   so checking it in an `if` statement would not tell you whether deletion
+   succeeded, and the deletion would not run.
 
    The database deletes the row and reports whether it existed in one operation.
    The service returns `True` when it deleted an entry and `False` when there
@@ -117,6 +122,9 @@ can remove one journal entry.
 
 6. Open a pull request to your fork's `main` branch with a descriptive title
    and a description of your changes.
+
+   Verify both the **base repository** (`YOUR_USERNAME/journal-starter`) and
+   **base branch** (`main`), with `feature/delete-entry` as the compare branch.
 
 7. Add exactly one task label: `task:delete-entry`. Create it if it does not exist.
 

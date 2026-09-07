@@ -52,7 +52,7 @@ Your codebase has some functionality already implemented. The starter tests chec
    marked as unfinished exercises. These starter tests should pass. The full
    suite will not pass until you complete the capstone.
 
-2. Read the test summary in the terminal. You should see `213 passed, 105 deselected`.
+2. Read the test summary in the terminal. You should see `262 passed, 118 deselected`.
 
 ## 3. Start the API
 

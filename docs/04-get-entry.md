@@ -136,18 +136,37 @@ implementation exercise.
    If the pre-commit hook modifies a file, review and stage the changes, then
    run the commit command again. If it reports an error, fix it before retrying.
 
-5. Push your branch:
+5. Before pushing, check your remotes:
+
+   ```bash
+   git remote -v
+   ```
+
+   The fetch and push URLs for `origin` should point to your fork,
+   `YOUR_USERNAME/journal-starter`, not `learntocloud/journal-starter`.
+   If they do not, revisit [Fork and Clone](02-project-setup.md#1-fork-and-clone)
+   before continuing.
+
+   Push your branch:
 
    ```bash
    git push -u origin feature/get-single-entry
    ```
 
-6. Open a pull request to your fork's `main` branch. Add a descriptive title
-   and explain what you implemented.
+6. Open a pull request. Verify that the **base repository** is your fork,
+   `YOUR_USERNAME/journal-starter`, and the **base branch** is `main`.
+   Checking only the branch name is not enough: the upstream repository also
+   has a `main` branch. The compare branch should be `feature/get-single-entry`.
+   Add a descriptive title and explain what you implemented.
 
 7. Add exactly one task label: `task:get-entry`. Create it if it does not exist.
 
 8. Wait for CI to pass, review the pull request's changes, and merge it.
+
+   A warning in the CI log is not the same as a failed check. Inspect each
+   required check's final status, and resolve failures before merging. Report
+   unexpected warnings; action-runtime deprecation warnings still need
+   maintenance even when the checks pass.
 
 ## Before You Continue
 

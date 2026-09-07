@@ -10,11 +10,13 @@ import pytest
 
 from api import main
 from api.logging_config import configure_logging
-from api.models.entry import EntryCreate
+from api.models.entry import Entry, EntryCreate
 from api.repositories.interface_repository import DatabaseInterface
 from api.services.entry_service import EntryService
 
 pytestmark = pytest.mark.no_db
+
+SERVICE_LOGGER = "api.services.entry_service"
 
 
 @pytest.fixture(autouse=True)
@@ -89,18 +91,132 @@ async def test_entry_operations(level, caplog, restored_root_logger):
     entry = await service.create_entry(entry_data)
     assert await service.delete_entry(entry.id) is True
 
-    records = [record for record in caplog.records if record.name == "api.services.entry_service"]
+    records = [record for record in caplog.records if record.name == SERVICE_LOGGER]
     database.create_entry.assert_awaited_once_with(entry)
     database.delete_entry.assert_awaited_once_with(entry.id)
-    assert any(record.levelno == logging.INFO for record in records)
-    assert any(entry.id in record.getMessage() for record in records)
+    assert [record.getMessage() for record in records if record.levelno == logging.INFO] == [
+        f"Entry {entry.id} created",
+        f"Entry {entry.id} deleted",
+    ]
     debug_records = [record for record in records if record.levelno == logging.DEBUG]
     if level == logging.DEBUG:
-        assert any(entry.id in record.getMessage() for record in debug_records)
-        assert any("True" in record.getMessage() for record in debug_records)
+        assert [record.getMessage() for record in debug_records] == [
+            f"Creating entry {entry.id}",
+            f"Deleting entry {entry.id}",
+        ]
     else:
         assert not debug_records
     for text in (entry_data.work, entry_data.struggle, entry_data.intention):
+        assert text not in caplog.text
+
+
+@pytest.fixture
+def stored_entry(sample_entry_data):
+    return Entry.model_validate(
+        {
+            **sample_entry_data,
+            "id": "entry-id",
+            "created_at": "2026-01-01T00:00:00Z",
+            "updated_at": "2026-01-01T00:00:00Z",
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    ("operation", "message"),
+    [
+        ("create_entry", "Entry entry-id created"),
+        ("update_entry", "Entry entry-id updated"),
+        ("delete_entry", "Entry entry-id deleted"),
+        ("delete_all_entries", "All entries deleted"),
+    ],
+)
+@pytest.mark.parametrize("fails", [False, True], ids=["success", "database-error"])
+async def test_write_logs_only_confirm_completed_operations(
+    operation, message, fails, stored_entry, sample_entry_data, caplog
+):
+    database = AsyncMock(spec=DatabaseInterface)
+    arguments = {
+        "create_entry": (EntryCreate(**sample_entry_data),),
+        "update_entry": (stored_entry.id, {"work": stored_entry.work}),
+        "delete_entry": (stored_entry.id,),
+        "delete_all_entries": (),
+    }
+    results = {
+        "create_entry": stored_entry,
+        "update_entry": stored_entry,
+        "delete_entry": True,
+        "delete_all_entries": None,
+    }
+
+    async def repository_call(*args, **kwargs):
+        assert not any(
+            record.name == SERVICE_LOGGER and record.levelno == logging.INFO
+            for record in caplog.records
+        )
+        if fails:
+            raise RuntimeError("private-database-error")
+        return results[operation]
+
+    getattr(database, operation).side_effect = repository_call
+    expected_error = (
+        pytest.raises(RuntimeError, match="private-database-error") if fails else nullcontext()
+    )
+    with caplog.at_level(logging.DEBUG, logger=SERVICE_LOGGER), expected_error:
+        await getattr(EntryService(database), operation)(*arguments[operation])
+    records = [record for record in caplog.records if record.name == SERVICE_LOGGER]
+    info_messages = [record.getMessage() for record in records if record.levelno == logging.INFO]
+    assert info_messages == ([] if fails else [message])
+    assert any(record.levelno == logging.DEBUG for record in records)
+    for text in (*sample_entry_data.values(), "private-database-error"):
+        assert text not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("operation", "result", "message"),
+    [
+        ("update_entry", None, "Entry entry-id not found; update skipped"),
+        ("delete_entry", False, "Entry entry-id not found; nothing deleted"),
+    ],
+)
+async def test_missing_entry_logs_outcome_without_claiming_success(
+    operation, result, message, caplog
+):
+    database = AsyncMock(spec=DatabaseInterface)
+    getattr(database, operation).return_value = result
+    arguments = (
+        ("entry-id", {"work": "private-journal-text"})
+        if operation == "update_entry"
+        else ("entry-id",)
+    )
+    with caplog.at_level(logging.DEBUG, logger=SERVICE_LOGGER):
+        assert await getattr(EntryService(database), operation)(*arguments) is result
+    assert [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == SERVICE_LOGGER and record.levelno == logging.INFO
+    ] == [message]
+    assert "private-journal-text" not in caplog.text
+
+
+@pytest.mark.parametrize("outcome", ["found", "missing", "list"])
+async def test_routine_reads_log_results_at_debug(outcome, stored_entry, caplog):
+    database = AsyncMock(spec=DatabaseInterface)
+    database.get_entry.return_value = stored_entry if outcome == "found" else None
+    database.get_all_entries.return_value = [stored_entry]
+    service = EntryService(database)
+    with caplog.at_level(logging.DEBUG, logger=SERVICE_LOGGER):
+        if outcome == "list":
+            await service.get_all_entries()
+            expected = "Fetched 1 entries"
+        else:
+            await service.get_entry(stored_entry.id)
+            expected = f"Entry entry-id {'found' if outcome == 'found' else 'not found'}"
+    records = [record for record in caplog.records if record.name == SERVICE_LOGGER]
+    assert [(record.levelno, record.getMessage()) for record in records] == [
+        (logging.DEBUG, expected)
+    ]
+    for text in (stored_entry.work, stored_entry.struggle, stored_entry.intention):
         assert text not in caplog.text
 
 

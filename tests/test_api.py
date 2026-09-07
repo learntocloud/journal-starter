@@ -27,6 +27,7 @@ from openai import (
 )
 
 from api.main import app
+from api.models.entry import Entry, EntryCreate
 from api.routers.journal_router import get_entry_service
 from api.services.entry_service import EntryService
 from api.services.llm_service import InvalidAnalysisResponseError
@@ -47,6 +48,28 @@ def assert_safe_error_log(caplog, error, entry_id):
     assert all(record.exc_info is None for record in records)
     assert str(error) not in caplog.text
     assert "provider-private-marker" not in caplog.text
+
+
+@pytest.mark.no_db
+class TestOpenAPIDescriptions:
+    @pytest.mark.parametrize("method", ["get", "patch", "delete"])
+    def test_endpoint_descriptions_exclude_exercise_instructions(self, method):
+        description = app.openapi()["paths"]["/entries/{entry_id}"][method]["description"]
+        assert "journal entry" in description.lower()
+        for marker in ("todo", "steps to implement", "hint:", "entry_service", "model_dump"):
+            assert marker not in description.lower()
+
+    @pytest.mark.parametrize("source", ["openapi", "pydantic"])
+    def test_create_model_description_excludes_exercise_instructions(self, source):
+        schema = (
+            app.openapi()["components"]["schemas"]["EntryCreate"]
+            if source == "openapi"
+            else EntryCreate.model_json_schema()
+        )
+        description = schema["description"]
+        assert "journal entry" in description.lower()
+        for marker in ("todo", "hint:", "stringconstraints"):
+            assert marker not in description.lower()
 
 
 class TestCreateEntry:
@@ -218,6 +241,67 @@ class TestGetSingleEntry:
 
 class TestUpdateEntry:
     """Tests for PATCH /entries/{entry_id} endpoint."""
+
+    @pytest.mark.no_db
+    @pytest.mark.exercise
+    @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
+    @pytest.mark.parametrize("value", [None, "", " \t\n ", "a" * 257, 123, True, [], {}])
+    async def test_invalid_input_never_calls_service(
+        self, monkeypatch, sample_entry_data, field, value
+    ):
+        service = AsyncMock(spec=EntryService)
+        service.update_entry.return_value = None
+        monkeypatch.setitem(app.dependency_overrides, get_entry_service, lambda: service)
+        payload = {**sample_entry_data, field: value}
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.patch("/entries/entry-id", json=payload)
+        assert response.status_code == 422
+        assert [error["loc"] for error in response.json()["detail"]] == [["body", field]]
+        service.update_entry.assert_not_called()
+
+    @pytest.mark.no_db
+    @pytest.mark.exercise
+    @pytest.mark.parametrize(
+        ("payload", "expected"),
+        [
+            ({}, {}),
+            ({"work": "  New work  "}, {"work": "New work"}),
+            ({"struggle": "New struggle"}, {"struggle": "New struggle"}),
+            ({"intention": "New intention"}, {"intention": "New intention"}),
+            (
+                {"work": "New work", "intention": "New intention"},
+                {"work": "New work", "intention": "New intention"},
+            ),
+        ],
+    )
+    async def test_only_supplied_fields_reach_service(
+        self, monkeypatch, sample_entry_data, payload, expected
+    ):
+        service = AsyncMock(spec=EntryService)
+        now = datetime.now(UTC)
+        service.update_entry.return_value = Entry(
+            id="entry-id", created_at=now, updated_at=now, **sample_entry_data
+        )
+        monkeypatch.setitem(app.dependency_overrides, get_entry_service, lambda: service)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.patch("/entries/entry-id", json=payload)
+        assert response.status_code == 200
+        service.update_entry.assert_awaited_once_with("entry-id", expected)
+
+    @pytest.mark.no_db
+    @pytest.mark.exercise
+    def test_patch_schema_describes_optional_nonnullable_text(self):
+        schema = app.openapi()
+        body = schema["paths"]["/entries/{entry_id}"]["patch"]["requestBody"]
+        reference = body["content"]["application/json"]["schema"]["$ref"]
+        model_schema = schema["components"]["schemas"][reference.rsplit("/", 1)[-1]]
+        for field in ("work", "struggle", "intention"):
+            assert field not in model_schema.get("required", [])
+            field_schema = model_schema["properties"][field]
+            assert field_schema["type"] == "string"
+            assert field_schema["minLength"] == 1
+            assert field_schema["maxLength"] == 256
+            assert "default" not in field_schema
 
     @pytest.mark.parametrize("field", ["work", "struggle", "intention"])
     async def test_update_entry_success(self, test_client: AsyncClient, created_entry: dict, field):

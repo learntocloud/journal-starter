@@ -3,8 +3,8 @@
 [Home](../README.md) · **Chapter 7 of 10**
 
 In this chapter, you will configure logging and observe messages from entry
-operations. You'll compare messages about normal activity with the extra detail
-used to investigate problems.
+operations. You'll use INFO to follow write outcomes and DEBUG to investigate
+attempts and routine reads. An attempt is not proof that an operation succeeded.
 
 ## 1. Prepare Your Branch
 
@@ -59,7 +59,10 @@ used to investigate problems.
 4. Set the root logger's level explicitly, even when handlers already exist.
 
    `logging.basicConfig()` does nothing if the root logger already has handlers.
-   Setting the level separately ensures the requested level still takes effect.
+   Setting the root level separately lets module loggers that inherit it use
+   the requested level. Existing handlers keep their own formats, levels, and
+   filters, so they may still exclude some messages. Do not overwrite those
+   settings to make every output look the same.
 
 5. Open `api/services/entry_service.py` and inspect the existing calls to
    `logger.info()` and `logger.debug()`.
@@ -68,6 +71,11 @@ used to investigate problems.
    messages. `__name__` identifies the module the message came from. Leave
    propagation enabled so messages reach the shared handlers. The entry-operation
    messages are already supplied; you do not need to add them again.
+
+   In this service, INFO records write outcomes after the database call returns.
+   DEBUG adds write attempts and routine read results. A missing entry is reported
+   as missing, not as a successful update or deletion. If the database raises an
+   exception, the service does not emit a success message.
 
 ## 3. Log Startup and Shutdown
 
@@ -102,11 +110,16 @@ used to investigate problems.
    Find your readiness message in the terminal.
 
 3. Open <http://localhost:8000/docs>. Use **POST `/entries`** to create a made-up
-   entry, then copy its `id` from the response. Find the creation message in the
-   server terminal.
+   entry, then copy its `id` from the HTTP 201 response. Find `Entry <id> created`
+   in the server terminal. This INFO message is emitted after the database
+   returns the stored entry.
 
-4. Use **DELETE `/entries/{entry_id}`** with the ID you copied. Find the deletion
-   message in the server terminal.
+4. Use **DELETE `/entries/{entry_id}`** with the ID you copied. Find
+   `Entry <id> deleted` in the server terminal and check the HTTP 200 response.
+   The shared ID connects creation and deletion without needing DEBUG.
+
+   Repeat the DELETE with the same ID. Expect HTTP 404 and
+   `Entry <id> not found; nothing deleted` at INFO, not another success message.
 
 5. Stop the API with `Ctrl+C`. Find your shutdown message.
 
@@ -116,7 +129,9 @@ used to investigate problems.
    uv run pytest 'tests/test_logging.py::test_entry_operations[INFO]' --log-cli-level=INFO
    ```
 
-   Observe which operation messages appear.
+   Observe which operation messages appear. Pytest's live-log handler uses its
+   own format, which may differ from the terminal format you configured with
+   `basicConfig()`. That is expected when existing handlers are preserved.
 
 7. Run the same test at DEBUG:
 
@@ -124,8 +139,14 @@ used to investigate problems.
    uv run pytest 'tests/test_logging.py::test_entry_operations[DEBUG]' --log-cli-level=DEBUG
    ```
 
-   Look for additional messages about results, such as whether an entry was
-   found or deleted.
+   This test creates and deletes an entry; it does not fetch one. The same INFO
+   outcome messages still appear. DEBUG adds `Creating entry <id>` and
+   `Deleting entry <id>` before the database calls. Compare each attempt with
+   its completion message: an attempt alone does not confirm success.
+
+   Focus on messages from the `api.services.entry_service` logger. DEBUG may
+   also show messages from other loggers, such as an asyncio selector message;
+   those are not entry-operation messages.
 
 8. Prepare a short log sample and your observations for the pull request description:
 
@@ -134,6 +155,7 @@ used to investigate problems.
    | What changes between INFO and DEBUG? | Examples of messages that appear at each level |
    | How can you follow one entry? | How its ID connects messages from different operations |
    | Did an operation start or finish? | Which messages describe an attempt and which confirm a result |
+   | What if the entry is missing? | How the repeated DELETE's message differs from a successful deletion |
    | When is the API ready? | Why the readiness message comes after the database opens |
    | What should stay out of logs? | The kinds of data you must not include |
 
