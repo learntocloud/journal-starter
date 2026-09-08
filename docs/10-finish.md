@@ -27,7 +27,67 @@ In this chapter, you will confirm that the complete project works on your merged
    git pull origin main
    ```
 
-## 2. Run the Full Test Suite
+## 2. Try the Complete Workflow
+
+1. [Start the API](03-run-the-api.md#3-start-the-api).
+2. Open a second terminal in the development container. Run all commands below
+   there. `curl -i` shows the HTTP status, headers, and response body.
+3. Create a disposable entry using this made-up content:
+
+   ```bash
+   curl -i -X POST http://localhost:8000/entries \
+     -H 'Content-Type: application/json' \
+     -d '{"work":"Practiced API requests","struggle":"Reading HTTP responses","intention":"Review the complete workflow"}'
+   ```
+
+   Expect **201**.
+
+4. Replace `PASTE_ID_HERE` with `entry.id` from the response:
+
+   ```bash
+   ENTRY_ID='PASTE_ID_HERE'
+   ```
+
+5. Retrieve the entry:
+
+   ```bash
+   curl -i "http://localhost:8000/entries/$ENTRY_ID"
+   ```
+
+   Expect **200** with the same ID and text.
+
+6. Update `work`, then retrieve the entry:
+
+   ```bash
+   curl -i -X PATCH "http://localhost:8000/entries/$ENTRY_ID" \
+     -H 'Content-Type: application/json' \
+     -d '{"work":"Completed the manual API workflow"}'
+   curl -i "http://localhost:8000/entries/$ENTRY_ID"
+   ```
+
+   Expect **200** for both. Only `work` and `updated_at` should change.
+
+7. Analyze the entry once. This sends its text to your AI provider and may incur charges:
+
+   ```bash
+   curl -i -X POST "http://localhost:8000/entries/$ENTRY_ID/analyze"
+   ```
+
+   Expect **200** with the matching `entry_id`, `sentiment`, `summary`, `topics`,
+   and `created_at`.
+
+8. Delete the entry, GET it, then delete it again:
+
+   ```bash
+   curl -i -X DELETE "http://localhost:8000/entries/$ENTRY_ID"
+   curl -i "http://localhost:8000/entries/$ENTRY_ID"
+   curl -i -X DELETE "http://localhost:8000/entries/$ENTRY_ID"
+   ```
+
+   Expect **200**, **404**, and **404**, respectively.
+   Do not use **DELETE `/entries`**: it deletes every entry.
+
+## 3. Run the Full Test Suite
 
 1. Run all tests:
 
@@ -39,7 +99,7 @@ In this chapter, you will confirm that the complete project works on your merged
 
 2. Read the test summary. Resolve any failures before marking the capstone complete.
 
-## 3. Run Code Quality
+## 4. Run Code Quality
 
 1. Run Ruff:
 
@@ -59,7 +119,7 @@ In this chapter, you will confirm that the complete project works on your merged
    uv run pyright
    ```
 
-## 4. Confirm the Live AI Integration
+## 5. Confirm the Live AI Integration
 
 1. With your provider settings still in `.env`, run:
 
@@ -70,7 +130,7 @@ In this chapter, you will confirm that the complete project works on your merged
 2. Confirm that the output includes `Validated AnalysisResponse:` and the
    bundled sample's analysis.
 
-## 5. Confirm the Cloud CLI
+## 6. Confirm the Cloud CLI
 
 Run only the step for the CLI you installed:
 
@@ -95,7 +155,7 @@ Run only the step for the CLI you installed:
 Your selected command should print version information. No cloud login or
 deployment is required.
 
-## 6. Update Your CI Badge
+## 7. Update Your CI Badge
 
 The CI badge in `README.md` currently reports the upstream starter's status.
 Point it to your fork so visitors see the status of your own `main` branch.
@@ -144,7 +204,7 @@ Point it to your fork so visitors see the status of your own `main` branch.
    git pull origin main
    ```
 
-## 7. Verify the Capstone on GitHub
+## 8. Verify the Capstone on GitHub
 
 1. After merging all work into your fork's `main`, open your repository on GitHub.
 2. Go to **Actions → Verify capstone → Run workflow**.
@@ -160,6 +220,7 @@ Point it to your fork so visitors see the status of your own `main` branch.
 - The input-validation pull request explains the partial update observed in the debugger.
 - The logging pull request includes a log sample and your observations.
 - The AI analysis pull request includes successful live verification.
+- The manual create, retrieve, update, analyze, and delete workflow succeeds on the merged code.
 - The full test suite passes.
 - Ruff and Pyright pass.
 - **Verify capstone** succeeds for the current `main` commit before submitting

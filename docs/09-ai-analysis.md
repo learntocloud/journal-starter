@@ -278,7 +278,17 @@ Write these steps inside `try`, after the request and before `finally`.
    run or the live verification below. Implementation tests are expected to
    fail while the starter still raises `NotImplementedError`.
 
-## 4. Run the Checks
+## 4. Try It Yourself
+
+1. [Start the API](03-run-the-api.md#3-start-the-api). Restart it if you changed `.env`.
+2. Open <http://localhost:8000/docs>.
+3. Use **POST `/entries`** to create a made-up entry. Expect **201** and copy `entry.id`.
+4. Use **POST `/entries/{entry_id}/analyze`** with that ID. This sends the text
+   to your AI provider and may incur charges; execute it once.
+5. Expect **200** with the matching `entry_id`, `sentiment`, `summary`, `topics`,
+   and `created_at`. Generated wording can vary.
+
+## 5. Run the Checks
 
 1. Run the mocked service tests:
 
@@ -321,7 +331,7 @@ Write these steps inside `try`, after the request and before `finally`.
    uv run pyright
    ```
 
-## 5. Review and Submit Your Work
+## 6. Review and Submit Your Work
 
 1. Review your changes:
 
