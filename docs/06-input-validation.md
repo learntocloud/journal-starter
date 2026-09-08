@@ -159,7 +159,39 @@ happens next.
 If tests do not appear or a breakpoint is not reached, use the
 [debugger troubleshooting guide](reference/troubleshooting.md#tests-do-not-appear-or-breakpoints-are-not-hit).
 
-## 5. Run the Checks
+## 5. Try It Yourself
+
+1. [Start the API](03-run-the-api.md#3-start-the-api).
+2. Open or refresh <http://localhost:8000/docs>.
+3. Send **POST `/entries`** with this body:
+
+   ```json
+   {
+     "work": "   ",
+     "struggle": "Understanding partial updates",
+     "intention": "Practice input validation"
+   }
+   ```
+
+   Expect **422** with an error identifying `work`.
+
+4. Change `work` to `"Practiced API requests"` and POST again. Expect **201**
+   and copy `entry.id`.
+5. Send **PATCH `/entries/{entry_id}`** with that ID and only this body:
+
+   ```json
+   {"work": "  Updated description  "}
+   ```
+
+   Expect **200** with `work` trimmed to `"Updated description"`.
+
+6. GET the entry. Confirm `struggle`, `intention`, `id`, and `created_at`
+   still match the creation response.
+7. Try PATCH with `{"work": null}`, then `{"work": "   "}`. Expect **422**
+   for each. GET again to confirm nothing changed.
+8. Try PATCH with `{}`. Expect **200** with all three text fields unchanged.
+
+## 6. Run the Checks
 
 1. Run the model and endpoint tests for this task:
 
@@ -192,7 +224,7 @@ If tests do not appear or a breakpoint is not reached, use the
    uv run pyright
    ```
 
-## 6. Review and Submit Your Work
+## 7. Review and Submit Your Work
 
 1. Review your changes:
 

@@ -64,7 +64,18 @@ implementation exercise.
 
 4. Save your changes.
 
-## 3. Run the Checks
+## 3. Try It Yourself
+
+1. [Start the API](03-run-the-api.md#3-start-the-api).
+2. Open <http://localhost:8000/docs>.
+3. Use **POST `/entries`** to create a made-up entry. Expect **201** and copy
+   `entry.id` from the response.
+4. Open **GET `/entries/{entry_id}`**, click **Try it out**, enter that ID,
+   and click **Execute**. Expect **200** with the same ID and text.
+5. Try a nonexistent UUID, such as `00000000-0000-0000-0000-000000000000`.
+   Expect **404** with a `detail` message.
+
+## 4. Run the Checks
 
 1. Run the acceptance tests for this endpoint:
 
@@ -105,7 +116,7 @@ implementation exercise.
    CI also runs the starter tests and all exercises up to the task selected by
    your pull request label. Later, unfinished exercises are not included.
 
-## 4. Review and Submit Your Work
+## 5. Review and Submit Your Work
 
 1. Review your code changes:
 

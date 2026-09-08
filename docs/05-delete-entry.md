@@ -60,7 +60,20 @@ can remove one journal entry.
 
 4. Save your changes.
 
-## 3. Run the Checks
+## 3. Try It Yourself
+
+1. [Start the API](03-run-the-api.md#3-start-the-api).
+2. Open <http://localhost:8000/docs>.
+3. Use **POST `/entries`** to create a disposable, made-up entry. Expect **201**
+   and copy `entry.id`.
+4. Use **DELETE `/entries/{entry_id}`** with that ID. Expect **200** with
+   `{"detail": "Entry deleted successfully"}`.
+5. Use **GET `/entries/{entry_id}`** with the same ID. Expect **404**.
+6. Delete the same ID again. Expect **404**.
+
+Do not use **DELETE `/entries`**: it deletes every entry.
+
+## 4. Run the Checks
 
 1. Run the DELETE endpoint tests:
 
@@ -88,7 +101,7 @@ can remove one journal entry.
    uv run pyright
    ```
 
-## 4. Review and Submit Your Work
+## 5. Review and Submit Your Work
 
 1. Review your changes:
 
