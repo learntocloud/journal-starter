@@ -74,6 +74,10 @@ async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Ent
     # TODO: Implement this endpoint to return a single journal entry by ID.
     #
     # Steps to implement:
+    id = await entry_service.get_entry(entry_id)
+    if id:
+        return id
+    raise HTTPException(status_code=404, detail="Not found")
     # 1. Use await entry_service.get_entry(entry_id) to fetch the entry.
     # 2. If entry is None, raise HTTPException with status_code=404.
     # 3. Return the Entry model directly (not wrapped in a dict).
