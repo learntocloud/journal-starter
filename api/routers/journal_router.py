@@ -73,6 +73,10 @@ async def get_entry(entry_id: str, entry_service: EntryServiceDependency) -> Ent
     """Get a journal entry by ID."""
     # TODO: Implement this endpoint to return a single journal entry by ID.
     #
+    id = await entry_service.get_entry(entry_id)
+    if id:
+        return id
+    raise HTTPException(status_code=404, detail="Not Found")
     # Steps to implement:
     # 1. Use await entry_service.get_entry(entry_id) to fetch the entry.
     # 2. If entry is None, raise HTTPException with status_code=404.
@@ -120,6 +124,10 @@ async def delete_entry(entry_id: str, entry_service: EntryServiceDependency) -> 
     #
     # Steps to implement:
     # 1. Use await entry_service.delete_entry(entry_id) exactly once.
+    deletion = await entry_service.delete_entry(entry_id)
+    if deletion:
+        return DetailResponse(detail="Entry deleted successfully")
+    raise HTTPException(status_code=404, detail="Failed to delete")
     # 2. If it returns False, raise HTTPException with status_code=404.
     # 3. Return DetailResponse(detail="Entry deleted successfully") (status 200).
     #
